@@ -19,7 +19,8 @@ function sync() {
   if (running) { pending = true; return; }
   running = true;
   try {
-    const changes = git("status", "--porcelain");
+    // Sin trim al inicio: cada línea empieza con 2 caracteres de estado (" M", "??").
+    const changes = execFileSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).replace(/\s+$/, "");
     if (!changes) return;
     const files = changes.split("\n").map((l) => l.slice(3).trim());
     git("add", "-A");
