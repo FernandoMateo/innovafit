@@ -1,0 +1,66 @@
+/* Certificado InnovaFit (1200×849). Se usa en campus, admin y verificación.
+   Evita background-clip:text y filtros: html2canvas no los soporta al descargar. */
+@font-face{font-family:'Mont';font-weight:400;font-display:swap;src:url(/assets/cert/mont-400.woff2) format('woff2')}
+@font-face{font-family:'Mont';font-weight:600;font-display:swap;src:url(/assets/cert/mont-600.woff2) format('woff2')}
+@font-face{font-family:'Mont';font-weight:700;font-display:swap;src:url(/assets/cert/mont-700.woff2) format('woff2')}
+@font-face{font-family:'Mont';font-weight:800;font-display:swap;src:url(/assets/cert/mont-800.woff2) format('woff2')}
+
+.ifc-fit{position:relative;width:100%;aspect-ratio:1200/849;border-radius:10px;overflow:hidden;box-shadow:0 30px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(255,201,120,.18)}
+.ifc-fit>.ifc-cert{position:absolute;left:0;top:0;transform-origin:0 0}
+/* Brillo holográfico que recorre la vista previa (no forma parte del archivo descargado) */
+.ifc-fit::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:20;
+  background:linear-gradient(115deg,transparent 35%,rgba(255,226,170,.16) 47%,rgba(255,255,255,.22) 50%,rgba(255,226,170,.16) 53%,transparent 65%);
+  background-size:260% 100%;background-position:130% 0;animation:ifcShine 5.5s ease-in-out infinite}
+@keyframes ifcShine{0%,55%{background-position:130% 0}100%{background-position:-130% 0}}
+@media (prefers-reduced-motion:reduce){.ifc-fit::after{animation:none;display:none}}
+
+.ifc-cert{width:1200px;height:849px;position:relative;overflow:hidden;color:#fff;font-family:'Mont',-apple-system,Helvetica,Arial,sans-serif;
+  background:
+    radial-gradient(ellipse 760px 600px at 4% 100%,rgba(255,90,0,.46),transparent 60%),
+    radial-gradient(ellipse 680px 620px at 98% 0%,rgba(255,183,3,.30),transparent 62%),
+    linear-gradient(155deg,#1d1c20 0%,#131215 55%,#0b0b0d 100%)}
+/* Líneas diagonales finas de fondo */
+.ifc-lines{position:absolute;inset:0;z-index:1;opacity:.5;
+  background:repeating-linear-gradient(135deg,rgba(255,255,255,.022) 0 1px,transparent 1px 22px)}
+/* Anillos decorativos */
+.ifc-ring{position:absolute;border-radius:50%;border:1px solid rgba(255,183,3,.16);z-index:1}
+.ifc-ring.r1{width:520px;height:520px;right:-170px;top:-190px}
+.ifc-ring.r2{width:380px;height:380px;right:-100px;top:-120px;border-color:rgba(255,183,3,.10)}
+.ifc-ring.r3{width:600px;height:600px;left:-260px;bottom:-330px;border-color:rgba(255,90,0,.18)}
+.ifc-frame{position:absolute;inset:22px;z-index:2;border:1px solid rgba(255,197,120,.34)}
+.ifc-frame::after{content:"";position:absolute;inset:7px;border:1px solid rgba(255,197,120,.13)}
+.ifc-corner{position:absolute;width:46px;height:46px;z-index:3;border-color:#ffb703;border-style:solid;border-width:0}
+.ifc-corner.tl{left:22px;top:22px;border-left-width:3px;border-top-width:3px}
+.ifc-corner.tr{right:22px;top:22px;border-right-width:3px;border-top-width:3px}
+.ifc-corner.bl{left:22px;bottom:22px;border-left-width:3px;border-bottom-width:3px}
+.ifc-corner.br{right:22px;bottom:22px;border-right-width:3px;border-bottom-width:3px}
+.ifc-side{position:absolute;left:46px;top:50%;z-index:3;transform:translateY(-50%) rotate(-90deg);transform-origin:center;
+  font-size:10px;font-weight:700;letter-spacing:.5em;color:rgba(255,201,120,.45);white-space:nowrap;width:0;display:flex;justify-content:center}
+
+.ifc-inner{position:relative;z-index:4;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:50px 96px 52px}
+.ifc-logo{height:40px;display:block;margin:0 auto}
+.ifc-t1{font-weight:800;font-size:34px;letter-spacing:.12em;line-height:1.05;margin:22px 0 0}
+.ifc-t2{font-weight:600;font-size:12px;letter-spacing:.46em;color:#ffc978;margin-top:10px}
+.ifc-rule{width:70px;height:2px;margin:16px auto 0;background:linear-gradient(90deg,transparent,#ffb703,transparent)}
+.ifc-kicker{font-weight:600;font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:#b7b7bd;margin-top:6px}
+.ifc-name{width:900px;height:92px;display:block;margin:14px auto 0}
+.ifc-name-rule{width:120px;height:1px;margin:16px auto 0;background:linear-gradient(90deg,transparent,#ffb703,transparent)}
+.ifc-line{font-weight:600;font-size:15px;color:#c7c7cd;margin-top:18px;max-width:720px;line-height:1.6}
+.ifc-line b{color:#fff;font-weight:800}
+.ifc-pill{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:99px;border:1px solid rgba(255,183,3,.45);color:#ffc978;font-size:12px;font-weight:700;letter-spacing:.06em}
+.ifc-desc{font-weight:400;font-size:13.5px;line-height:1.85;color:#96969c;margin:14px auto 0;max-width:620px}
+
+.ifc-foot{display:flex;align-items:flex-end;justify-content:center;gap:64px;width:100%}
+.ifc-col{min-width:170px;text-align:center}
+.ifc-val{font-weight:700;font-size:15px;color:#fff;min-height:20px;white-space:nowrap}
+.ifc-frule{height:1px;background:rgba(255,183,3,.42);margin:10px 0 8px}
+.ifc-label{font-weight:600;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#8d8d95}
+.ifc-col.sign{min-width:230px;position:relative}
+.ifc-sign{height:78px;margin:0 auto -6px;display:block}
+.ifc-seal{position:absolute;top:-34px;right:-30px;width:64px;height:64px;border-radius:50%;
+  border:1.5px solid rgba(255,197,120,.85);background:radial-gradient(circle,rgba(255,183,3,.14),rgba(255,255,255,.02));
+  display:flex;align-items:center;justify-content:center}
+.ifc-seal::before{content:"";position:absolute;inset:5px;border-radius:50%;border:1px dashed rgba(255,197,120,.45)}
+.ifc-seal span{font-size:19px;color:#ffc060;font-weight:800}
+.ifc-folio{position:absolute;bottom:34px;right:44px;z-index:5;font-size:9.5px;color:#7a7a82;letter-spacing:.04em;font-weight:600;text-align:right;line-height:1.6}
+.ifc-folio b{color:#cfcfd4}

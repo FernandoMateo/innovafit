@@ -1,0 +1,10 @@
+node_modules/
+.env
+pocketbase/pb_data/
+pocketbase/pocketbase
+pocketbase/pocketbase.exe
+pocketbase/*.md
+# Respuestas correctas de la evaluación: el repo es público, se copian al servidor aparte.
+data/questions.json
+# PocketBase las genera solo en local; el esquema lo maneja setup.js
+pocketbase/pb_migrations/

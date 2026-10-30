@@ -1,0 +1,6 @@
+[Unit]
+Description=InnovaFit: buscar actualizaciones en GitHub y desplegar
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/innovafit/app/deploy/autodeploy.sh

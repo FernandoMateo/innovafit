@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Campus InnovaFit</title>
+<meta name="theme-color" content="#07070a">
+<link rel="icon" href="/assets/innovafit-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/base.css">
+<style>
+  .topbar{position:sticky;top:0;z-index:40;height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 max(16px,env(safe-area-inset-left));
+    background:rgba(7,7,10,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .topbar-l{display:flex;align-items:center;gap:14px;min-width:0}
+  .topbar img{height:26px;width:auto}
+  .topbar-r{display:flex;align-items:center;gap:10px}
+  .who{font-size:13.5px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @media (max-width:560px){.who{display:none}}
+  .burger{display:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--line-2);background:transparent;cursor:pointer;place-items:center}
+  .burger svg{width:18px;height:18px}
+
+  .page{width:min(1180px,100%);margin:0 auto;padding:40px 16px 80px}
+  .hello h1{font-size:clamp(36px,6vw,64px);margin:10px 0 8px}
+  .hello p{color:var(--muted);margin:0 0 34px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+  .course{display:flex;flex-direction:column;overflow:hidden;text-decoration:none;transition:transform .25s ease,border-color .25s}
+  .course:hover{transform:translateY(-4px);border-color:rgba(255,201,60,.35)}
+  .course-cover{aspect-ratio:16/9;background:var(--bg-2) center/cover no-repeat;position:relative}
+  .course-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(21,20,24,1),transparent 55%)}
+  .course-body{padding:18px 20px 22px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .course-body h3{font-size:24px}
+  .course-body p{margin:0;color:var(--muted);font-size:14px}
+  .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:auto}
+  .bar i{display:block;height:100%;background:var(--grad);border-radius:inherit;transition:width .6s cubic-bezier(.2,.9,.3,1)}
+  .bar-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+  .empty{padding:40px 28px;text-align:center}
+  .empty h2{font-size:30px;margin-bottom:10px}
+  .empty p{color:var(--muted);margin:0 auto 22px;max-width:46ch}
+
+  /* Curso */
+  .course-view{display:grid;grid-template-columns:330px 1fr;min-height:calc(100vh - 64px)}
+  .side{border-right:1px solid var(--line);background:var(--bg-2);position:sticky;top:64px;height:calc(100vh - 64px);overflow:auto;padding:22px 16px 40px}
+  .side-head{display:flex;gap:14px;align-items:center;padding:0 6px 20px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  .ring{position:relative;width:56px;height:56px;flex:none}
+  .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:6}
+  .ring .t{stroke:rgba(255,255,255,.08)}
+  .ring .f{stroke:url(#rg);stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+  .ring span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:700}
+  .side-head b{display:block;font-size:15px;line-height:1.3}
+  .side-head small{color:var(--muted);font-size:12.5px}
+  .sec-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:16px 8px 8px}
+  .lesson-link{text-decoration:none;display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;padding:11px 10px;border-radius:12px;border:0;background:transparent;cursor:pointer;transition:background .15s}
+  .lesson-link:hover{background:rgba(255,255,255,.04)}
+  .lesson-link.active{background:rgba(255,201,60,.08);box-shadow:inset 3px 0 0 var(--yellow)}
+  .lesson-link .ic{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:rgba(255,255,255,.05);font-size:12px}
+  .lesson-link.done .ic{background:var(--good);color:#04130c}
+  .lesson-link .lt{font-size:14px;font-weight:600;line-height:1.35}
+  .lesson-link .lk{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+
+  .stage{padding:30px clamp(16px,3vw,44px) 70px;min-width:0}
+  .crumbs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .crumbs a{text-decoration:none}
+  .crumbs a:hover{color:var(--yellow)}
+  .stage h1{font-size:clamp(30px,4.4vw,52px);margin-bottom:10px}
+  .stage-desc{color:#cfc6b8;margin:0 0 24px;max-width:70ch}
+  .player{border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line)}
+  .player video,.player iframe{width:100%;aspect-ratio:16/9;border:0;display:block;background:#000}
+  .player .pdf{width:100%;height:min(78vh,900px);border:0;display:block;background:#fff}
+  .player img{width:100%;height:auto}
+  .player.audio{background:var(--card);padding:40px 26px;display:grid;place-items:center;gap:22px;text-align:center}
+  .player.audio .wave{display:flex;gap:5px;align-items:center;height:60px}
+  .player.audio .wave i{width:5px;border-radius:4px;background:var(--grad);height:20%;animation:wave 1.1s ease-in-out infinite}
+  .player.audio.paused .wave i{animation-play-state:paused}
+  @keyframes wave{50%{height:100%}}
+  .player.audio audio{width:min(560px,100%)}
+  .player.text{background:var(--card);padding:28px}
+  .rich{line-height:1.7;color:#e6dccd}
+  .rich h2,.rich h3{font-family:var(--body);text-transform:none;font-weight:800;margin:1.2em 0 .5em}
+  .rich a{color:var(--yellow)}
+  .rich img{border-radius:12px}
+  .notes{margin-top:22px;padding:22px;border-radius:16px}
+  .file-alt{display:flex;justify-content:flex-end;margin-top:10px}
+  .file-alt a{font-size:13px;color:var(--muted)}
+  .nav-row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:24px}
+  .btn-complete.done{background:rgba(52,211,153,.12);color:var(--good);box-shadow:none;border:1.5px solid rgba(52,211,153,.4)}
+  .finale{margin-top:30px;padding:30px 26px;border-radius:20px;background:linear-gradient(150deg,rgba(255,90,31,.18),rgba(255,201,60,.06));border:1px solid rgba(255,160,40,.35)}
+  .finale h2{font-size:clamp(28px,4vw,42px);margin:10px 0}
+  .finale p{color:#e6dccd;margin:0 0 20px;max-width:60ch}
+  .no-media{padding:60px 20px;text-align:center;color:var(--muted);background:var(--card)}
+
+  .scrim{display:none}
+  @media (max-width:900px){
+    .course-view{grid-template-columns:1fr}
+    .burger{display:grid}
+    .side{position:fixed;left:0;top:64px;bottom:0;height:auto;width:min(340px,88vw);z-index:35;transform:translateX(-102%);transition:transform .3s cubic-bezier(.2,.9,.3,1)}
+    .side.open{transform:none}
+    .scrim.open{display:block;position:fixed;inset:64px 0 0;background:rgba(0,0,0,.6);z-index:30}
+  }
+  .loading{min-height:60vh;display:grid;place-items:center}
+
+  /* Pestañas del panel */
+  .tabs{display:flex;gap:4px;padding:4px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.02);position:relative}
+  .tabs a{position:relative;z-index:1;padding:8px 14px;border-radius:999px;font-size:13.5px;font-weight:700;color:var(--muted);text-decoration:none;white-space:nowrap;transition:color .2s}
+  .tabs a.on{color:#170b00}
+  .tabs .pill{position:absolute;top:4px;bottom:4px;border-radius:999px;background:var(--grad);transition:left .4s cubic-bezier(.2,1.2,.3,1),width .4s}
+  .tabs-row{position:sticky;top:64px;z-index:20;display:flex;justify-content:center;padding:12px 16px;background:linear-gradient(var(--bg) 60%,transparent);overflow-x:auto}
+  @media (max-width:640px){.tabs-row{justify-content:flex-start}.tabs a{padding:8px 11px;font-size:12.5px}}
+  .avatar{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:13px;color:#170b00;background:var(--grad) center/cover}
+  .rise>*{animation:rise .55s cubic-bezier(.2,.9,.3,1) both}
+  .rise>*:nth-child(2){animation-delay:.06s}.rise>*:nth-child(3){animation-delay:.12s}.rise>*:nth-child(n+4){animation-delay:.18s}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  .course{animation:rise .55s cubic-bezier(.2,.9,.3,1) both}
+
+  /* Certificados */
+  .certs{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+  .cert-card{padding:14px 14px 18px;transition:transform .3s cubic-bezier(.2,.9,.3,1)}
+  .cert-card:hover{transform:translateY(-5px)}
+  .cert-card h3{font-family:var(--body);text-transform:none;font-weight:800;font-size:16px;margin:14px 4px 2px}
+  .cert-card small{color:var(--muted);margin:0 4px}
+  .cert-card .cert-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 4px 0}
+
+  /* Catálogo */
+  .progs{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+  .prog{display:flex;flex-direction:column;overflow:hidden;transition:transform .3s cubic-bezier(.2,.9,.3,1),border-color .3s}
+  .prog:hover{transform:translateY(-6px);border-color:rgba(255,201,60,.35)}
+  .prog .cv{aspect-ratio:16/8;background:linear-gradient(135deg,rgba(255,90,31,.3),rgba(255,201,60,.08)),var(--bg-2);background-size:cover;background-position:center;display:grid;place-items:center;position:relative;overflow:hidden}
+  .prog .cv span{font-family:var(--display);font-size:52px;color:rgba(255,255,255,.14)}
+  .prog .cv::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.12) 50%,transparent 60%);transform:translateX(-100%);transition:transform .8s}
+  .prog:hover .cv::after{transform:translateX(100%)}
+  .prog .pb{padding:18px 20px 20px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .prog h3{font-size:24px}
+  .prog p{margin:0;color:var(--muted);font-size:14px;flex:1}
+  .prog .meta{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* Perfil */
+  .profile{display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start}
+  @media (max-width:900px){.profile{grid-template-columns:1fr}}
+  .id-card{padding:28px 24px;text-align:center;position:relative;overflow:hidden}
+  .id-card::before{content:"";position:absolute;inset:0 0 auto;height:110px;background:var(--grad);opacity:.85}
+  .id-card>*{position:relative}
+  .big-av{width:112px;height:112px;border-radius:50%;margin:24px auto 14px;border:4px solid var(--card);display:grid;place-items:center;font-size:38px;font-weight:800;color:#170b00;background:var(--grad) center/cover;cursor:pointer;position:relative;overflow:hidden}
+  .big-av::after{content:"Cambiar";position:absolute;inset:auto 0 0;padding:6px 0;font-size:11px;font-weight:700;background:rgba(0,0,0,.6);color:#fff;opacity:0;transition:opacity .2s}
+  .big-av:hover::after{opacity:1}
+  .id-card h2{font-size:30px}
+  .id-card p{color:var(--muted);margin:6px 0 16px;word-break:break-all}
+  .id-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .id-stats div{padding:12px;border-radius:12px;background:var(--bg-2);border:1px solid var(--line)}
+  .id-stats b{display:block;font-family:var(--display);font-size:30px;font-weight:400}
+  .id-stats span{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .panel{padding:24px}
+  .panel h2{font-size:24px;margin-bottom:16px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:560px){.two{grid-template-columns:1fr}}
+
+  /* Celebración */
+  .celebrate .modal-card{width:min(900px,100%);text-align:center}
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:150}
+</style>
+<link rel="stylesheet" href="/css/cert.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a1f"/><stop offset="1" stop-color="#ffc93c"/></linearGradient></defs></svg>
+
+<!-- Login -->
+<section class="auth-screen" id="loginView" hidden>
+  <form class="card auth-card" id="loginForm" novalidate>
+    <a href="/"><img class="logo" src="/assets/innovafit-logo.png" alt="InnovaFit"></a>
+    <span class="eyebrow">Campus InnovaFit</span>
+    <h1>Entrá a tus <span class="grad-text">cursos</span></h1>
+    <p>Usá el correo y la contraseña que recibiste al aprobar la evaluación o que te envió tu asesor.</p>
+    <label class="field"><span>Correo</span><input class="input" id="lEmail" type="email" autocomplete="email" required></label>
+    <label class="field"><span>Contraseña</span><input class="input" id="lPass" type="password" autocomplete="current-password" required></label>
+    <p class="error-msg" id="lErr" role="alert"></p>
+    <button class="btn btn-primary" style="width:100%" type="submit" id="lBtn">Entrar</button>
+    <p style="margin:20px 0 0;font-size:14px">¿Todavía no tenés acceso? <a href="/evaluacion" style="color:var(--yellow)">Hacé la evaluación</a> y ganate el curso.</p>
+  </form>
+</section>
+
+<!-- App -->
+<div id="appView" hidden>
+  <header class="topbar">
+    <div class="topbar-l">
+      <button class="burger" id="burger" aria-label="Ver lecciones" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <a href="#/"><img src="/assets/innovafit-logo.png" alt="InnovaFit · Mis cursos"></a>
+    </div>
+    <div class="topbar-r">
+      <span class="who" id="who"></span>
+      <a href="#/perfil" id="topAv" aria-label="Mi perfil"></a>
+      <a class="btn btn-ghost btn-sm" id="adminLink" href="/admin" hidden>Admin</a>
+      <button class="btn btn-ghost btn-sm" id="logout">Salir</button>
+    </div>
+  </header>
+  <div class="tabs-row" id="tabsRow"><nav class="tabs" id="tabs" aria-label="Secciones del campus">
+    <span class="pill"></span>
+    <a href="#/" data-tab="cursos">Mis cursos</a>
+    <a href="#/certificados" data-tab="certificados">Mis certificados</a>
+    <a href="#/certificaciones" data-tab="certificaciones">Certificaciones</a>
+    <a href="#/perfil" data-tab="perfil">Mi perfil</a>
+  </nav></div>
+  <main id="view"></main>
+</div>
+
+<div id="modalRoot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/pocketbase@0.28.1/dist/pocketbase.umd.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/certificate.js"></script>
+<script src="/js/campus.js"></script>
+</body>
+</html>

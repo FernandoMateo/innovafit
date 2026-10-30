@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Evaluación de Nivel · InnovaFit</title>
+<link rel="icon" href="/assets/innovafit-logo.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  /* Paleta: negro cálido + degradado naranja→amarillo. Mundo visual único y comprometido (sin tema claro). */
+  :root{
+    --bg:#07070a;
+    --bg-2:#111013;
+    --card:#17161a;
+    --line:rgba(255,246,235,.09);
+    --fg:#f7f3ec;
+    --muted:#a39a8d;
+    --orange:#ff5a1f;
+    --yellow:#ffc93c;
+    --good:#34d399;
+    --grad: linear-gradient(118deg, var(--orange), var(--yellow));
+    --grad-soft: linear-gradient(118deg, rgba(255,90,31,.18), rgba(255,201,60,.18));
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; width:100%; min-height:100%;}
+  html{-webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--bg);}
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:'Manrope',system-ui,sans-serif;
+    overflow-x:hidden;
+    overscroll-behavior-y:none;
+  }
+  button, .opt, .btn{touch-action:manipulation;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important;}
+  }
+
+  .wrap{
+    max-width:760px;
+    margin:0 auto;
+    padding-left:max(20px, env(safe-area-inset-left,0px));
+    padding-right:max(20px, env(safe-area-inset-right,0px));
+  }
+
+  h1,h2,h3,.display{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    text-transform:uppercase;
+    letter-spacing:.01em;
+    text-wrap:balance;
+    line-height:.96;
+  }
+  .mono{font-family:'Space Mono',monospace;}
+  .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--yellow);
+  }
+  .grad-text{
+    background:var(--grad);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .btn{
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-size:14px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    border:none;
+    border-radius:999px;
+    padding:18px 30px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+  }
+  .btn:focus-visible{outline:3px solid var(--yellow); outline-offset:3px;}
+  .btn-primary{
+    background:var(--grad);
+    color:#140a00;
+    box-shadow:0 10px 30px -8px rgba(255,120,30,.55);
+  }
+  .btn-primary:hover{transform:translateY(-2px) scale(1.015); filter:brightness(1.06);}
+  .btn-primary:active{transform:translateY(0) scale(.99);}
+  .btn-ghost{
+    background:transparent;
+    color:var(--fg);
+    border:1.5px solid var(--line);
+  }
+  .btn-ghost:hover{border-color:var(--yellow); color:var(--yellow);}
+  .btn[disabled]{opacity:.4; cursor:not-allowed; filter:grayscale(.3);}
+  .btn-wide{width:100%; justify-content:center;}
+
+  /* ---------- Fondo ambiental ---------- */
+  .ambient{
+    position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none;
+  }
+  .ambient span{
+    position:absolute; border-radius:50%; filter:blur(70px); opacity:.35;
+    background:var(--grad);
+    animation:float 16s ease-in-out infinite;
+  }
+  .ambient span:nth-child(1){width:46vmax; height:46vmax; top:-18vmax; left:-14vmax; animation-delay:0s;}
+  .ambient span:nth-child(2){width:38vmax; height:38vmax; bottom:-16vmax; right:-10vmax; animation-delay:-6s; opacity:.22;}
+  .ambient span:nth-child(3){width:22vmax; height:22vmax; top:38%; right:8%; animation-delay:-11s; opacity:.16;}
+  @keyframes float{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(3%,-4%) scale(1.08);}
+  }
+  .grain{
+    position:fixed; inset:0; z-index:-1; opacity:.05; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- Intro / splash ---------- */
+  .intro-screen{
+    position:fixed; inset:0; z-index:50;
+    background:#030304;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; cursor:pointer;
+    animation:introFadeOut .5s ease forwards;
+    animation-delay:2.9s;
+  }
+  @keyframes introFadeOut{ to{ opacity:0; visibility:hidden; pointer-events:none; } }
+
+  .intro-sweep{
+    position:absolute; top:50%; left:0; width:100%; height:3px;
+    background:linear-gradient(90deg, transparent, var(--orange), var(--yellow), var(--orange), transparent);
+    box-shadow:0 0 30px 6px rgba(255,160,40,.8), 0 0 90px 24px rgba(255,160,40,.3);
+    transform:scaleX(0) translateY(-50%);
+    animation:introSweep .7s cubic-bezier(.6,0,.2,1) .4s forwards,
+              introImplode .32s cubic-bezier(.6,0,.9,1) 1.15s forwards;
+  }
+  @keyframes introSweep{
+    0%{transform:scaleX(0) translateY(-50%); transform-origin:left center;}
+    100%{transform:scaleX(1) translateY(-50%); transform-origin:left center;}
+  }
+  @keyframes introImplode{
+    0%{transform:scaleX(1) translateY(-50%); transform-origin:center center; opacity:1;}
+    100%{transform:scaleX(0) translateY(-50%); transform-origin:center center; opacity:1;}
+  }
+  .intro-flash{
+    position:absolute; top:50%; left:50%; width:10px; height:10px; border-radius:50%;
+    background:#fff6e8; transform:translate(-50%,-50%) scale(0); opacity:0;
+    animation:introFlash .6s ease-out 1.45s forwards;
+  }
+  @keyframes introFlash{
+    0%{transform:translate(-50%,-50%) scale(0); opacity:0; box-shadow:0 0 0 0 rgba(255,220,150,0);}
+    18%{transform:translate(-50%,-50%) scale(1); opacity:1; box-shadow:0 0 140px 70px rgba(255,220,150,.85);}
+    100%{transform:translate(-50%,-50%) scale(1); opacity:0; box-shadow:0 0 0 0 rgba(255,220,150,0);}
+  }
+  .intro-ring{
+    position:absolute; top:50%; left:50%; width:10px; height:10px; border-radius:50%;
+    border:2px solid var(--yellow);
+    transform:translate(-50%,-50%) scale(0); opacity:0;
+    animation:introRing 1s cubic-bezier(.16,1,.3,1) 1.5s forwards;
+  }
+  @keyframes introRing{
+    0%{transform:translate(-50%,-50%) scale(0); opacity:1;}
+    100%{transform:translate(-50%,-50%) scale(70); opacity:0;}
+  }
+  .intro-content{
+    position:relative; z-index:2; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:22px;
+    padding-left:max(20px, env(safe-area-inset-left,0px));
+    padding-right:max(20px, env(safe-area-inset-right,0px));
+    max-width:100%;
+    opacity:0;
+    animation:introReveal .7s cubic-bezier(.16,1,.3,1) 1.55s forwards;
+  }
+  @keyframes introReveal{
+    0%{opacity:0; transform:scale(.86);}
+    100%{opacity:1; transform:scale(1);}
+  }
+  .intro-msg{font-size:clamp(34px,8.5vw,62px); line-height:.98;}
+  .intro-msg span{display:block;}
+  .intro-tag{margin-top:2px; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);}
+  .intro-skip{
+    position:absolute; z-index:3;
+    bottom:max(26px, env(safe-area-inset-bottom,0px));
+    right:max(20px, env(safe-area-inset-right,0px));
+    background:transparent; border:1px solid var(--line); border-radius:999px;
+    color:var(--muted); font-family:'Space Mono',monospace; font-size:12px; padding:9px 16px;
+    opacity:0; animation:introSkipIn .4s ease 1s forwards;
+  }
+  @keyframes introSkipIn{ to{opacity:1;} }
+  @media (prefers-reduced-motion: reduce){
+    .intro-screen{display:none;}
+  }
+
+  /* ---------- Logo (siempre visible) ---------- */
+  .logo-badge{display:flex; align-items:center; flex:none;}
+  .logo-img{height:24px; width:auto; display:block; filter:drop-shadow(0 2px 10px rgba(255,120,30,.25));}
+  .logo-img-lg{height:34px;}
+
+  /* ---------- Header de progreso (logo siempre presente) ---------- */
+  .progress-head{
+    position:sticky; top:0; z-index:5;
+    backdrop-filter:blur(10px);
+    background:rgba(7,7,10,.72);
+    border-bottom:1px solid var(--line);
+    padding-top:max(14px, env(safe-area-inset-top,0px));
+    padding-bottom:14px;
+  }
+  .progress-row{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:0;}
+  .progress-row.has-track{margin-bottom:10px;}
+  .ego-line{display:block; text-align:center; margin-top:8px; font-size:12px; color:var(--yellow);}
+  .progress-track{
+    height:6px; border-radius:999px; background:var(--line); overflow:hidden; position:relative;
+  }
+  .progress-fill{
+    height:100%; border-radius:999px; background:var(--grad);
+    box-shadow:0 0 16px 1px rgba(255,160,40,.6);
+    transition:width .5s cubic-bezier(.22,1,.36,1);
+  }
+
+  /* ---------- Hero v2: espectacular ---------- */
+  .hero-section{position:relative; z-index:0; overflow:hidden; padding-block:56px 48px;}
+  .hero-ghost-num{
+    position:absolute; top:-10%; right:-6%; z-index:-1; pointer-events:none; user-select:none;
+    font-family:'Anton',sans-serif; font-size:min(56vw,480px); line-height:1;
+    color:transparent; -webkit-text-stroke:1.5px rgba(255,201,60,.13);
+    transform:rotate(-6deg);
+  }
+  .kicker-row{display:flex; align-items:center; gap:10px; margin-bottom:18px; position:relative; z-index:1;}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--yellow); box-shadow:0 0 10px 2px rgba(255,201,60,.8);}
+  .sticker{
+    position:absolute; top:-6px; right:0; z-index:2;
+    background:var(--grad); color:#140a00; font-family:'Space Mono',monospace; font-weight:700;
+    font-size:11px; letter-spacing:.06em; text-transform:uppercase; padding:8px 14px;
+    border-radius:999px; transform:rotate(6deg);
+    box-shadow:0 10px 24px -8px rgba(255,120,30,.6);
+    animation:stickerPop .6s cubic-bezier(.34,1.56,.64,1) .3s both;
+  }
+  @keyframes stickerPop{0%{transform:rotate(6deg) scale(0);} 70%{transform:rotate(6deg) scale(1.12);} 100%{transform:rotate(6deg) scale(1);}}
+
+  /* ticker infinito */
+  .marquee-wrap{
+    position:relative; width:100vw; left:50%; transform:translateX(-50%) rotate(-1.1deg);
+    overflow:hidden; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    background:linear-gradient(90deg, rgba(255,90,31,.08), rgba(255,201,60,.06));
+    padding-block:9px; margin:0 0 44px; z-index:1;
+  }
+  .marquee-track{display:flex; width:max-content; animation:marqueeScroll 26s linear infinite;}
+  .marquee-track span{
+    font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); padding:0 18px; white-space:nowrap; flex:none;
+  }
+  .marquee-track span.accent{color:var(--yellow);}
+  @keyframes marqueeScroll{from{transform:translateX(0);} to{transform:translateX(-50%);}}
+
+  /* headline cinética palabra por palabra */
+  .hero-copy{position:relative; z-index:1;}
+  .hero-grid{display:grid; grid-template-columns:1.25fr .95fr; gap:40px; align-items:center; position:relative; z-index:1;}
+  .hero-kinetic{font-size:clamp(38px,6.6vw,64px); margin:0 0 20px; line-height:1.02;}
+  .kinetic-line{display:block;}
+  .kinetic-word-mask{display:inline-block; overflow:hidden; margin-right:.26em; vertical-align:top;}
+  .kinetic-word{display:inline-block; animation:kineticIn .7s cubic-bezier(.16,1,.3,1) both; backface-visibility:hidden;}
+  @keyframes kineticIn{
+    0%{transform:translateY(115%) rotate(-5deg) scale(.78); opacity:0;}
+    65%{transform:translateY(-5%) rotate(1.5deg) scale(1.02); opacity:1;}
+    100%{transform:translateY(0) rotate(0) scale(1); opacity:1;}
+  }
+  .hero-copy p.sub{font-size:18px; color:var(--muted); max-width:46ch; margin:0 0 30px; line-height:1.55;}
+
+  .btn-glow{position:relative;}
+  .btn-glow::after{
+    content:""; position:absolute; inset:-6px; border-radius:999px; z-index:-1;
+    background:var(--grad); opacity:.55; filter:blur(16px);
+    animation:btnPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes btnPulse{0%,100%{opacity:.35; transform:scale(.97);} 50%{opacity:.6; transform:scale(1.05);}}
+
+  /* dial animado */
+  .hero-visual{display:flex; justify-content:center; align-items:center; position:relative; min-height:260px; perspective:900px;}
+  .dial-card{
+    position:relative; width:228px; height:228px; display:grid; place-items:center;
+    transition:transform .2s ease-out;
+    transform-style:preserve-3d;
+  }
+  .dial-spin{
+    position:absolute; inset:-16px; border-radius:50%;
+    background:conic-gradient(from 0deg, transparent, rgba(255,160,40,.55), transparent 55%);
+    animation:dialSpin 5s linear infinite; filter:blur(1px);
+  }
+  @keyframes dialSpin{to{transform:rotate(360deg);}}
+  .dial-track{position:absolute; inset:0; border-radius:50%; border:12px solid var(--line);}
+  .dial-center{position:relative; z-index:2; text-align:center;}
+  .dial-center b{font-family:'Anton',sans-serif; font-size:58px; line-height:1; font-variant-numeric:tabular-nums; color:var(--fg);}
+  .dial-center span{display:block; margin-top:6px; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase;}
+  .float-badge{
+    position:absolute; width:36px; height:36px; border-radius:10px; display:grid; place-items:center;
+    font-family:'Space Mono',monospace; font-weight:700; font-size:13px;
+    background:rgba(255,255,255,.04); border:1.5px solid var(--line); color:var(--muted);
+    animation:badgeFloat 4.6s ease-in-out infinite; backdrop-filter:blur(6px);
+  }
+  .badge-a{top:-2%; left:2%; animation-delay:0s;}
+  .badge-b{top:10%; right:-6%; animation-delay:.6s;}
+  .badge-c{bottom:6%; left:-8%; animation-delay:1.2s;}
+  .badge-d{bottom:-4%; right:10%; animation-delay:1.8s;}
+  @keyframes badgeFloat{0%,100%{transform:translateY(0) rotate(0deg);} 50%{transform:translateY(-10px) rotate(-5deg);}}
+
+  .stat-row{display:flex; flex-wrap:wrap; gap:28px; margin:8px 0 36px; padding-top:28px; border-top:1px solid var(--line); position:relative; z-index:1;}
+  .stat b{display:block; font-family:'Anton',sans-serif; font-size:30px; color:var(--yellow);}
+  .stat span{font-size:12px; color:var(--muted); letter-spacing:.04em;}
+  .rules{display:flex; flex-wrap:wrap; gap:10px; margin-top:28px; position:relative; z-index:1;}
+  .pill{
+    border:1px solid var(--line); border-radius:999px; padding:9px 16px; font-size:13px; color:var(--muted);
+    display:flex; align-items:center; gap:8px;
+  }
+  .pill b{color:var(--fg); font-weight:700;}
+
+  @media (max-width:760px){
+    .hero-grid{grid-template-columns:1fr;}
+    .hero-visual{margin-top:8px;}
+    .hero-ghost-num{font-size:min(70vw,340px); top:-4%; right:-14%;}
+    .hero-section{padding-bottom:108px;}
+    /* CTA flotante fijo abajo, estilo app, para que siempre esté al alcance del pulgar */
+    .hero-copy > .btn-primary.btn-glow{
+      position:fixed; z-index:20;
+      left:max(18px, env(safe-area-inset-left,0px));
+      right:max(18px, env(safe-area-inset-right,0px));
+      bottom:max(16px, env(safe-area-inset-bottom,0px));
+      width:auto; justify-content:center;
+      box-shadow:0 -4px 30px -6px rgba(0,0,0,.55), 0 10px 30px -8px rgba(255,120,30,.55);
+    }
+    .ready .btn-primary{width:100%; justify-content:center;}
+  }
+
+  /* ---------- Quiz stage ---------- */
+  .stage{padding-block:40px 60px; perspective:1800px;}
+  .q-shell{position:relative; min-height:420px;}
+  .q-ghost{
+    position:absolute; top:-30px; right:-6px; font-family:'Anton',sans-serif;
+    font-size:min(42vw,220px); line-height:1; color:transparent;
+    -webkit-text-stroke:1px var(--line); z-index:0; pointer-events:none; user-select:none;
+  }
+  .q-card{
+    position:relative; z-index:1;
+    background:linear-gradient(180deg, var(--card), #121013);
+    border:1px solid var(--line); border-radius:22px; padding:34px 28px 28px;
+    transform-style:preserve-3d;
+  }
+  .q-card.enter{animation:cardIn .62s cubic-bezier(.16,.9,.2,1.05) both;}
+  .q-card.exit{animation:cardOut .34s cubic-bezier(.5,0,1,1) both;}
+  @keyframes cardIn{
+    0%{transform:perspective(1400px) rotateY(-68deg) rotateX(4deg) scale(.74) translateX(60px); opacity:0;}
+    55%{transform:perspective(1400px) rotateY(9deg) rotateX(-1deg) scale(1.045) translateX(-8px); opacity:1;}
+    80%{transform:perspective(1400px) rotateY(-2deg) scale(.995) translateX(2px);}
+    100%{transform:perspective(1400px) rotateY(0) rotateX(0) scale(1) translateX(0); opacity:1;}
+  }
+  @keyframes cardOut{
+    0%{transform:perspective(1400px) rotateY(0) scale(1) translateX(0); opacity:1;}
+    100%{transform:perspective(1400px) rotateY(62deg) rotateX(-3deg) scale(.7) translateX(-50px); opacity:0;}
+  }
+  .q-section{color:var(--orange);}
+  .q-text{
+    font-family:'Manrope',system-ui,sans-serif;
+    text-transform:none;
+    font-size:clamp(17px,2.4vw,21px);
+    max-width:440px;
+    margin:14px 0 26px;
+    font-weight:700;
+    line-height:1.5;
+    letter-spacing:0;
+    text-wrap:pretty;
+  }
+  .opt-list{display:grid; gap:12px;}
+  .opt{
+    display:flex; align-items:center; gap:14px; text-align:left;
+    border:1.5px solid var(--line); border-radius:14px; padding:16px 18px;
+    background:rgba(255,255,255,.02); color:var(--fg); cursor:pointer;
+    font-family:'Manrope',sans-serif; font-size:16px; font-weight:600;
+    transition:border-color .15s ease, background .15s ease, transform .1s ease;
+  }
+  .opt:hover{border-color:rgba(255,201,60,.5); background:rgba(255,201,60,.05);}
+  .opt:active{transform:scale(.99);}
+  .opt .k{
+    flex:none; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
+    font-family:'Space Mono',monospace; font-size:13px; font-weight:700;
+    border:1.5px solid var(--line); color:var(--muted);
+  }
+  .opt.picked{border-color:var(--yellow); background:var(--grad-soft); box-shadow:0 0 0 1px rgba(255,201,60,.35) inset;}
+  .opt.picked .k{background:var(--grad); color:#140a00; border-color:transparent;}
+  .opt:disabled{cursor:default;}
+  .opt:disabled:not(.picked){opacity:.45;}
+  .stage-nav{display:flex; justify-content:space-between; align-items:center; margin-top:22px; gap:14px;}
+
+  /* ---------- Ready gate ---------- */
+  .ready{padding-block:90px 70px; text-align:center;}
+  .ready-badge{
+    width:96px; height:96px; border-radius:50%; margin:0 auto 28px; display:grid; place-items:center;
+    background:var(--grad-soft); border:1.5px solid rgba(255,201,60,.4);
+    animation:pulseBadge 2.2s ease-in-out infinite;
+  }
+  .ready-badge svg{width:40px; height:40px;}
+  @keyframes pulseBadge{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,160,40,.35);}
+    50%{box-shadow:0 0 0 14px rgba(255,160,40,0);}
+  }
+  .ready h2{font-size:clamp(30px,6vw,48px); margin:0 0 14px;}
+  .ready p.sub{margin:0 auto 36px;}
+  .ready-stats{display:flex; justify-content:center; gap:34px; margin-bottom:40px; flex-wrap:wrap;}
+
+  /* ---------- Trust line (gratis / sin tarjeta) ---------- */
+  .trust-line{
+    display:flex; flex-wrap:wrap; gap:14px; align-items:center;
+    font-family:'Space Mono',monospace; font-size:12px; color:var(--muted);
+  }
+  .trust-line b{color:var(--good); font-weight:700;}
+  .trust-line span{display:inline-flex; align-items:center; gap:6px;}
+
+  /* ---------- Diagnóstico por bloque ---------- */
+  .weak-block{
+    border:1px solid var(--line); border-radius:22px; padding:28px 26px;
+    background:var(--card); margin-bottom:22px; text-align:left;
+  }
+  .weak-list{display:grid; gap:16px; margin:18px 0 0;}
+  .weak-row-top{display:flex; justify-content:space-between; gap:10px; font-size:14px; font-weight:700; margin-bottom:7px;}
+  .weak-row-top .mono{color:var(--muted); font-weight:700;}
+  .weak-track{height:8px; border-radius:999px; background:var(--line); overflow:hidden;}
+  .weak-fill{height:100%; border-radius:999px; transition:width 1.1s cubic-bezier(.16,1,.3,1);}
+  .weak-tips{margin-top:22px; padding-top:20px; border-top:1px solid var(--line);}
+  .weak-tips-label{font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--yellow); margin:0 0 12px;}
+  .weak-tip{font-size:14px; color:var(--muted); line-height:1.6; margin:0 0 10px;}
+  .weak-tip b{color:var(--fg);}
+
+  /* ---------- Frase motivacional ---------- */
+  .motivational{
+    font-family:'Manrope',sans-serif; font-style:italic; font-weight:700; font-size:16px;
+    color:var(--yellow); border-left:3px solid var(--orange);
+    padding:4px 0 4px 18px; margin:0 0 26px; text-align:left; line-height:1.5;
+  }
+
+  /* ---------- Lead gate ---------- */
+  .lead{padding-block:60px;}
+  .lead-card{
+    border:1px solid var(--line); border-radius:24px; padding:40px 30px;
+    background:radial-gradient(130% 140% at 0% 0%, rgba(255,90,31,.12), transparent 60%), var(--card);
+  }
+  .field{display:flex; flex-direction:column; gap:8px; margin-bottom:18px;}
+  .field label{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-family:'Space Mono',monospace;}
+  .field input{
+    background:rgba(255,255,255,.03); border:1.5px solid var(--line); border-radius:12px;
+    padding:15px 16px; color:var(--fg); font-size:16px; font-family:'Manrope',sans-serif;
+  }
+  .field input:focus-visible{outline:none; border-color:var(--yellow); box-shadow:0 0 0 3px rgba(255,201,60,.2);}
+
+  /* ---------- Resultado ---------- */
+  .result{padding-block:70px 60px; text-align:center;}
+  .gauge-wrap{
+    position:relative; width:260px; height:260px; margin:0 auto 20px;
+    opacity:0; transform:scale(.8);
+  }
+  .gauge-wrap.revealed{
+    opacity:1; transform:scale(1);
+    transition:opacity .5s ease, transform .7s cubic-bezier(.16,1,.3,1);
+  }
+  .result-flash{
+    position:absolute; top:50%; left:50%; width:10px; height:10px; border-radius:50%;
+    background:#fff6e8; transform:translate(-50%,-50%) scale(0); opacity:0; pointer-events:none;
+    animation:resultFlashAnim .6s ease-out forwards;
+  }
+  @keyframes resultFlashAnim{
+    0%{transform:translate(-50%,-50%) scale(0); opacity:0; box-shadow:0 0 0 0 rgba(255,220,150,0);}
+    22%{transform:translate(-50%,-50%) scale(1); opacity:1; box-shadow:0 0 120px 60px rgba(255,220,150,.8);}
+    100%{transform:translate(-50%,-50%) scale(1); opacity:0; box-shadow:0 0 0 0 rgba(255,220,150,0);}
+  }
+  .result-ring{
+    position:absolute; top:50%; left:50%; width:10px; height:10px; border-radius:50%;
+    border:2px solid var(--yellow); pointer-events:none;
+    transform:translate(-50%,-50%) scale(0); opacity:0;
+    animation:resultRingAnim .9s cubic-bezier(.16,1,.3,1) .08s forwards;
+  }
+  @keyframes resultRingAnim{
+    0%{transform:translate(-50%,-50%) scale(0); opacity:1;}
+    100%{transform:translate(-50%,-50%) scale(26); opacity:0;}
+  }
+  /* flash de pantalla completa al revelar el resultado, mismo lenguaje que la intro */
+  .result-screen-flash{
+    position:fixed; inset:0; z-index:40; pointer-events:none;
+    background:#fff6e8; opacity:0;
+    animation:resultScreenFlashAnim .8s ease-out forwards;
+  }
+  @keyframes resultScreenFlashAnim{
+    0%{opacity:0;}
+    14%{opacity:.9;}
+    100%{opacity:0;}
+  }
+  .gauge-num{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .gauge-num b{font-family:'Anton',sans-serif; font-size:clamp(52px,16vw,74px); line-height:1; font-variant-numeric:tabular-nums;}
+  .gauge-num span{font-family:'Space Mono',monospace; font-size:12px; color:var(--muted); letter-spacing:.1em; margin-top:6px;}
+  .verdict-msg{opacity:0; transform:translateY(16px) scale(.97); animation:msgIn .7s cubic-bezier(.16,1,.3,1) forwards; animation-delay:1.5s;}
+  @keyframes msgIn{to{opacity:1; transform:translateY(0) scale(1);}}
+  .verdict{font-size:clamp(30px,6vw,52px); margin:10px 0 14px;}
+  .verdict-sub{color:var(--muted); font-size:17px; max-width:48ch; margin:0 auto 34px; line-height:1.6;}
+  .branch-card{
+    border:1px solid var(--line); border-radius:22px; padding:30px; text-align:left;
+    background:var(--card); margin-bottom:22px;
+  }
+  .branch-card h3{font-size:24px; margin:0 0 10px;}
+  .branch-card p{color:var(--muted); line-height:1.6; margin:0 0 20px; font-size:15px;}
+
+  /* Certificado */
+  .cert-frame{
+    border-radius:20px; overflow:hidden; border:1px solid var(--line); margin-bottom:20px;
+    box-shadow:0 30px 60px -24px rgba(255,120,30,.35);
+  }
+  canvas#certCanvas{display:block; width:100%; height:auto;}
+  .cert-actions{display:flex; flex-wrap:wrap; gap:12px;}
+  .note{font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5;}
+
+  .confetti-canvas{position:fixed; inset:0; pointer-events:none; z-index:30;}
+
+  footer{padding-block:40px 70px; text-align:center;}
+  footer .mono{color:var(--muted); font-size:12px; letter-spacing:.08em;}
+
+  @media (max-width:520px){
+    .stat-row{gap:20px;}
+    .q-card{padding:26px 20px 22px;}
+    .lead-card{padding:30px 20px;}
+    .stage-nav{flex-direction:column-reverse; gap:12px;}
+    .stage-nav .btn{width:100%; justify-content:center;}
+    .cert-actions{flex-direction:column;}
+    .cert-actions .btn{width:100%; justify-content:center;}
+    .gauge-wrap{width:220px; height:220px;}
+    .ready-stats{gap:22px;}
+    .dial-card{width:184px; height:184px;}
+    .dial-center b{font-size:46px;}
+    .float-badge{width:30px; height:30px; font-size:11px;}
+    .marquee-track span{font-size:11px; padding:0 14px;}
+  }
+  @media (max-width:400px){
+    .progress-row{flex-wrap:wrap; gap:6px;}
+    .progress-row .mono:last-child{font-size:11px;}
+    .hero-section{padding-block:44px 32px;}
+    .result{padding-block:50px 40px;}
+    .ready{padding-block:64px 50px;}
+    .branch-card{padding:22px 18px;}
+  }
+
+/* --- agregados plataforma --- */
+.phone-row{display:flex; gap:8px;}
+.phone-row select{
+  flex:none; width:108px; background:var(--bg-2); color:var(--fg); border:1.5px solid var(--line); border-radius:14px;
+  padding:0 10px; font:inherit; font-size:15px;
+}
+.phone-row select:focus-visible{outline:none; border-color:var(--yellow);}
+.phone-row input{flex:1; min-width:0;}
+.lead-error{color:#f87171; font-size:14px; margin:-4px 0 14px;}
+.access-card{
+  margin:4px 0 26px; padding:22px; border-radius:18px;
+  background:linear-gradient(150deg, rgba(52,211,153,.12), rgba(255,201,60,.06));
+  border:1px solid rgba(52,211,153,.35);
+}
+.access-card h3{font-size:clamp(24px,4vw,32px); margin:10px 0 8px;}
+.access-card p{margin:0 0 16px;}
+.cred{display:grid; gap:10px; margin-bottom:18px;}
+.cred div{display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; padding:12px 14px; border-radius:12px; background:rgba(0,0,0,.35); border:1px solid var(--line);}
+.cred span{font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+.cred b{word-break:break-all; font-size:16px;}
+</style>
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@500;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<div class="ambient"><span></span><span></span><span></span></div>
+<div class="grain"></div>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } = React;
+
+/* ================= DATOS DEL EXAMEN ================= */
+// Se cargan desde /api/exam (sin las respuestas correctas: la corrección es del servidor).
+const QUESTIONS = [];
+
+const LOGO_SRC = "/assets/innovafit-logo.png";
+
+const SECTION_TIPS = {
+  "Fisiología y Biomecánica": "Repasá las vías energéticas, los planos de movimiento y los tipos de palanca — es la base que sostiene todo lo demás.",
+  "Programación y Adaptación": "Reforzá variables agudas (series, descanso, intensidad) y los modelos de periodización. Es el núcleo de armar programas que de verdad funcionan.",
+  "Cardio y Poblaciones Especiales": "Repasá las zonas de intensidad cardiovascular y cómo adaptar un programa a clientes con hipertensión, asma o diabetes.",
+  "Evaluación y Composición Corporal": "Afianzá los métodos de evaluación (pliegues, bioimpedancia, DEXA, ADP) y cómo interpretarlos frente a un cliente real.",
+  "Psicología y Cambio de Conducta": "Sumá herramientas de entrevista motivacional y los procesos de cambio — lo que diferencia a un entrenador de un verdadero coach.",
+};
+
+const MOTIVATION_LINES = [
+  "Todo entrenador top tuvo un día en el que no sabía esto. La diferencia es que lo fue a buscar.",
+  "Esto no mide lo que sabés hoy. Mide qué tan rápido podés cerrar la brecha.",
+  "El conocimiento se entrena igual que un músculo: con repeticiones, no con suerte.",
+  "Nadie nace sabiendo biomecánica. Se entrena, como todo lo demás.",
+  "Tu nivel de hoy es solo el punto de partida — no el techo.",
+];
+
+function KineticLine({text, delayStart=0, gradient=false}){
+  const words = text.split(" ");
+  return (
+    <span className="kinetic-line">
+      {words.map((w,i) => (
+        <span className="kinetic-word-mask" key={i}>
+          <span className={"kinetic-word" + (gradient ? " grad-text" : "")} style={{animationDelay:(delayStart + i*0.07)+"s"}}>{w}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function Logo({size}){
+  return (
+    <div className="logo-badge">
+      <img src={LOGO_SRC} alt="InnovaFit" className={"logo-img" + (size==="lg" ? " logo-img-lg" : "")} />
+    </div>
+  );
+}
+
+function WeaknessBreakdown({sectionStats, weakSections}){
+  return (
+    <div className="weak-block">
+      <span className="eyebrow">Tu mapa por bloque temático</span>
+      <div className="weak-list">
+        {sectionStats.map(s => (
+          <div key={s.section}>
+            <div className="weak-row-top"><span>{s.section}</span><span className="mono">{s.correct}/{s.total}</span></div>
+            <div className="weak-track"><div className="weak-fill" style={{width:s.pct+"%", background: s.pct<80 ? "var(--grad)" : "var(--good)"}}></div></div>
+          </div>
+        ))}
+      </div>
+      {weakSections.length > 0 && (
+        <div className="weak-tips">
+          <p className="weak-tips-label">Dónde enfocar tu repaso</p>
+          {weakSections.slice(0,2).map(s => (
+            <p key={s.section} className="weak-tip"><b>{s.section}:</b> {SECTION_TIPS[s.section]}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+let TOTAL = 0;
+let PASS_SCORE = 80;
+let WA_NUMBER = "5213223208254";
+
+const EGO_LINES = [
+  "Arrancaste. Ahora viene lo difícil.",
+  "Vas rápido. ¿Vas bien?",
+  "Acá se separan los que saben de los que creen que saben.",
+  "Mitad de camino. Sin atajos.",
+  "Quedan pocas. No aflojes justo ahora.",
+  "Última tanda. Definí tu nivel.",
+];
+
+function waLink(text){
+  return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(text);
+}
+
+/* ================= CONFETTI ================= */
+function fireConfetti(canvas){
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const DPR = Math.min(window.devicePixelRatio||1, 2);
+  canvas.width = window.innerWidth*DPR;
+  canvas.height = window.innerHeight*DPR;
+  ctx.scale(DPR,DPR);
+  const colors = ["#ff5a1f","#ffc93c","#ffffff","#34d399"];
+  const N = 140;
+  const parts = Array.from({length:N}, () => ({
+    x: window.innerWidth/2 + (Math.random()-0.5)*120,
+    y: window.innerHeight*0.32,
+    vx: (Math.random()-0.5)*9,
+    vy: -(Math.random()*9+4),
+    g: 0.22+Math.random()*0.12,
+    s: 4+Math.random()*5,
+    rot: Math.random()*Math.PI,
+    vr: (Math.random()-0.5)*0.3,
+    c: colors[(Math.random()*colors.length)|0],
+    life: 0,
+  }));
+  let raf;
+  function tick(){
+    ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+    let alive = false;
+    parts.forEach(p=>{
+      p.life++;
+      p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if(p.life < 150 && p.y < window.innerHeight+40){
+        alive = true;
+        ctx.save();
+        ctx.translate(p.x,p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.c;
+        ctx.globalAlpha = Math.max(0, 1 - p.life/150);
+        ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);
+        ctx.restore();
+      }
+    });
+    if(alive) raf = requestAnimationFrame(tick);
+    else ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+  }
+  tick();
+  return () => cancelAnimationFrame(raf);
+}
+
+/* ================= COUNTER ================= */
+function useCountUp(target, duration=1400, start=false){
+  const [val, setVal] = useState(0);
+  useEffect(()=>{
+    if(!start) return;
+    let raf, t0;
+    function step(ts){
+      if(!t0) t0 = ts;
+      const p = Math.min(1, (ts-t0)/duration);
+      const eased = 1 - Math.pow(1-p, 3);
+      setVal(Math.round(eased*target));
+      if(p<1) raf = requestAnimationFrame(step);
+    }
+    raf = requestAnimationFrame(step);
+    return ()=>cancelAnimationFrame(raf);
+  }, [start, target, duration]);
+  return val;
+}
+
+/* ================= CERTIFICADO (canvas) ================= */
+let _logoImgPromise = null;
+function loadLogoImage(){
+  if(!_logoImgPromise){
+    _logoImgPromise = new Promise((resolve)=>{
+      const img = new Image();
+      img.onload = ()=>resolve(img);
+      img.onerror = ()=>resolve(null);
+      img.src = LOGO_SRC;
+    });
+  }
+  return _logoImgPromise;
+}
+
+function drawCertificate(canvas, {name, score, dateStr, code, logoImg}){
+  const W = 1400, H = 990;
+  const DPR = Math.min(window.devicePixelRatio||1, 2);
+  canvas.width = W*DPR; canvas.height = H*DPR;
+  canvas.style.width = "100%";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(DPR,DPR);
+
+  // fondo
+  ctx.fillStyle = "#09080b";
+  ctx.fillRect(0,0,W,H);
+  const glow = ctx.createRadialGradient(W*0.15,H*0.1,40, W*0.15,H*0.1, W*0.8);
+  glow.addColorStop(0,"rgba(255,90,31,.20)");
+  glow.addColorStop(1,"rgba(255,90,31,0)");
+  ctx.fillStyle = glow; ctx.fillRect(0,0,W,H);
+
+  // marco degradado
+  const grad = ctx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0,"#ff5a1f"); grad.addColorStop(1,"#ffc93c");
+  ctx.strokeStyle = grad; ctx.lineWidth = 10;
+  ctx.strokeRect(24,24,W-48,H-48);
+  ctx.strokeStyle = "rgba(255,246,235,.25)"; ctx.lineWidth = 1.5;
+  ctx.strokeRect(46,46,W-92,H-92);
+
+  // wordmark
+  ctx.textAlign = "center";
+  if(logoImg){
+    const logoW = 230;
+    const logoH = logoW * (logoImg.naturalHeight / logoImg.naturalWidth);
+    ctx.drawImage(logoImg, W/2 - logoW/2, 78, logoW, logoH);
+  } else {
+    ctx.fillStyle = grad;
+    ctx.font = "700 34px Manrope, sans-serif";
+    ctx.fillText("INNOVAFIT", W/2, 130);
+  }
+  ctx.fillStyle = "#a39a8d";
+  ctx.font = "700 13px 'Space Mono', monospace";
+  ctx.fillText("E V A L U A C I Ó N   D E   N I V E L   ·   E S T Á N D A R   I S S A", W/2, 178);
+
+  // titulo
+  ctx.fillStyle = "#f7f3ec";
+  ctx.font = "400 64px Anton, sans-serif";
+  ctx.fillText("CERTIFICADO DE EVALUACIÓN", W/2, 250);
+
+  ctx.font = "600 18px Manrope, sans-serif";
+  ctx.fillStyle = "#a39a8d";
+  ctx.fillText("Se certifica que", W/2, 330);
+
+  // nombre
+  ctx.font = "400 72px Anton, sans-serif";
+  ctx.fillStyle = grad;
+  ctx.fillText((name || "ENTRENADOR INNOVAFIT").toUpperCase(), W/2, 420);
+  ctx.strokeStyle = "rgba(255,201,60,.5)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W*0.22,450); ctx.lineTo(W*0.78,450); ctx.stroke();
+
+  ctx.font = "600 19px Manrope, sans-serif";
+  ctx.fillStyle = "#cfc6b8";
+  ctx.fillText("completó la Evaluación de Nivel InnovaFit con un puntaje de", W/2, 505);
+
+  // score grande
+  ctx.font = "400 150px Anton, sans-serif";
+  ctx.fillStyle = "#f7f3ec";
+  ctx.fillText(String(score), W/2 - 60, 660);
+  ctx.font = "700 36px Manrope, sans-serif";
+  ctx.fillStyle = "#a39a8d";
+  ctx.fillText("/ 100", W/2 + 140, 660);
+
+  ctx.font = "700 16px 'Space Mono', monospace";
+  ctx.fillStyle = "#34d399";
+  ctx.fillText("● NIVEL APROBADO", W/2, 710);
+
+  // footer datos
+  ctx.textAlign = "left";
+  ctx.font = "600 15px 'Space Mono', monospace";
+  ctx.fillStyle = "#a39a8d";
+  ctx.fillText("FECHA", 110, 850);
+  ctx.fillText("CÓDIGO", 110, 895);
+  ctx.fillStyle = "#f7f3ec";
+  ctx.font = "700 17px 'Space Mono', monospace";
+  ctx.fillText(dateStr, 220, 850);
+  ctx.fillText(code, 220, 895);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#a39a8d";
+  ctx.font = "600 13px Manrope, sans-serif";
+  ctx.fillText("Certificado de evaluación interno de InnovaFit.", W-110, 850);
+  ctx.fillText("No reemplaza la certificación profesional ISSA/InnovaFit.", W-110, 872);
+}
+
+function Certificate({name, score, code}){
+  const ref = useRef(null);
+  const dateStr = useMemo(()=> new Date().toLocaleDateString("es-MX", {day:"2-digit", month:"short", year:"numeric"}), []);
+
+  useEffect(()=>{
+    let cancelled = false;
+    loadLogoImage().then(logoImg=>{
+      if(!cancelled && ref.current) drawCertificate(ref.current, {name, score, dateStr, code, logoImg});
+    });
+    return ()=>{cancelled = true;};
+  }, [name, score, code, dateStr]);
+
+  const [downloadState, setDownloadState] = useState("idle"); // idle | saving | saved | error
+
+  const download = useCallback(async ()=>{
+    if(!ref.current) return;
+    setDownloadState("saving");
+    const filename = "certificado-innovafit-" + code + ".png";
+    try{
+      const downloads = await claude.use("downloads");
+      if(downloads){
+        const blob = await new Promise(resolve => ref.current.toBlob(resolve, "image/png"));
+        await downloads.save({filename, data: blob});
+        setDownloadState("saved");
+        return;
+      }
+    }catch(e){ /* sigue con el método estándar del navegador */ }
+    try{
+      const url = ref.current.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setDownloadState("saved");
+    }catch(e){
+      setDownloadState("error");
+    }
+  }, [code]);
+
+  return (
+    <div>
+      <div className="cert-frame"><canvas id="certCanvas" ref={ref}></canvas></div>
+      <div className="cert-actions">
+        <a className="btn btn-primary" href={waLink("Hola InnovaFit! Aprobé la Evaluación de Nivel con " + score + "/100 y quiero reservar mi cupo en la Certificación CPT con doble certificación y condiciones preferenciales.")} target="_blank" rel="noopener noreferrer">🎯 Reservar mi cupo CPT ahora →</a>
+        <button className="btn btn-ghost" onClick={download} disabled={downloadState==="saving"}>
+          {downloadState==="saving" ? "Preparando…" : downloadState==="saved" ? "✓ Certificado guardado" : "↓ Descargar certificado"}
+        </button>
+      </div>
+      {downloadState==="error" && <p className="note">No pudimos iniciar la descarga automáticamente. Probá de nuevo o tocá y mantené presionada la imagen del certificado para guardarla.</p>}
+    </div>
+  );
+}
+
+/* ================= ACCESO AL CURSO DE REGALO ================= */
+function AccessCard({access}){
+  const [copied, setCopied] = useState(false);
+  // Cuenta nueva: dejamos la sesión iniciada para que entre al campus sin escribir nada.
+  useEffect(()=>{
+    if(access.auth){
+      try{ localStorage.setItem("pocketbase_auth", JSON.stringify({token: access.auth.token, record: access.auth.record, model: access.auth.record})); }catch(e){}
+    }
+  }, [access]);
+  const campusHref = access.auth ? "/campus#/bienvenida" : "/campus#email=" + encodeURIComponent(access.email);
+  if(!access.course){
+    return (
+      <div className="access-card">
+        <span className="eyebrow">Tu curso de regalo</span>
+        <p>En breve un asesor te envía tu acceso al campus por WhatsApp.</p>
+      </div>
+    );
+  }
+  function copy(){
+    const txt = "Campus InnovaFit: " + location.origin + "/campus\nUsuario: " + access.email + (access.password ? "\nContraseña: " + access.password : "");
+    navigator.clipboard && navigator.clipboard.writeText(txt).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false), 2000); });
+  }
+  return (
+    <div className="access-card">
+      <span className="eyebrow">🎁 Desbloqueaste tu curso de regalo</span>
+      <h3>{access.course.title}</h3>
+      {access.existing ? (
+        <p>Ya tenías cuenta en el campus: sumamos el curso a tu usuario. Entrá con tu correo y tu contraseña de siempre.</p>
+      ) : (
+        <p>Tu cuenta en el campus InnovaFit ya está <b>activa y validada</b>: tocá el botón y entrás directo. Guardá estos datos para las próximas veces (la contraseña solo se muestra ahora).</p>
+      )}
+      <div className="cred">
+        <div><span>Usuario</span><b>{access.email}</b></div>
+        {access.password && <div><span>Contraseña</span><b className="mono">{access.password}</b></div>}
+      </div>
+      <div className="cert-actions">
+        <a className="btn btn-primary" href={campusHref}>{access.auth ? "Entrar al campus ya →" : "Entrar al campus →"}</a>
+        <button className="btn btn-ghost" onClick={copy}>{copied ? "✓ Copiado" : "Copiar mis datos"}</button>
+      </div>
+    </div>
+  );
+}
+
+/* ================= APP ================= */
+function App(){
+  const [stage, setStage] = useState("intro"); // intro | landing | quiz | ready | lead | result
+
+  useEffect(()=>{
+    if(stage !== "intro") return;
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reduceMotion){ setStage("landing"); return; }
+    const t = setTimeout(()=> setStage("landing"), 3500);
+    return ()=> clearTimeout(t);
+  }, [stage]);
+
+  const [previewNum, setPreviewNum] = useState(87);
+  useEffect(()=>{
+    if(stage !== "landing") return;
+    const id = setInterval(()=> setPreviewNum(Math.floor(Math.random()*101)), 110);
+    return ()=> clearInterval(id);
+  }, [stage]);
+
+  const [tilt, setTilt] = useState({x:0, y:0});
+  function handleDialMove(e){
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    setTilt({x: py * -16, y: px * 16});
+  }
+  function resetTilt(){ setTilt({x:0, y:0}); }
+  const [qi, setQi] = useState(0);
+
+  // Cada vez que cambia de pantalla (o de pregunta dentro del quiz), arranca a leer desde arriba.
+  useLayoutEffect(()=>{
+    window.scrollTo(0, 0);
+  }, [stage, qi]);
+
+  const [answers, setAnswers] = useState({});
+  const [anim, setAnim] = useState("enter");
+  const [locked, setLocked] = useState(false);
+  const [name, setName] = useState("");
+  const [code] = useState(()=> "IF-" + Math.random().toString(36).slice(2,6).toUpperCase() + "-" + Math.random().toString(36).slice(2,5).toUpperCase());
+  const confettiRef = useRef(null);
+
+  const current = QUESTIONS[qi];
+  const picked = answers[current ? current.n : -1];
+
+  const [result, setResult] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [leadError, setLeadError] = useState("");
+  const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("52");
+  const [phone, setPhone] = useState("");
+  const [docId, setDocId] = useState("");
+
+  const score = result ? result.score : 0;
+  const correctCount = result ? result.correct : 0;
+  const passed = !!(result && result.passed);
+  const sectionStats = result ? result.sections : [];
+  const access = result ? result.access : null;
+
+  const weakSections = useMemo(()=>
+    sectionStats.filter(s=>s.pct < 80).sort((a,b)=>a.pct-b.pct)
+  , [sectionStats]);
+
+  const motivationalLine = useMemo(()=> MOTIVATION_LINES[score % MOTIVATION_LINES.length], [score]);
+
+  const [revealed, setRevealed] = useState(false);
+  useEffect(()=>{
+    if(stage === "result"){
+      const t = setTimeout(()=>setRevealed(true), 150);
+      return ()=>clearTimeout(t);
+    } else {
+      setRevealed(false);
+    }
+  }, [stage]);
+
+  useEffect(()=>{
+    if(stage === "result" && revealed && passed && confettiRef.current){
+      const stop = fireConfetti(confettiRef.current);
+      return stop;
+    }
+  }, [stage, revealed, passed]);
+
+  const animatedScore = useCountUp(score, 1500, revealed);
+  const gaugePct = revealed ? score : 0;
+  const circumference = 2 * Math.PI * 108;
+
+  function pick(letter){
+    if(locked) return;
+    setLocked(true);
+    setAnswers(a => ({...a, [current.n]: letter}));
+    setTimeout(()=>{
+      if(qi < TOTAL - 1){
+        setAnim("exit");
+        setTimeout(()=>{
+          setQi(i => i+1);
+          setAnim("enter");
+          setLocked(false);
+        }, 320);
+      } else {
+        setLocked(false);
+        setStage("ready");
+      }
+    }, 480);
+  }
+
+  function goPrev(){
+    if(qi === 0 || locked) return;
+    setLocked(true);
+    setAnim("exit");
+    setTimeout(()=>{
+      setQi(i => i-1);
+      setAnim("enter");
+      setLocked(false);
+    }, 300);
+  }
+
+  async function submitLead(e){
+    e.preventDefault();
+    if(sending) return;
+    setLeadError("");
+    setSending(true);
+    try{
+      const r = await fetch("/api/exam", {
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body: JSON.stringify({lead:{name, email, country, phone, docId}, answers}),
+      });
+      const data = await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(data.message || "No pudimos calcular tu resultado. Probá de nuevo.");
+      setResult(data);
+      setStage("result");
+    }catch(err){
+      setLeadError(err.message);
+    }finally{
+      setSending(false);
+    }
+  }
+
+  function retry(){
+    setAnswers({});
+    setResult(null);
+    setQi(0);
+    setAnim("enter");
+    setStage("quiz");
+  }
+
+  const egoLine = EGO_LINES[Math.min(EGO_LINES.length-1, Math.floor((qi/TOTAL)*EGO_LINES.length))];
+
+  return (
+    <React.Fragment>
+      {stage === "intro" && (
+        <div className="intro-screen" onClick={()=>setStage("landing")}>
+          <div className="intro-sweep"></div>
+          <div className="intro-flash"></div>
+          <div className="intro-ring"></div>
+          <div className="intro-content">
+            <Logo size="lg"/>
+            <h1 className="intro-msg">
+              <span>SE ACABARON</span>
+              <span className="grad-text">LAS EXCUSAS.</span>
+            </h1>
+            <p className="intro-tag mono">Evaluación de Nivel · InnovaFit</p>
+          </div>
+          <button className="intro-skip" onClick={(e)=>{e.stopPropagation(); setStage("landing");}}>Saltar →</button>
+        </div>
+      )}
+
+      {stage !== "intro" && (
+      <div className="progress-head">
+        <div className="wrap">
+          <div className={"progress-row" + (stage==="quiz" ? " has-track" : "")}>
+            <Logo/>
+            {stage === "quiz" && (
+              <span className="mono" style={{fontSize:13, color:"var(--muted)"}}>PREGUNTA <b style={{color:"var(--fg)"}}>{String(qi+1).padStart(2,"0")}</b>/{TOTAL}</span>
+            )}
+          </div>
+          {stage === "quiz" && (
+            <React.Fragment>
+              <div className="progress-track"><div className="progress-fill" style={{width: ((qi)/TOTAL*100)+"%"}}></div></div>
+              <span className="ego-line">{egoLine}</span>
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+      )}
+
+      {stage === "landing" && (
+        <div className="hero-section">
+          <div className="hero-ghost-num">100</div>
+
+          <div className="wrap" style={{position:"relative"}}>
+            <div className="kicker-row">
+              <span className="dot"></span><span className="eyebrow">Reactivación ISSA</span>
+              <span className="sticker">Cupos limitados · Esta camada</span>
+            </div>
+          </div>
+
+          <div className="marquee-wrap">
+            <div className="marquee-track">
+              {[0,1].map(rep => (
+                <React.Fragment key={rep}>
+                  <span>ENTRENADOR PERSONAL</span><span className="accent">·</span>
+                  <span>FUERZA &amp; ACONDICIONAMIENTO</span><span className="accent">·</span>
+                  <span>NUTRICIÓN APLICADA</span><span className="accent">·</span>
+                  <span>ESTÁNDAR ISSA</span><span className="accent">·</span>
+                  <span>DOBLE CERTIFICACIÓN INTERNACIONAL Y NACIONAL</span><span className="accent">·</span>
+                  <span>15.4K+ CERTIFICADOS</span><span className="accent">·</span>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          <div className="wrap">
+            <div className="hero-grid">
+              <div className="hero-copy">
+                <h1 className="hero-kinetic">
+                  <KineticLine text="CUALQUIERA DICE" delayStart={0} />
+                  <KineticLine text="QUE ES BUEN ENTRENADOR." delayStart={.14} gradient />
+                </h1>
+                <p className="sub">Nosotros no decimos, medimos. 25 preguntas de nivel ISSA, 100 puntos en juego, cero margen para el verso. En 8 minutos vas a tener, por escrito, si de verdad estás a la altura — o exactamente qué te falta para estarlo. Y si la rompés, hoy mismo arrancás el camino a tu doble certificación como entrenador personal.</p>
+                <button className="btn btn-primary btn-glow" onClick={()=>setStage("quiz")}>Quiero saber si doy el nivel →</button>
+                <div className="trust-line" style={{marginTop:18}}>
+                  <span>🆓 <b>100% gratis</b></span>
+                  <span>💳 Sin tarjeta de crédito</span>
+                  <span>⚡ Resultado al instante</span>
+                  <span>📝 Tus datos, solo al final</span>
+                </div>
+              </div>
+
+              <div className="hero-visual" onMouseMove={handleDialMove} onMouseLeave={resetTilt}>
+                <div className="dial-card" style={{transform:`perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`}}>
+                  <div className="dial-spin"></div>
+                  <div className="dial-track"></div>
+                  <div className="dial-center">
+                    <b className="mono">{previewNum}</b>
+                    <span>Tu puntaje te espera</span>
+                  </div>
+                  <span className="float-badge badge-a">A</span>
+                  <span className="float-badge badge-b">B</span>
+                  <span className="float-badge badge-c">C</span>
+                  <span className="float-badge badge-d">D</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="stat-row">
+              <div className="stat"><b>15.4K+</b><span>entrenadores ya se midieron</span></div>
+              <div className="stat"><b>25</b><span>preguntas, 5 bloques temáticos</span></div>
+              <div className="stat"><b>100</b><span>puntaje máximo posible</span></div>
+            </div>
+
+            <div className="rules">
+              <div className="pill">🔥 <b>Cupos limitados</b> para esta camada</div>
+              <div className="pill">⏱️ <b>8 minutos</b>. Sin vuelta atrás una vez que arrancás</div>
+              <div className="pill">🎓 Aprobás con <b>{PASS_SCORE}/100</b> o más</div>
+              <div className="pill">🎁 ¿Aprobás? <b>Curso gratis de Biomecánica</b> + certificado de nivel</div>
+              <div className="pill">🎯 ¿No llegás? Tu mapa de brechas + <b>plan para certificarte</b></div>
+              <div className="pill">🌎 <b>Doble certificación</b>: internacional y nacional</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {stage === "quiz" && current && (
+        <div className="wrap stage">
+          <div className="q-shell">
+            <div className="q-ghost">{String(current.n).padStart(2,"0")}</div>
+            <div className={"q-card " + (anim === "enter" ? "enter" : "exit")} key={current.n}>
+              <span className="eyebrow q-section">{current.section}</span>
+              <h2 className="q-text">{current.q}</h2>
+              <div className="opt-list">
+                {["A","B","C","D"].map(k => (
+                  <button key={k} className={"opt" + (picked===k ? " picked" : "")} onClick={()=>pick(k)} disabled={locked}>
+                    <span className="k">{k}</span>
+                    <span>{current.options[k]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="stage-nav" style={{justifyContent: qi===0 ? "flex-end" : "space-between"}}>
+            {qi > 0 && <button className="btn btn-ghost" onClick={goPrev} disabled={locked}>← Anterior</button>}
+            <span className="mono" style={{fontSize:12, color:"var(--muted)"}}>Elegí una opción para avanzar</span>
+          </div>
+        </div>
+      )}
+
+      {stage === "ready" && (
+        <div className="wrap ready">
+          <div className="ready-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ffc93c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+          </div>
+          <div className="eyebrow" style={{justifyContent:"center", display:"flex", marginBottom:14}}>Evaluación completa</div>
+          <h2>RESPONDISTE LAS {TOTAL} PREGUNTAS</h2>
+          <p className="sub" style={{maxWidth:"46ch", margin:"0 auto 36px"}}>Tu puntaje ya quedó calculado — y lo que hagas con él puede cambiarte el año. Antes de mostrártelo, una pregunta simple:</p>
+          <div className="ready-stats">
+            <div className="stat"><b>{TOTAL}/{TOTAL}</b><span>preguntas respondidas</span></div>
+            <div className="stat"><b>0</b><span>vueltas atrás</span></div>
+          </div>
+          <h3 style={{fontSize:"clamp(22px,4.5vw,32px)", marginBottom:28}}>¿Estás listo/a para ver tu nivel real?</h3>
+          <button className="btn btn-primary" onClick={()=>setStage("lead")}>Sí, mostrame mi puntaje →</button>
+        </div>
+      )}
+
+      {stage === "lead" && (
+        <div className="wrap lead">
+          <div className="eyebrow" style={{marginBottom:14}}>Último paso</div>
+          <h2 style={{fontSize:"clamp(28px,5vw,42px)", marginBottom:14}}>Tu puntaje ya está calculado.</h2>
+          <p className="sub" style={{marginBottom:22}}>Completá tus datos y desbloqueá tu puntaje real. Si aprobás, en esta misma pantalla recibís tu usuario para el Curso Gratis de Biomecánica y tu certificado de nivel.</p>
+          <div className="lead-card">
+            <form onSubmit={submitLead}>
+              <div className="field">
+                <label htmlFor="name">Nombre completo</label>
+                <input id="name" required autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="Como querés que aparezca en tu certificado" />
+              </div>
+              <div className="field">
+                <label htmlFor="email">Correo electrónico</label>
+                <input id="email" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com" />
+              </div>
+              <div className="field">
+                <label htmlFor="phone">WhatsApp</label>
+                <div className="phone-row">
+                  <select aria-label="Código de país" value={country} onChange={e=>setCountry(e.target.value)}>
+                    <option value="52">🇲🇽 +52</option><option value="54">🇦🇷 +54</option><option value="57">🇨🇴 +57</option>
+                    <option value="56">🇨🇱 +56</option><option value="51">🇵🇪 +51</option><option value="593">🇪🇨 +593</option>
+                    <option value="1">🇺🇸 +1</option><option value="507">🇵🇦 +507</option><option value="34">🇪🇸 +34</option>
+                    <option value="58">🇻🇪 +58</option><option value="502">🇬🇹 +502</option><option value="506">🇨🇷 +506</option>
+                    <option value="598">🇺🇾 +598</option><option value="591">🇧🇴 +591</option><option value="595">🇵🇾 +595</option>
+                    <option value="503">🇸🇻 +503</option><option value="504">🇭🇳 +504</option><option value="505">🇳🇮 +505</option>
+                  </select>
+                  <input id="phone" type="tel" inputMode="numeric" required autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="Tu número, sin espacios" />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="docId">Identificación (opcional)</label>
+                <input id="docId" value={docId} onChange={e=>setDocId(e.target.value)} placeholder="DNI / Cédula / Pasaporte" />
+              </div>
+              {leadError && <p className="lead-error" role="alert">{leadError}</p>}
+              <button className="btn btn-primary btn-wide" type="submit" disabled={sending}>{sending ? "Calculando tu nivel…" : "Desbloquear mi resultado →"}</button>
+            </form>
+          </div>
+          <div className="trust-line" style={{marginTop:18, justifyContent:"center"}}>
+            <span>🆓 <b>100% gratis</b></span>
+            <span>💳 Sin tarjeta de crédito</span>
+            <span>🔒 Tus datos no se comparten</span>
+          </div>
+        </div>
+      )}
+
+      {stage === "result" && (
+        <div className="wrap result">
+          <canvas ref={confettiRef} className="confetti-canvas"></canvas>
+          {revealed && <div className="result-screen-flash"></div>}
+          <div className="eyebrow" style={{justifyContent:"center", display:"flex"}}>Resultado final</div>
+          <div className={"gauge-wrap" + (revealed ? " revealed" : "")}>
+            {revealed && <span className="result-flash"></span>}
+            {revealed && <span className="result-ring"></span>}
+            <svg width="260" height="260" viewBox="0 0 260 260">
+              <circle cx="130" cy="130" r="108" fill="none" stroke="var(--line)" strokeWidth="14"/>
+              <circle cx="130" cy="130" r="108" fill="none"
+                stroke="url(#gaugeGrad)" strokeWidth="14" strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference - (gaugePct/100)*circumference}
+                transform="rotate(-90 130 130)"
+                style={{transition:"stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1)"}}
+              />
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ff5a1f"/>
+                  <stop offset="100%" stopColor="#ffc93c"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="gauge-num">
+              <b className="mono">{animatedScore}</b>
+              <span>/ 100 PUNTOS</span>
+            </div>
+          </div>
+
+          <div className="verdict-msg">
+            {passed ? (
+              <React.Fragment>
+                <h2 className="verdict grad-text">APROBADO</h2>
+                <p className="verdict-sub">{correctCount} de {TOTAL} correctas. Esto no es un halago gratis: tu puntaje te pone en el grupo que de verdad está listo para certificarse — no en el de los que "lo están pensando". {name ? name.split(" ")[0] + ", el" : "El"} siguiente paso es tuyo.</p>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <h2 className="verdict">CASI, PERO NO</h2>
+                <p className="verdict-sub">{correctCount} de {TOTAL} correctas — {score}/100. No llegaste al corte, y ahora tenés algo que la mayoría no se toma el tiempo de buscar: el mapa exacto de lo que te falta.</p>
+              </React.Fragment>
+            )}
+          </div>
+
+          <div className="wrap verdict-msg" style={{padding:0, textAlign:"left", maxWidth:620, margin:"0 auto"}}>
+            <p className="motivational">"{motivationalLine}"</p>
+            <WeaknessBreakdown sectionStats={sectionStats} weakSections={weakSections} />
+            {passed ? (
+              <div className="branch-card">
+                <span className="eyebrow">Tu resultado abre una puerta</span>
+                <h3>Pasaste el filtro que la mayoría ni se anima a intentar</h3>
+                <p>{correctCount}/{TOTAL} correctas te ubican en el grupo que puede certificarse en serio — no en el de "lo voy a pensar". Te reservamos un cupo con condiciones preferenciales en la Certificación de Entrenador Personal (CPT), la misma que hoy exigen los gimnasios boutique y los resorts que pagan en dólares.</p>
+                <div className="rules" style={{margin:"2px 0 22px"}}>
+                  <div className="pill">🌎 Doble certificación: internacional (ISSA) y nacional</div>
+                  <div className="pill">🎁 Curso Gratis de Biomecánica incluido</div>
+                  <div className="pill">💺 Cupo reservado en la próxima camada</div>
+                  <div className="pill">💸 Condiciones preferenciales por cupo limitado</div>
+                </div>
+                <p style={{fontWeight:700, color:"var(--fg)"}}>Sumate a los 15.4K+ que ya se certificaron. Coordinamos todo por WhatsApp, directo con nuestro equipo — no dejes pasar tu lugar.</p>
+                {access && <AccessCard access={access} />}
+                <Certificate name={name} score={score} code={result.code} />
+              </div>
+            ) : (
+              <div className="branch-card">
+                <span className="eyebrow">Esto no es un no. Es un todavía.</span>
+                <h3>Te faltaron {Math.max(1, PASS_SCORE - score)} puntos. La certificación te los da, y mucho más.</h3>
+                <p>No llegaste al corte de {PASS_SCORE}/100, y eso también es información valiosa: ahora sabés con precisión qué te frena. La Certificación Doble de Entrenador Personal InnovaFit está pensada para cerrar exactamente esa brecha y darte un título que nadie te discute.</p>
+                <div className="rules" style={{margin:"2px 0 22px"}}>
+                  <div className="pill">🌎 Doble certificación: nacional + internacional (ISSA)</div>
+                  <div className="pill">📚 Los 5 bloques que evaluaste, de la base al nivel experto</div>
+                  <div className="pill">🧑‍🏫 Práctica supervisada hasta tu primer cliente</div>
+                  <div className="pill">💸 Condiciones especiales por haber hecho el reto</div>
+                </div>
+                <p style={{fontWeight:700, color:"var(--fg)"}}>Los entrenadores que más cobran no son los que más sabían al empezar: son los que se certificaron. Hablemos 5 minutos y armamos tu plan.</p>
+                <a className="btn btn-primary btn-wide" href={waLink("Hola InnovaFit! Hice la Evaluación de Nivel y saqué " + score + "/100. Quiero mejorar mi perfil profesional y saber cómo es la Certificación Doble de Entrenador Personal (nacional + internacional).")} target="_blank" rel="noopener noreferrer">🎓 Quiero certificarme →</a>
+                <button className="btn btn-ghost btn-wide" style={{marginTop:12}} onClick={retry}>↻ Volver a intentarlo</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <footer>
+        <div className="wrap" style={{display:"flex", flexDirection:"column", alignItems:"center", gap:12}}>
+          <Logo size="lg"/>
+          <span className="mono" style={{fontSize:11}}>© {new Date().getFullYear()} INNOVAFIT — Evaluación de Nivel</span>
+        </div>
+      </footer>
+    </React.Fragment>
+  );
+}
+
+Promise.all([
+  fetch("/api/exam").then(r => { if(!r.ok) throw new Error(); return r.json(); }),
+  fetch("/api/config").then(r => r.json()).catch(() => ({})),
+]).then(([exam, cfg]) => {
+  QUESTIONS.push(...exam.questions);
+  TOTAL = QUESTIONS.length;
+  PASS_SCORE = exam.passScore;
+  if(cfg.waNumber) WA_NUMBER = cfg.waNumber;
+  ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+}).catch(() => {
+  document.getElementById("root").innerHTML = '<p style="padding:60px 20px;text-align:center">No pudimos cargar la evaluación. Recargá la página en unos segundos.</p>';
+});
+</script>

@@ -1,0 +1,14 @@
+[Unit]
+Description=InnovaFit (Node + PocketBase)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/innovafit/app
+ExecStart=/usr/bin/node start.js
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

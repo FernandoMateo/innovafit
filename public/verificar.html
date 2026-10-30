@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verificar certificado · InnovaFit</title>
+<meta name="theme-color" content="#07070a">
+<link rel="icon" href="/assets/innovafit-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/cert.css">
+<style>
+  .wrap{width:min(980px,100%);margin:0 auto;padding:40px 16px 80px}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}
+  .top img{height:28px;width:auto}
+  h1{font-size:clamp(38px,7vw,72px);margin:12px 0 12px}
+  .lead{color:var(--muted);max-width:52ch;margin:0 0 26px}
+  form{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:30px}
+  form .input{flex:1;min-width:220px;font-family:var(--mono);text-transform:uppercase}
+  .result{animation:modalIn .4s ease}
+  .ok-row{display:flex;gap:14px;align-items:center;padding:18px 20px;border-radius:16px;margin-bottom:20px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.35)}
+  .ok-row .i{width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--good);color:#04130c;font-size:22px;font-weight:800}
+  .ok-row p{margin:2px 0 0;color:var(--muted);font-size:14px}
+  .bad-row{padding:18px 20px;border-radius:16px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.35);color:#fecaca}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/"><img src="/assets/innovafit-logo.png" alt="InnovaFit"></a><a class="btn btn-ghost btn-sm" href="/campus">Campus</a></div>
+  <span class="eyebrow">Verificación oficial</span>
+  <h1>Verificá un <span class="grad-text">certificado</span></h1>
+  <p class="lead">Ingresá el número de certificado (folio) que figura abajo a la derecha del documento.</p>
+  <form id="f"><input class="input" id="folio" placeholder="IF-2026-0001" required aria-label="Folio"><button class="btn btn-primary">Verificar</button></form>
+  <div id="out"></div>
+</div>
+<script src="/js/certificate.js"></script>
+<script>
+(function(){
+  const out = document.getElementById("out"), input = document.getElementById("folio");
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  async function check(folio){
+    out.innerHTML = '<div class="spinner"></div>';
+    try{
+      const r = await fetch("/api/certificates/verify/" + encodeURIComponent(folio.trim()));
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message);
+      out.innerHTML = `<div class="result"><div class="ok-row"><span class="i">✓</span><div><b>Certificado válido</b><p>${esc(d.studentName)} · ${esc(d.title)} · emitido el ${esc(Cert.dateLong(d.issueDate))}</p></div></div><div id="prev"></div></div>`;
+      Cert.mount(document.getElementById("prev"), d);
+    }catch(e){
+      out.innerHTML = `<div class="result bad-row"><b>No encontramos ese folio.</b> Revisá que esté bien escrito o escribinos para confirmarlo.</div>`;
+    }
+  }
+  document.getElementById("f").onsubmit = (e) => { e.preventDefault(); history.replaceState(null, "", "?folio=" + encodeURIComponent(input.value.trim().toUpperCase())); check(input.value); };
+  const q = new URLSearchParams(location.search).get("folio");
+  if(q){ input.value = q; check(q); }
+})();
+</script>
+</body>
+</html>
