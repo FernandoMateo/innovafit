@@ -47,6 +47,7 @@
       const d = await r.json();
       if(!r.ok) throw new Error(d.message);
       out.innerHTML = `<div class="result"><div class="ok-row"><span class="i">✓</span><div><b>Certificado válido</b><p>${esc(d.studentName)} · ${esc(d.title)} · emitido el ${esc(Cert.dateLong(d.issueDate))}</p></div></div><div id="prev"></div></div>`;
+      Cert.setSeal(d.seal);
       Cert.mount(document.getElementById("prev"), d);
     }catch(e){
       out.innerHTML = `<div class="result bad-row"><b>No encontramos ese folio.</b> Revisá que esté bien escrito o escribinos para confirmarlo.</div>`;

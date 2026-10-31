@@ -72,8 +72,18 @@
     return url;
   }
 
-  const KIND_LABEL = {video:"Video", audio:"Audio", pdf:"PDF", image:"Imagen", embed:"Video externo", text:"Lectura"};
-  const KIND_ICON = {video:"▶", audio:"♪", pdf:"▤", image:"▣", embed:"▶", text:"¶"};
+  const KIND_LABEL = {video:"Video", audio:"Audio", pdf:"PDF", image:"Imagen", embed:"Video externo", text:"Lectura", quiz:"Comprobación", exam:"Examen final"};
+  const KIND_ICON = {video:"▶", audio:"♪", pdf:"▤", image:"▣", embed:"▶", text:"¶", quiz:"?", exam:"★"};
+
+  // Ajustes públicos (campaña comercial y sello del certificado). Se piden una sola vez.
+  let settingsP = null;
+  function settings(force){
+    if(!settingsP || force){
+      settingsP = pb.collection("settings").getList(1, 1).then((r) => r.items[0] || {}).catch(() => ({}));
+      settingsP.then((s) => { if(window.Cert && s.sealLogo) Cert.setSeal(fileUrl(s, s.sealLogo)); });
+    }
+    return settingsP;
+  }
 
   // Llamadas a los endpoints propios del servidor con la sesión actual.
   async function api(path, body){
@@ -83,7 +93,7 @@
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await r.json().catch(() => ({}));
-    if(!r.ok) throw new Error(data.message || "Error " + r.status);
+    if(!r.ok) throw Object.assign(new Error(data.message || "Error " + r.status), {status: r.status, data});
     return data;
   }
 
@@ -101,5 +111,5 @@
     requestAnimationFrame(step);
   }
 
-  window.UI = {pb, esc, toast, notify, api, countUp, errMsg, fileUrl, embedUrl, KIND_LABEL, KIND_ICON};
+  window.UI = {pb, esc, toast, notify, api, countUp, errMsg, fileUrl, embedUrl, settings, KIND_LABEL, KIND_ICON};
 })();

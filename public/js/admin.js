@@ -208,12 +208,13 @@
      RESUMEN
      ===================================================== */
   async function renderResumen(){
-    const [attempts, students, courses, certs, recent] = await Promise.all([
+    const [attempts, students, courses, certs, recent, accredited] = await Promise.all([
       pb.collection("attempts").getFullList({fields:"created,score,passed,sections", batch:1000}),
       pb.collection("users").getList(1, 1, {filter:'role != "admin"', fields:"id"}),
       getCourses(true),
       pb.collection("certificates").getList(1, 1, {fields:"id"}),
       pb.collection("attempts").getList(1, 6, {sort:"-created"}),
+      pb.collection("enrollments").getList(1, 1, {filter:'status = "acreditado"', fields:"id"}),
     ]);
     const total = attempts.length;
     const passed = attempts.filter((a) => a.passed).length;
@@ -266,7 +267,8 @@
         ${kpi("Aprobados", passed, "🏆", "con 80 o más")}
         ${kpi("Tasa de aprobación", rate, "🎯", "del total", "%")}
         ${kpi("Puntaje promedio", avg, "📊", "sobre 100")}
-        ${kpi("Alumnos", students.totalItems, "👥", "con acceso al campus")}
+        ${kpi("Alumnos", students.totalItems, "👥", "registrados en el campus")}
+        ${kpi("Acreditados", accredited.totalItems, "✅", "aprobaron el examen final")}
         ${kpi("Certificados", certs.totalItems, "🎓", courses.length + " cursos activos")}
       </div>
       <div class="charts">
@@ -603,6 +605,7 @@
     const isNew = id === "nuevo";
     const c = isNew ? {title:"", subtitle:"", description:"", published:false, isGift:false, certEnabled:true, certHours:"", order:(await getCourses()).length + 1} : await pb.collection("courses").getOne(id);
     const lessons = isNew ? [] : await pb.collection("lessons").getFullList({filter: pb.filter("course = {:c}", {c: id}), sort:"order,created"});
+    const assess = new Map(isNew ? [] : (await pb.collection("assessments").getFullList({filter: pb.filter("course = {:c}", {c: id})})).map((a) => [a.lesson, a]));
 
     view.innerHTML = `
       <div class="head"><div><a class="eyebrow" href="#/cursos" style="text-decoration:none">← Cursos</a><h1>${isNew ? "Nuevo curso" : esc(c.title)}</h1></div>
@@ -621,13 +624,14 @@
             <label class="field"><span>Orden</span><input class="input" name="order" type="number" value="${esc(c.order || 0)}"></label>
             <div class="field"><span>Visibilidad</span>
               <label class="check" style="margin-top:6px"><input type="checkbox" name="published"${c.published ? " checked" : ""}> Publicado</label>
-              <label class="check"><input type="checkbox" name="isGift"${c.isGift ? " checked" : ""}> Regalo al aprobar</label></div>
+              <label class="check"><input type="checkbox" name="isGift"${c.isGift ? " checked" : ""}> Regalo al aprobar</label>
+              <label class="check"><input type="checkbox" name="openAccess"${c.openAccess ? " checked" : ""}> Inscripción libre con registro</label></div>
           </div>
           <div class="two">
             <div class="field"><span>Certificado</span><label class="check" style="margin-top:6px"><input type="checkbox" name="certEnabled"${c.certEnabled ? " checked" : ""}> Emitir al completar</label></div>
             <label class="field"><span>Horas / duración en el certificado</span><input class="input" name="certHours" value="${esc(c.certHours || "")}" placeholder="Ej: 20 horas"></label>
           </div>
-          <p class="hint">Solo los alumnos habilitados ven el curso, y únicamente si está publicado. Con "Emitir al completar", el alumno recibe su certificado InnovaFit al terminar todas las lecciones.</p>
+          <p class="hint">Solo los alumnos habilitados ven el curso, y únicamente si está publicado. Con "Inscripción libre", aparece en la pantalla de registro del campus y cualquiera se inscribe dejando sus datos. Si el curso tiene una lección "Examen final", el certificado se emite al aprobarlo; si no, al completar todas las lecciones.</p>
           <p class="error-msg" id="cErr" role="alert"></p>
           <button class="btn btn-primary" id="cSave">${isNew ? "Crear curso" : "Guardar curso"}</button>
         </form>
@@ -637,7 +641,7 @@
             <h2 style="margin:0">Lecciones</h2>
             ${isNew ? "" : '<button class="btn btn-primary btn-sm" id="addLesson">+ Agregar lección</button>'}
           </div>
-          ${isNew ? '<p class="muted">Guardá el curso para empezar a cargar lecciones.</p>' : lessons.length ? `<div class="lessons stagger" id="lessonList">${lessonRows(lessons)}</div>` : '<p class="muted">Todavía no hay lecciones. Agregá videos, audios, PDF, imágenes, links de YouTube/Vimeo o lecturas.</p>'}
+          ${isNew ? '<p class="muted">Guardá el curso para empezar a cargar lecciones.</p>' : lessons.length ? `<div class="lessons stagger" id="lessonList">${lessonRows(lessons, assess)}</div>` : '<p class="muted">Todavía no hay lecciones. Agregá videos, audios, PDF, imágenes, links de YouTube/Vimeo o lecturas.</p>'}
         </div>
       </div>`;
     stagger(view);
@@ -659,6 +663,7 @@
       fd.set("order", form.order.value || "0");
       fd.set("published", form.published.checked ? "true" : "false");
       fd.set("isGift", form.isGift.checked ? "true" : "false");
+      fd.set("openAccess", form.openAccess.checked ? "true" : "false");
       fd.set("certEnabled", form.certEnabled.checked ? "true" : "false");
       fd.set("certHours", form.certHours.value.trim());
       if(form.cover.files[0]) fd.set("cover", form.cover.files[0]);
@@ -698,6 +703,7 @@
       const i = lessons.findIndex((l) => l.id === row.dataset.lid);
       const l = lessons[i];
       row.querySelector("[data-edit]").onclick = () => lessonModal(c, l);
+      row.querySelector("[data-qs]")?.addEventListener("click", () => assessmentModal(c, l, assess.get(l.id)));
       row.querySelector("[data-del]").onclick = async () => {
         if(!(await confirmBox("Eliminar lección", "Se borra \"" + l.title + "\" y su archivo."))) return;
         try{ await pb.collection("lessons").delete(l.id); ok("¡Lección eliminada!"); renderCurso(c.id); }
@@ -717,19 +723,117 @@
     });
   }
 
-  function lessonRows(lessons){
+  function lessonRows(lessons, assess){
     let last = null;
     return lessons.map((l, i) => {
       let sep = "";
       if((l.section || "") !== last){ last = l.section || ""; if(last) sep = `<div class="sec-sep">${esc(last)}</div>`; }
       const needsFile = ["video", "audio", "pdf", "image"].includes(l.kind) && !l.file;
       const needsUrl = l.kind === "embed" && !l.url;
+      const isAssess = l.kind === "quiz" || l.kind === "exam";
+      const a = assess && assess.get(l.id);
+      const qn = a && Array.isArray(a.questions) ? a.questions.length : 0;
+      const info = isAssess ? (qn ? ` · ${qn} preguntas${a.draft ? ' · <span class="warn">borrador</span>' : ""}` : ' · <span class="warn">sin preguntas</span>') : "";
       return sep + `<div class="lrow" data-lid="${l.id}">
         <div class="ord"><button data-move="-1" aria-label="Subir"${i === 0 ? " disabled" : ""}>▲</button><button data-move="1" aria-label="Bajar"${i === lessons.length - 1 ? " disabled" : ""}>▼</button></div>
-        <div><b>${i + 1}. ${esc(l.title)}</b><small>${KIND_LABEL[l.kind] || l.kind}${l.duration ? " · " + esc(l.duration) : ""}${needsFile ? ' · <span class="warn">falta el archivo</span>' : ""}${needsUrl ? ' · <span class="warn">falta el link</span>' : ""}</small></div>
-        <div class="row-actions"><button class="btn btn-ghost btn-sm" data-edit>Editar</button><button class="btn btn-danger btn-sm" data-del aria-label="Eliminar">✕</button></div>
+        <div><b>${i + 1}. ${esc(l.title)}</b><small>${KIND_LABEL[l.kind] || l.kind}${l.duration ? " · " + esc(l.duration) : ""}${info}${needsFile ? ' · <span class="warn">falta el archivo</span>' : ""}${needsUrl ? ' · <span class="warn">falta el link</span>' : ""}</small></div>
+        <div class="row-actions">${isAssess ? '<button class="btn btn-primary btn-sm" data-qs>Preguntas</button>' : ""}<button class="btn btn-ghost btn-sm" data-edit>Editar</button><button class="btn btn-danger btn-sm" data-del aria-label="Eliminar">✕</button></div>
       </div>`;
     }).join("");
+  }
+
+  // Editor de preguntas de la comprobación (práctica) o del examen de acreditación (final).
+  function assessmentModal(course, lesson, a){
+    const final = lesson.kind === "exam";
+    const qs = a && Array.isArray(a.questions) ? JSON.parse(JSON.stringify(a.questions)) : [];
+    if(!qs.length) qs.push({q:"", options:["", "", "", ""], correct:0, explain:""});
+    const L = "ABCDEFGH";
+    const qHtml = (q, i) => `<div class="qedit" data-i="${i}">
+      <div class="qedit-top"><b>Pregunta ${i + 1}</b><div class="row-actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-up${i === 0 ? " disabled" : ""}>▲</button><button type="button" class="btn btn-ghost btn-sm" data-down${i === qs.length - 1 ? " disabled" : ""}>▼</button>
+        <button type="button" class="btn btn-danger btn-sm" data-rm${qs.length === 1 ? " disabled" : ""}>✕</button></div></div>
+      <textarea class="input" rows="2" data-f="q" placeholder="Escribí la pregunta">${esc(q.q)}</textarea>
+      <div class="qopts">${q.options.map((o, oi) => `<label class="qopt${q.correct === oi ? " ok" : ""}"><input type="radio" name="c${i}" value="${oi}"${q.correct === oi ? " checked" : ""} title="Marcar como correcta"><span>${L[oi]}</span>
+        <input class="input" data-o="${oi}" value="${esc(o)}" placeholder="Opción ${L[oi]}">${q.options.length > 2 ? `<button type="button" class="x" data-ro="${oi}" aria-label="Quitar opción">✕</button>` : ""}</label>`).join("")}</div>
+      ${q.options.length < 6 ? `<button type="button" class="btn btn-ghost btn-sm" data-addopt>+ Opción</button>` : ""}
+      ${final ? "" : `<input class="input" data-f="explain" value="${esc(q.explain || "")}" placeholder="Explicación que ve el alumno al corregir (opcional)" style="margin-top:8px">`}
+    </div>`;
+
+    openModal(`<span class="eyebrow">${esc(course.title)} · ${final ? "Examen de acreditación" : "Comprobación de conocimientos"}</span>
+      <h2 style="margin-top:8px">${esc(lesson.title)}</h2>
+      ${a && a.draft ? `<p class="hint" style="margin:6px 0 14px;color:var(--yellow)">Estas preguntas son un borrador armado con el contenido del curso. Reemplazalas por el examen oficial y guardá: deja de figurar como borrador.</p>` : ""}
+      <div class="two">
+        <label class="field"><span>Puntaje mínimo para aprobar (%)</span><input class="input" id="aPass" type="number" min="1" max="100" value="${a ? a.passScore || (final ? 80 : 67) : final ? 80 : 67}"></label>
+        <label class="field"><span>${final ? "Oportunidades por alumno" : "Intentos"}</span>${final ? `<input class="input" id="aMax" type="number" min="0" value="${a ? a.maxAttempts : 3}">` : `<input class="input" value="Ilimitados" disabled>`}</label>
+      </div>
+      <p class="hint">${final ? "Al aprobar, el alumno queda ACREDITADO y su certificado se emite solo. 0 oportunidades = ilimitadas. Para dar más oportunidades a un alumno, usá Seguimiento." : "El alumno ve la corrección con la respuesta correcta y la explicación de cada pregunta."}</p>
+      <div id="qList" class="qlist"></div>
+      <button type="button" class="btn btn-ghost" id="qAdd" style="width:100%;margin-top:10px">+ Agregar pregunta</button>
+      <p class="error-msg" id="aErr" role="alert"></p>
+      <div class="modal-actions"><span class="muted" id="qCount" style="margin-right:auto;font-size:13px"></span><button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="aSave">Guardar preguntas</button></div>`, (m) => {
+      const list = m.querySelector("#qList");
+      // Lee lo escrito antes de redibujar para no perder cambios.
+      const collect = () => list.querySelectorAll(".qedit").forEach((box) => {
+        const q = qs[+box.dataset.i];
+        q.q = box.querySelector('[data-f="q"]').value;
+        q.options = [...box.querySelectorAll("[data-o]")].map((x) => x.value);
+        const r = box.querySelector("input[type=radio]:checked");
+        q.correct = r ? +r.value : 0;
+        const ex = box.querySelector('[data-f="explain"]');
+        if(ex) q.explain = ex.value;
+      });
+      const paint = () => {
+        list.innerHTML = qs.map(qHtml).join("");
+        m.querySelector("#qCount").textContent = qs.length + (qs.length === 1 ? " pregunta" : " preguntas");
+        list.querySelectorAll(".qedit").forEach((box) => {
+          const i = +box.dataset.i;
+          const act = (fn) => () => { collect(); fn(); paint(); };
+          box.querySelector("[data-rm]").onclick = act(() => qs.splice(i, 1));
+          box.querySelector("[data-up]").onclick = act(() => { [qs[i - 1], qs[i]] = [qs[i], qs[i - 1]]; });
+          box.querySelector("[data-down]").onclick = act(() => { [qs[i + 1], qs[i]] = [qs[i], qs[i + 1]]; });
+          box.querySelector("[data-addopt]")?.addEventListener("click", act(() => qs[i].options.push("")));
+          box.querySelectorAll("[data-ro]").forEach((b) => b.onclick = act(() => {
+            const oi = +b.dataset.ro;
+            qs[i].options.splice(oi, 1);
+            if(qs[i].correct === oi) qs[i].correct = 0; else if(qs[i].correct > oi) qs[i].correct--;
+          }));
+          box.querySelectorAll("input[type=radio]").forEach((r) => r.onchange = () => box.querySelectorAll(".qopt").forEach((x) => x.classList.toggle("ok", x.contains(r) && r.checked)));
+        });
+      };
+      paint();
+      m.querySelector("#qAdd").onclick = () => {
+        collect();
+        qs.push({q:"", options: final ? ["", "", "", ""] : ["", "", "", ""], correct:0, explain:""});
+        paint();
+        list.lastElementChild.scrollIntoView({behavior:"smooth", block:"center"});
+        list.lastElementChild.querySelector("textarea").focus({preventScroll:true});
+      };
+      m.querySelector("#aSave").onclick = async () => {
+        collect();
+        const err = m.querySelector("#aErr");
+        err.textContent = "";
+        const bad = qs.findIndex((q) => !q.q.trim() || q.options.filter((o) => o.trim()).length < 2 || !(q.options[q.correct] || "").trim());
+        if(bad >= 0){ err.textContent = "Revisá la pregunta " + (bad + 1) + ": necesita enunciado, al menos 2 opciones y la correcta marcada."; return; }
+        const clean = qs.map((q) => {
+          const keep = q.options.map((o, oi) => [o.trim(), oi]).filter(([o]) => o);
+          const out = {q: q.q.trim(), options: keep.map(([o]) => o), correct: keep.findIndex(([, oi]) => oi === q.correct)};
+          if(!final && (q.explain || "").trim()) out.explain = q.explain.trim();
+          return out;
+        });
+        const body = {course: course.id, lesson: lesson.id, kind: final ? "final" : "practica", title: lesson.title, questions: clean, draft: false,
+          passScore: Math.min(100, Math.max(1, +m.querySelector("#aPass").value || (final ? 80 : 67))),
+          maxAttempts: final ? Math.max(0, +m.querySelector("#aMax").value || 0) : 0};
+        const btn = m.querySelector("#aSave");
+        btn.disabled = true;
+        try{
+          if(a) await pb.collection("assessments").update(a.id, body);
+          else await pb.collection("assessments").create(body);
+          closeModal();
+          ok("¡Guardado con éxito!", clean.length + " preguntas listas en el campus.");
+          renderCurso(course.id);
+        }catch(e2){ err.textContent = errMsg(e2); btn.disabled = false; }
+      };
+    }, true);
   }
 
   const ACCEPT = {video:"video/*", audio:"audio/*", pdf:"application/pdf", image:"image/*"};
@@ -1038,6 +1142,206 @@
     });
   }
 
+  /* =====================================================
+     SEGUIMIENTO: inscripciones, evaluaciones y acreditación
+     ===================================================== */
+  const trackState = {q:"", course:"", status:"all"};
+  const TRACK_STATUS = {acreditado:["Acreditado", "good"], agotado:["Sin oportunidades", "bad"], evaluando:["En evaluación", "hot"], cursando:["Cursando", ""], inscripto:["Inscripto", ""]};
+
+  async function loadTracking(){
+    const [students, courses, lessons, progress, assess, results, certs] = await Promise.all([
+      pb.collection("users").getFullList({filter:'role != "admin"', fields:"id,courses", batch:1000}),
+      getCourses(true),
+      pb.collection("lessons").getFullList({fields:"id,course,kind", batch:1000}),
+      pb.collection("progress").getFullList({fields:"user,course", batch:2000}),
+      pb.collection("assessments").getFullList({fields:"id,course,kind,maxAttempts"}),
+      pb.collection("assessment_results").getFullList({fields:"id,user,course,kind,score,passed,created,attemptNo", sort:"created", batch:2000}),
+      pb.collection("certificates").getFullList({fields:"id,user,course,folio,issueDate", batch:1000}),
+    ]);
+    let enr = await pb.collection("enrollments").getFullList({expand:"user", sort:"-created", batch:1000});
+    // Alumnos con cursos asignados a mano antes de existir las inscripciones: las completamos.
+    const have = new Set(enr.map((e) => e.user + ":" + e.course));
+    const missing = students.flatMap((u) => (u.courses || []).filter((c) => !have.has(u.id + ":" + c)).map((c) => ({user:u.id, course:c})));
+    if(missing.length){
+      await Promise.all(missing.map((x) => pb.collection("enrollments").create({...x, status:"inscripto", source:"admin", attempts:0, extraAttempts:0}).catch(() => null)));
+      enr = await pb.collection("enrollments").getFullList({expand:"user", sort:"-created", batch:1000});
+    }
+    const lessonCount = {}, prog = {}, best = {};
+    lessons.forEach((l) => { lessonCount[l.course] = (lessonCount[l.course] || 0) + 1; });
+    progress.forEach((p) => { const k = p.user + ":" + p.course; prog[k] = (prog[k] || 0) + 1; });
+    results.forEach((r) => { const k = r.user + ":" + r.course + ":" + r.kind; best[k] = Math.max(best[k] || 0, r.score); });
+    const finalBy = new Map(assess.filter((a) => a.kind === "final").map((a) => [a.course, a]));
+    const certBy = new Map(certs.map((c) => [c.user + ":" + c.course, c]));
+    const names = new Map(courses.map((c) => [c.id, c.title]));
+    const rows = enr.filter((e) => e.expand && e.expand.user).map((e) => {
+      const k = e.user + ":" + e.course, fin = finalBy.get(e.course);
+      const allowed = fin && fin.maxAttempts > 0 ? fin.maxAttempts + (e.extraAttempts || 0) : 0;
+      const pct = lessonCount[e.course] ? Math.round(((prog[k] || 0) / lessonCount[e.course]) * 100) : 0;
+      const status = e.status === "acreditado" ? "acreditado" : allowed && (e.attempts || 0) >= allowed ? "agotado" : (e.attempts || 0) > 0 ? "evaluando" : pct > 0 ? "cursando" : "inscripto";
+      return {e, u:e.expand.user, course:names.get(e.course) || "Curso eliminado", pct, practice:best[k + ":practica"], exam:best[k + ":final"], allowed, status, cert:certBy.get(k),
+        history: results.filter((r) => r.user === e.user && r.course === e.course)};
+    });
+    return {rows, courses};
+  }
+
+  async function renderSeguimiento(){
+    const {rows, courses} = await loadTracking();
+    const count = (s) => rows.filter((r) => r.status === s).length;
+    const examScores = rows.filter((r) => r.exam != null).map((r) => r.exam);
+    const q = trackState.q.toLowerCase();
+    const shown = rows.filter((r) => (trackState.status === "all" || r.status === trackState.status)
+      && (!trackState.course || r.e.course === trackState.course)
+      && (!q || (r.u.name || "").toLowerCase().includes(q) || (r.u.email || "").toLowerCase().includes(q) || (r.u.phone || "").includes(q)));
+    view.innerHTML = `
+      <div class="head"><div><span class="eyebrow">Registro → curso → examen → certificado</span><h1>Seguimiento</h1></div>
+        <div class="actions"><button class="btn btn-ghost" id="trackCsv">Exportar CSV</button></div></div>
+      <div class="kpis stagger">
+        ${kpi("Inscripciones", rows.length, "🧾", new Set(rows.map((r) => r.e.user)).size + " alumnos")}
+        ${kpi("Cursando", count("cursando") + count("inscripto"), "📚", "todavía sin examen")}
+        ${kpi("En evaluación", count("evaluando"), "📝", "rindieron sin acreditar")}
+        ${kpi("Acreditados", count("acreditado"), "✅", rows.length ? Math.round((count("acreditado") / rows.length) * 100) + "% de los inscriptos" : "—")}
+        ${kpi("Sin oportunidades", count("agotado"), "🆘", "necesitan apoyo")}
+        ${kpi("Promedio examen", examScores.length ? Math.round(examScores.reduce((a, b) => a + b, 0) / examScores.length) : 0, "🎯", "mejor nota por alumno", "%")}
+      </div>
+      <div class="toolbar">
+        <input class="input" id="q" type="search" placeholder="Buscar por nombre, correo o teléfono" value="${esc(trackState.q)}">
+        <select class="input mini-select" id="tCourse" style="padding:10px 14px"><option value="">Todos los cursos</option>${courses.map((c) => `<option value="${c.id}"${trackState.course === c.id ? " selected" : ""}>${esc(c.title)}</option>`).join("")}</select>
+        <div class="seg" id="tSeg">${[["all", "Todos"], ["inscripto", "Inscriptos"], ["cursando", "Cursando"], ["evaluando", "En evaluación"], ["acreditado", "Acreditados"], ["agotado", "Sin oportunidades"]].map(([k, v]) => `<button data-s="${k}" class="${trackState.status === k ? "on" : ""}">${v}</button>`).join("")}</div>
+      </div>
+      ${shown.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Alumno</th><th>Curso · inscripción</th><th>Avance</th><th>Comprobación</th><th>Examen final</th><th>Intentos</th><th>Estado</th><th>Certificado</th><th></th></tr></thead>
+        <tbody class="stagger">${shown.map((r, i) => {
+          const [label, cls] = TRACK_STATUS[r.status];
+          return `<tr data-i="${rows.indexOf(r)}">
+          <td><div class="who-cell">${avatarHtml(r.u)}<div><b>${esc(r.u.name || "—")}</b><span class="sub">${esc(r.u.email)}</span>${r.u.phone ? `<a class="sub" style="color:var(--yellow)" target="_blank" rel="noopener" href="${waLink(r.u.country, r.u.phone)}">+${esc(r.u.country || "")} ${esc(r.u.phone)}</a>` : ""}</div></div></td>
+          <td style="min-width:170px"><b style="font-size:13.5px">${esc(r.course)}</b><span class="sub">${fmtDate(r.e.created)} · ${{registro:"Registro", evaluacion:"Evaluación", admin:"Admin"}[r.e.source] || "—"}</span></td>
+          <td>${scoreChip(r.pct, r.pct === 100)}</td>
+          <td>${r.practice != null ? scoreChip(r.practice, r.practice >= 67) : '<span class="muted">—</span>'}</td>
+          <td>${r.exam != null ? scoreChip(r.exam, r.exam >= 80) : '<span class="muted">—</span>'}</td>
+          <td class="num">${r.e.attempts || 0}${r.allowed ? " / " + r.allowed : ""}</td>
+          <td><span class="badge ${cls}">${label}</span>${r.e.accreditedAt ? `<span class="sub">${fmtDate(r.e.accreditedAt)}</span>` : ""}</td>
+          <td>${r.cert ? `<b class="mono" style="font-size:12.5px">${esc(r.cert.folio)}</b><span class="sub">${esc(Cert.dateShort(r.cert.issueDate))}</span>` : '<span class="muted">—</span>'}</td>
+          <td><div class="row-actions"><button class="btn btn-ghost btn-sm" data-hist>Historial</button>${r.status !== "acreditado" && r.allowed ? '<button class="btn btn-primary btn-sm" data-more>+1 oportunidad</button>' : ""}</div></td>
+        </tr>`;}).join("")}</tbody></table></div>` : `<div class="table-wrap"><div class="empty-row">No hay inscripciones${trackState.q || trackState.course || trackState.status !== "all" ? " con ese filtro" : " todavía"}.</div></div>`}`;
+    stagger(view);
+    view.querySelectorAll("[data-count]").forEach((el) => countUp(el, +el.dataset.count));
+    segPill($("tSeg"));
+    $("tSeg").querySelectorAll("button").forEach((b) => b.onclick = () => { trackState.status = b.dataset.s; renderSeguimiento(); });
+    $("tCourse").onchange = (e) => { trackState.course = e.target.value; renderSeguimiento(); };
+    searchInput("q", (v) => { trackState.q = v; return renderSeguimiento(); });
+    $("trackCsv").onclick = () => {
+      const head = ["Nombre", "Correo", "País", "Teléfono", "Curso", "Inscripción", "Origen", "Avance %", "Comprobación %", "Examen %", "Intentos", "Intentos permitidos", "Estado", "Fecha acreditación", "Folio"];
+      const lines = rows.map((r) => [r.u.name, r.u.email, r.u.country, r.u.phone, r.course, fmtDate(r.e.created), r.e.source, r.pct, r.practice ?? "", r.exam ?? "", r.e.attempts || 0, r.allowed || "ilimitados", TRACK_STATUS[r.status][0], r.e.accreditedAt ? fmtDate(r.e.accreditedAt) : "", r.cert ? r.cert.folio : ""]);
+      const csv = "﻿" + [head, ...lines].map((l) => l.map((v) => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
+      a.download = "seguimiento-innovafit-" + todayISO() + ".csv";
+      a.click();
+      ok("¡CSV exportado!", rows.length + " inscripciones.");
+    };
+    view.querySelectorAll("tr[data-i]").forEach((tr) => {
+      const r = rows[+tr.dataset.i];
+      tr.querySelector("[data-hist]").onclick = () => historyModal(r);
+      tr.querySelector("[data-more]")?.addEventListener("click", async () => {
+        try{
+          await pb.collection("enrollments").update(r.e.id, {extraAttempts: (r.e.extraAttempts || 0) + 1});
+          ok("¡Oportunidad habilitada!", (r.u.name || r.u.email) + " ya puede volver a rendir el examen.");
+          renderSeguimiento();
+        }catch(err){ fail(err); }
+      });
+    });
+  }
+
+  function scoreChip(v, good){
+    return `<span class="score-chip"><span class="mono" style="font-weight:700">${v}%</span><span class="mini"><i class="${good ? "ok" : ""}" style="width:${v}%"></i></span></span>`;
+  }
+
+  function historyModal(r){
+    const KIND = {practica:"Comprobación", final:"Examen final"};
+    const msg = "Hola " + ((r.u.name || "").split(" ")[0] || "") + "! Te escribimos de InnovaFit por tu curso " + r.course + ".";
+    openModal(`<span class="eyebrow">${esc(r.course)}</span><h2 style="margin-top:8px">${esc(r.u.name || r.u.email)}</h2>
+      <div class="cred" style="margin-top:12px">
+        <div><span>Estado</span><b>${TRACK_STATUS[r.status][0]}</b></div>
+        <div><span>Avance del curso</span><b>${r.pct}%</b></div>
+        <div><span>Oportunidades del examen</span><b>${(r.e.attempts || 0) + (r.allowed ? " usadas de " + r.allowed : " usadas")}</b></div>
+        ${r.cert ? `<div><span>Certificado</span><b class="mono">${esc(r.cert.folio)}</b></div>` : ""}
+      </div>
+      ${r.history.length ? `<div class="table-wrap" style="margin-bottom:16px"><table><thead><tr><th>Fecha</th><th>Evaluación</th><th>Calificación</th><th>Resultado</th></tr></thead><tbody>
+        ${r.history.slice().reverse().map((h) => `<tr><td>${fmtDateTime(h.created)}</td><td>${KIND[h.kind] || h.kind}${h.attemptNo ? " · intento " + h.attemptNo : ""}</td><td>${scoreChip(h.score, h.passed)}</td><td>${h.passed ? '<span class="badge good">Aprobó</span>' : '<span class="badge bad">No aprobó</span>'}</td></tr>`).join("")}
+      </tbody></table></div>` : '<p class="muted">Todavía no rindió ninguna evaluación.</p>'}
+      <div class="modal-actions">${r.u.phone ? `<a class="btn btn-ghost" target="_blank" rel="noopener" href="${waLink(r.u.country, r.u.phone, msg)}">Escribirle por WhatsApp</a>` : ""}<button class="btn btn-primary" data-close>Listo</button></div>`, null, true);
+  }
+
+  /* =====================================================
+     AJUSTES: campaña comercial y sello del certificado
+     ===================================================== */
+  async function renderAjustes(){
+    const s = await UI.settings(true);
+    const sample = {studentName:"Nombre Apellido Ejemplo", title:"Fundamentos de Biomecánica", hours:"Módulo introductorio", issueDate:todayISO(), folio:"IF-2026-0000", score:95};
+    view.innerHTML = `
+      <div class="head"><div><span class="eyebrow">Configuración</span><h1>Ajustes</h1></div></div>
+      <div class="editor">
+        <form class="card panel spot" id="campForm" novalidate>
+          <h2>Campaña comercial</h2>
+          <p class="hint" style="margin:0 0 14px">Se muestra en la pantalla de registro, en Mis cursos y en Certificaciones, con una cinta “BUEN FIN” sobre cada curso.</p>
+          <label class="check" style="margin-bottom:14px"><input type="checkbox" name="campaignOn"${s.campaignOn ? " checked" : ""}> Campaña activa</label>
+          <label class="field"><span>Título</span><input class="input" name="campaignTitle" value="${esc(s.campaignTitle || "")}" maxlength="80"></label>
+          <label class="field"><span>Texto</span><input class="input" name="campaignText" value="${esc(s.campaignText || "")}" maxlength="240"></label>
+          <div class="field"><span>Logo de la campaña (opcional)</span>
+            <div class="cover-prev" id="campPrev" style="aspect-ratio:3/1;background-size:contain;${s.campaignLogo ? `background-image:url('${fileUrl(s, s.campaignLogo)}')` : ""}">${s.campaignLogo ? "" : "Sin logo: se usa la insignia Buen Fin de InnovaFit"}</div>
+            <input class="input" type="file" name="campaignLogo" accept="image/*"></div>
+          <p class="hint">Si InnovaFit está registrada como participante de El Buen Fin, subí acá el logo oficial que te dieron.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-primary">Guardar campaña</button>${s.campaignLogo ? '<button type="button" class="btn btn-ghost" id="campRm">Quitar logo</button>' : ""}</div>
+        </form>
+        <form class="card panel" id="sealForm" novalidate>
+          <h2>Sello de acreditación</h2>
+          <p class="hint" style="margin:0 0 14px">Va al pie de cada certificado. Subí el logo de acreditación y aprobación de InnovaFit (PNG con fondo transparente o SVG, cuadrado).</p>
+          <div id="certPrev"></div>
+          <input class="input" type="file" name="sealLogo" accept="image/png,image/svg+xml,image/webp,image/jpeg" style="margin-top:14px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-primary">Guardar sello</button>${s.sealLogo ? '<button type="button" class="btn btn-ghost" id="sealRm">Volver al sello de fábrica</button>' : ""}</div>
+        </form>
+      </div>`;
+    stagger(view);
+    Cert.setSeal(s.sealLogo ? fileUrl(s, s.sealLogo) : "/assets/cert/seal-default.svg");
+    let prev = Cert.mount($("certPrev"), sample);
+    const save = async (data, msg) => {
+      try{
+        await pb.collection("settings").update(s.id, data);
+        await UI.settings(true);
+        ok("¡Guardado con éxito!", msg);
+        renderAjustes();
+      }catch(err){ fail(err); }
+    };
+    const camp = $("campForm");
+    camp.campaignLogo.onchange = () => { const f = camp.campaignLogo.files[0]; if(f){ const p = $("campPrev"); p.style.backgroundImage = "url('" + URL.createObjectURL(f) + "')"; p.textContent = ""; } };
+    camp.onsubmit = (e) => {
+      e.preventDefault();
+      const fd = new FormData();
+      fd.set("campaignOn", camp.campaignOn.checked ? "true" : "false");
+      fd.set("campaignTitle", camp.campaignTitle.value.trim());
+      fd.set("campaignText", camp.campaignText.value.trim());
+      if(camp.campaignLogo.files[0]) fd.set("campaignLogo", camp.campaignLogo.files[0]);
+      save(fd, camp.campaignOn.checked ? "La campaña ya se ve en el campus." : "La campaña quedó desactivada.");
+    };
+    $("campRm")?.addEventListener("click", () => save({campaignLogo: null}, "Se usa la insignia de InnovaFit."));
+    const seal = $("sealForm");
+    seal.sealLogo.onchange = () => {
+      const f = seal.sealLogo.files[0];
+      if(!f) return;
+      prev.destroy();
+      Cert.setSeal(URL.createObjectURL(f));
+      prev = Cert.mount($("certPrev"), sample);
+    };
+    seal.onsubmit = (e) => {
+      e.preventDefault();
+      if(!seal.sealLogo.files[0]) return fail("Elegí la imagen del sello.");
+      const fd = new FormData();
+      fd.set("sealLogo", seal.sealLogo.files[0]);
+      save(fd, "Los certificados nuevos y los ya emitidos muestran el sello nuevo.");
+    };
+    $("sealRm")?.addEventListener("click", () => save({sealLogo: null}, "Volvió el sello de fábrica."));
+  }
+
   /* ---------- Router ---------- */
   async function route(keepModal){
     const [, section = "resumen", id] = (location.hash.match(/^#\/([^/]+)(?:\/([^/]+))?/) || []);
@@ -1053,6 +1357,8 @@
         if(id === "nuevo" && !keepModal){ history.replaceState(null, "", "#/certificados"); issueModal({}); }
       }
       else if(section === "certificaciones") await renderCertificaciones();
+      else if(section === "seguimiento") await renderSeguimiento();
+      else if(section === "ajustes") await renderAjustes();
       else await renderResumen();
       view.classList.remove("view-in"); void view.offsetWidth; view.classList.add("view-in");
     }catch(err){
@@ -1074,6 +1380,7 @@
     $("me").textContent = me.email;
     $("meName").textContent = me.name || "Admin";
     $("meAv").outerHTML = avatarHtml(me);
+    UI.settings(); // sello del certificado
     view.innerHTML = `<div style="min-height:50vh;display:grid;place-items:center"><div class="spinner"></div></div>`;
     route();
   }

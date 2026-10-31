@@ -6,5 +6,6 @@ pocketbase/pocketbase.exe
 pocketbase/*.md
 # Respuestas correctas de la evaluación: el repo es público, se copian al servidor aparte.
 data/questions.json
+data/assessments-seed.json
 # PocketBase las genera solo en local; el esquema lo maneja setup.js
 pocketbase/pb_migrations/

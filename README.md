@@ -9,8 +9,8 @@ En producción: http://179.197.89.153
 |---|---|
 | `/` | Landing para entrenadores personales |
 | `/evaluacion` | Evaluación de 25 preguntas (aprueba con 80/100) |
-| `/campus` | Campus del alumno: cursos, lecciones y progreso |
-| `/admin` | Panel: resumen con gráficos, evaluaciones (leads), alumnos, cursos, certificados y catálogo de certificaciones |
+| `/campus` | Campus del alumno: registro obligatorio, cursos, comprobación, examen de acreditación y certificados |
+| `/admin` | Panel: resumen, evaluaciones (leads), alumnos, seguimiento de acreditación, cursos con editor de preguntas, certificados, catálogo de certificaciones y ajustes |
 | `/verificar` | Verificación pública de un certificado por su folio |
 
 ## Cómo funciona
@@ -18,7 +18,12 @@ En producción: http://179.197.89.153
 - Las respuestas correctas viven solo en el servidor (`data/questions.json`). El navegador recibe las preguntas sin respuestas y el servidor corrige.
 - Cada evaluación queda guardada con nombre, correo, WhatsApp y puntaje. Desde **Admin → Evaluaciones** se filtran aprobados y no aprobados, se marca el estado (nuevo, contactado, inscripto, descartado), se agregan notas y se exporta a CSV.
 - **Si aprueba**: se crea su cuenta ya verificada, se le habilita el curso marcado como *Regalo al aprobar* y queda con la sesión iniciada: el botón "Entrar al campus" lo lleva directo. También ve su usuario y contraseña. Si ya tenía cuenta, el curso se suma a la misma.
-- **Certificados**: al completar todas las lecciones de un curso con "Emitir al completar", el servidor verifica el progreso y emite el certificado con folio correlativo (`IF-AAAA-0001`). El admin también puede emitirlos a mano desde **Certificados**, con vista previa en vivo. Se descargan en PDF o PNG y cualquiera puede verificarlos en `/verificar`.
+- **Registro obligatorio**: sin sesión, el campus muestra los cursos con "Inscripción libre" y un formulario de registro (nombre completo, correo, país, teléfono, contraseña y autorización de datos). Nadie ve contenido sin registrarse. Cada inscripción queda en `enrollments`.
+- **Secuencia de acreditación**: lecciones → estudio de caso → comprobación de conocimientos (lección tipo *Comprobación*: corrección inmediata con explicación) → examen de acreditación (lección tipo *Examen final*: se habilita al completar el resto, 3 oportunidades, aprueba con 80%). Al aprobar, el alumno queda ACREDITADO con fecha y calificación, y el certificado se emite solo. Las preguntas y respuestas viven en `assessments` (solo admin) y se corrigen en el servidor.
+- **Seguimiento** (admin): inscriptos, curso, avance, calificaciones, intentos usados, estado, fecha de acreditación y folio. Desde ahí se habilita "+1 oportunidad" y se exporta a CSV.
+- **Ajustes** (admin): campaña comercial (Buen Fin) con logo opcional, y sello de acreditación del certificado.
+- La carga inicial de preguntas sale de `data/assessments-seed.json` (fuera del repo, como `questions.json`). Las portadas de cursos y certificaciones están en `seed/covers/`.
+- **Certificados**: si el curso no tiene examen, al completar todas las lecciones de un curso con "Emitir al completar", el servidor verifica el progreso y emite el certificado con folio correlativo (`IF-AAAA-0001`). El admin también puede emitirlos a mano desde **Certificados**, con vista previa en vivo. Se descargan en PDF o PNG y cualquiera puede verificarlos en `/verificar`.
 - **Panel del alumno**: edita sus datos, foto y contraseña; ve y descarga sus certificados; consulta las certificaciones del catálogo con un mensaje de WhatsApp armado con sus datos.
 - Cada acción guardada muestra una confirmación en el centro de la pantalla.
 - **Si no aprueba**: ve su mapa por bloque y la invitación a la Certificación Doble por WhatsApp.
@@ -62,7 +67,7 @@ journalctl -u innovafit -f                 # logs del sitio
 journalctl -u innovafit-deploy -n 50       # últimos despliegues
 ```
 
-`.env`, `data/questions.json` (respuestas de la evaluación) y `pocketbase/pb_data/` no están en GitHub: viven solo en el servidor.
+`.env`, `data/questions.json` y `data/assessments-seed.json` (respuestas de las evaluaciones) y `pocketbase/pb_data/` no están en GitHub: viven solo en el servidor.
 
 ## Producción
 

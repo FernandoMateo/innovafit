@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd76a"/><stop offset=".5" stop-color="#ffb020"/><stop offset="1" stop-color="#ff6a1a"/>
+    </linearGradient>
+    <radialGradient id="c" cx=".5" cy=".42" r=".6">
+      <stop offset="0" stop-color="#2a2420"/><stop offset="1" stop-color="#131113"/>
+    </radialGradient>
+    <path id="top" d="M52 120 A68 68 0 0 1 188 120"/>
+    <path id="bot" d="M44 120 A76 76 0 0 0 196 120"/>
+  </defs>
+  <g fill="url(#g)">
+    <!-- borde dentado tipo roseta -->
+    <path d="M120.0 4.0 L131.6 16.7 L145.8 6.9 L154.3 21.8 L170.3 15.5 L175.3 31.9 L192.3 29.3 L193.5 46.5 L210.7 47.7 L208.1 64.7 L224.5 69.7 L218.2 85.7 L233.1 94.2 L223.3 108.4 L236.0 120.0 L223.3 131.6 L233.1 145.8 L218.2 154.3 L224.5 170.3 L208.1 175.3 L210.7 192.3 L193.5 193.5 L192.3 210.7 L175.3 208.1 L170.3 224.5 L154.3 218.2 L145.8 233.1 L131.6 223.3 L120.0 236.0 L108.4 223.3 L94.2 233.1 L85.7 218.2 L69.7 224.5 L64.7 208.1 L47.7 210.7 L46.5 193.5 L29.3 192.3 L31.9 175.3 L15.5 170.3 L21.8 154.3 L6.9 145.8 L16.7 131.6 L4.0 120.0 L16.7 108.4 L6.9 94.2 L21.8 85.7 L15.5 69.7 L31.9 64.7 L29.3 47.7 L46.5 46.5 L47.7 29.3 L64.7 31.9 L69.7 15.5 L85.7 21.8 L94.2 6.9 L108.4 16.7 Z"/>
+  </g>
+  <circle cx="120" cy="120" r="88" fill="url(#c)"/>
+  <circle cx="120" cy="120" r="82" fill="none" stroke="url(#g)" stroke-width="2"/>
+  <circle cx="120" cy="120" r="50" fill="none" stroke="url(#g)" stroke-width="1.5" stroke-dasharray="3 4"/>
+  <text font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="15" letter-spacing="3.2" fill="#ffd38a">
+    <textPath href="#top" startOffset="50%" text-anchor="middle">INNOVAFIT</textPath>
+  </text>
+  <text font-family="Arial, sans-serif" font-weight="700" font-size="12.5" letter-spacing="3" fill="#ffd38a">
+    <textPath href="#bot" startOffset="50%" text-anchor="middle">CURSO ACREDITADO</textPath>
+  </text>
+  <circle cx="46" cy="104" r="3" fill="#ffb020"/><circle cx="194" cy="104" r="3" fill="#ffb020"/>
+  <path d="M100 121 L114 135 L142 106" fill="none" stroke="url(#g)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

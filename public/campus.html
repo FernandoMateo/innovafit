@@ -155,6 +155,106 @@
   .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media (max-width:560px){.two{grid-template-columns:1fr}}
 
+  /* Acceso: catálogo + registro */
+  .gate{min-height:100vh;padding:0 16px 60px;background:radial-gradient(1000px 600px at 90% -10%,rgba(255,110,30,.16),transparent 60%),radial-gradient(800px 500px at -10% 100%,rgba(255,201,60,.08),transparent 60%)}
+  .gate-top{display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(1180px,100%);margin:0 auto;height:72px}
+  .gate-top img{height:28px}
+  .gate-grid{width:min(1180px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,440px);gap:36px;align-items:start;padding-top:18px}
+  @media (max-width:980px){.gate-grid{grid-template-columns:1fr}.gate-card{order:-1}}
+  .gate-info h1{font-size:clamp(40px,6vw,72px);margin:10px 0 12px}
+  .gate-lead{color:#e6dccd;max-width:56ch;margin:0 0 22px}
+  .steps{list-style:none;padding:0;margin:0 0 28px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;counter-reset:s}
+  @media (max-width:640px){.steps{grid-template-columns:1fr 1fr}}
+  .steps li{counter-increment:s;padding:14px 14px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.02);position:relative}
+  .steps li::before{content:"0" counter(s);font-family:var(--mono);font-size:11px;color:var(--yellow);letter-spacing:.1em}
+  .steps b{display:block;font-size:15px;margin-top:4px}
+  .steps span{font-size:12.5px;color:var(--muted)}
+  .gate-courses{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .gcourse{position:relative;border-radius:18px;overflow:hidden;border:1.5px solid var(--line);background:var(--card);cursor:pointer;text-align:left;padding:0;color:inherit;font:inherit;transition:transform .25s,border-color .25s,box-shadow .25s}
+  .gcourse:hover{transform:translateY(-4px);border-color:rgba(255,201,60,.4)}
+  .gcourse.on{border-color:var(--yellow);box-shadow:0 0 0 4px rgba(255,201,60,.12),0 20px 50px -24px rgba(255,140,30,.7)}
+  .gcourse .cv{aspect-ratio:16/9;background:var(--bg-2) center/cover no-repeat}
+  .gcourse .gb{padding:14px 16px 16px}
+  .gcourse h3{font-size:21px}
+  .gcourse p{margin:6px 0 10px;color:var(--muted);font-size:13px}
+  .gcourse .go{font-weight:800;font-size:13.5px;color:var(--yellow)}
+  .gcourse.on .go::after{content:" ✓ elegido"}
+  .gate-card{position:sticky;top:20px;padding:22px 24px 26px;width:100%;max-width:none;text-align:left}
+  .gate-card h2{font-size:32px;margin:6px 0 14px}
+  .seg-tabs{display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:999px;border:1px solid var(--line-2);background:rgba(255,255,255,.02);margin-bottom:14px}
+  .seg-tabs button{border:0;background:transparent;border-radius:999px;padding:10px;font-weight:800;font-size:13.5px;color:var(--muted);cursor:pointer;transition:background .25s,color .25s}
+  .seg-tabs button.on{background:var(--grad);color:#170b00}
+  .phone-row{display:grid;grid-template-columns:118px 1fr;gap:10px}
+  .picked{display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;background:rgba(255,201,60,.07);border:1px solid rgba(255,201,60,.25);margin-bottom:14px;font-size:13.5px}
+  .picked i{width:64px;aspect-ratio:16/9;border-radius:8px;background:var(--bg-2) center/cover;flex:none}
+  .picked small{display:block;color:var(--muted);font-size:11px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .consent{font-size:12.5px;color:var(--muted);align-items:flex-start;line-height:1.45;margin:4px 0 6px}
+  .consent input{margin-top:3px}
+
+  /* Campaña (Buen Fin) */
+  .campaign{display:flex;align-items:center;gap:16px;padding:14px 18px;border-radius:18px;margin-bottom:22px;position:relative;overflow:hidden;
+    background:linear-gradient(110deg,rgba(255,45,85,.22),rgba(255,90,31,.14) 50%,rgba(255,201,60,.08));border:1px solid rgba(255,80,80,.35)}
+  .campaign::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.14) 50%,transparent 60%);background-size:250% 100%;animation:sweep 4.5s ease-in-out infinite}
+  @keyframes sweep{0%,40%{background-position:130% 0}100%{background-position:-130% 0}}
+  .campaign img{height:46px;width:auto;flex:none;border-radius:8px}
+  .campaign b{display:block;font-size:16px}
+  .campaign span{font-size:13.5px;color:#f1e3d6}
+  .bf-badge{flex:none;display:grid;place-items:center;width:62px;height:62px;border-radius:16px;transform:rotate(-6deg);
+    background:linear-gradient(140deg,#ff2d55,#ff5a1f);box-shadow:0 10px 30px -10px rgba(255,45,85,.8);font-family:var(--display);font-size:15px;line-height:.95;text-align:center;color:#fff;text-transform:uppercase}
+  .ribbon{position:absolute;top:12px;left:-34px;z-index:2;transform:rotate(-35deg);width:140px;text-align:center;padding:5px 0;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;
+    background:linear-gradient(90deg,#ff2d55,#ff5a1f);color:#fff;box-shadow:0 6px 18px -6px rgba(255,45,85,.8)}
+  .course,.prog,.gcourse{position:relative}
+  .badge.acc{background:rgba(52,211,153,.14);color:var(--good);border-color:rgba(52,211,153,.4)}
+  .more-title{margin:46px 0 16px;font-size:30px}
+
+  /* Evaluaciones */
+  .quiz{border-radius:20px;border:1px solid var(--line);background:var(--card);padding:clamp(18px,3vw,30px)}
+  .quiz-head{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  .quiz-meta{display:flex;gap:8px;flex-wrap:wrap}
+  .qcard{padding:18px 0;border-top:1px solid var(--line)}
+  .qcard:first-of-type{border-top:0;padding-top:0}
+  .qcard h3{font-family:var(--body);text-transform:none;font-size:17px;font-weight:800;line-height:1.45;letter-spacing:0;margin-bottom:12px}
+  .qcard h3 small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--yellow);font-weight:700;margin-bottom:4px}
+  .opts{display:grid;gap:8px}
+  .opt{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;padding:13px 14px;border-radius:14px;border:1.5px solid var(--line-2);background:var(--bg-2);color:inherit;font:inherit;font-size:14.5px;line-height:1.45;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+  .opt:hover:not(:disabled){border-color:rgba(255,201,60,.45);transform:translateX(2px)}
+  .opt .l{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:12px;background:rgba(255,255,255,.06)}
+  .opt.sel{border-color:var(--yellow);background:rgba(255,201,60,.08)}
+  .opt.sel .l{background:var(--grad);color:#170b00}
+  .opt.right{border-color:rgba(52,211,153,.7);background:rgba(52,211,153,.1)}
+  .opt.right .l{background:var(--good);color:#04130c}
+  .opt.wrong{border-color:rgba(255,90,90,.7);background:rgba(255,90,90,.08)}
+  .opt.wrong .l{background:var(--bad);color:#fff}
+  .opt:disabled{cursor:default}
+  .explain{margin-top:10px;padding:12px 14px;border-radius:12px;font-size:13.5px;color:#e6dccd;background:rgba(255,255,255,.03);border-left:3px solid var(--yellow)}
+  .quiz-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:20px}
+  .qprog{height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin:4px 0 18px}
+  .qprog i{display:block;height:100%;background:var(--grad);transition:width .35s cubic-bezier(.2,.9,.3,1)}
+  .qdots{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px}
+  .qdots button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line-2);background:transparent;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer}
+  .qdots button.done{background:rgba(255,201,60,.12);color:var(--fg);border-color:rgba(255,201,60,.35)}
+  .qdots button.cur{outline:2px solid var(--yellow);outline-offset:1px}
+  .qslide{animation:qin .35s cubic-bezier(.2,.9,.3,1) both}
+  @keyframes qin{from{opacity:0;transform:translateX(18px)}}
+  .result{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center}
+  @media (max-width:640px){.result{grid-template-columns:1fr;text-align:center}.result .ring-big{margin:0 auto}}
+  .ring-big{position:relative;width:150px;height:150px}
+  .ring-big svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ring-big circle{fill:none;stroke-width:11}
+  .ring-big .t{stroke:rgba(255,255,255,.08)}
+  .ring-big .f{stroke:url(#rg);stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.2,.9,.3,1)}
+  .ring-big.ok .f{stroke:var(--good)}
+  .ring-big b{position:absolute;inset:0;display:grid;place-content:center;font-family:var(--display);font-size:44px;font-weight:400}
+  .result h2{font-size:clamp(28px,4vw,40px);margin-bottom:8px}
+  .result p{color:#e6dccd;margin:0 0 16px}
+  .state-card{text-align:center;padding:36px 22px}
+  .state-card .big{font-size:52px;line-height:1;margin-bottom:10px}
+  .state-card h2{font-size:clamp(28px,4vw,40px);margin-bottom:8px}
+  .state-card p{color:#e6dccd;max-width:56ch;margin:0 auto 18px}
+  .acc-stamp{display:inline-block;padding:6px 14px;border-radius:10px;border:2px solid var(--good);color:var(--good);font-family:var(--display);font-size:22px;letter-spacing:.08em;transform:rotate(-4deg);margin-bottom:12px}
+  .hist{margin-top:18px;font-size:13px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .hist span{padding:4px 10px;border-radius:99px;border:1px solid var(--line)}
+
   /* Celebración */
   .celebrate .modal-card{width:min(900px,100%);text-align:center}
   .confetti{position:fixed;inset:0;pointer-events:none;z-index:150}
@@ -164,19 +264,49 @@
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a1f"/><stop offset="1" stop-color="#ffc93c"/></linearGradient></defs></svg>
 
-<!-- Login -->
-<section class="auth-screen" id="loginView" hidden>
-  <form class="card auth-card" id="loginForm" novalidate>
-    <a href="/"><img class="logo" src="/assets/innovafit-logo.png" alt="InnovaFit"></a>
-    <span class="eyebrow">Campus InnovaFit</span>
-    <h1>Entrá a tus <span class="grad-text">cursos</span></h1>
-    <p>Usá el correo y la contraseña que recibiste al aprobar la evaluación o que te envió tu asesor.</p>
-    <label class="field"><span>Correo</span><input class="input" id="lEmail" type="email" autocomplete="email" required></label>
-    <label class="field"><span>Contraseña</span><input class="input" id="lPass" type="password" autocomplete="current-password" required></label>
-    <p class="error-msg" id="lErr" role="alert"></p>
-    <button class="btn btn-primary" style="width:100%" type="submit" id="lBtn">Entrar</button>
-    <p style="margin:20px 0 0;font-size:14px">¿Todavía no tenés acceso? <a href="/evaluacion" style="color:var(--yellow)">Hacé la evaluación</a> y ganate el curso.</p>
-  </form>
+<!-- Acceso: catálogo de cursos gratuitos + registro obligatorio / ingreso -->
+<section class="gate" id="loginView" hidden>
+  <header class="gate-top"><a href="/"><img src="/assets/innovafit-logo.png" alt="InnovaFit"></a><span class="eyebrow">Campus virtual</span></header>
+  <div class="gate-grid">
+    <div class="gate-info">
+      <div id="gateCampaign"></div>
+      <span class="eyebrow">Cursos gratuitos con certificado</span>
+      <h1>Registrate y <span class="grad-text">empezá hoy.</span></h1>
+      <p class="gate-lead">Elegí tu curso, dejá tus datos y accedé al instante. Al aprobar el examen de acreditación con 80% o más, tu certificado InnovaFit se emite solo.</p>
+      <ol class="steps"><li><b>Registro</b><span>Tus datos, en 30 segundos</span></li><li><b>Curso</b><span>Videos, audios y estudio de caso</span></li><li><b>Examen</b><span>20 preguntas · mínimo 80%</span></li><li><b>Certificado</b><span>Automático y verificable</span></li></ol>
+      <div class="gate-courses" id="gateCourses"></div>
+    </div>
+
+    <div class="card auth-card gate-card" id="authCard">
+      <div class="seg-tabs" role="tablist"><button type="button" data-mode="register" class="on">Crear cuenta</button><button type="button" data-mode="login">Ya tengo cuenta</button></div>
+
+      <form id="regForm" novalidate>
+        <h2>Registrate <span class="grad-text">gratis</span></h2>
+        <div class="picked" id="picked" hidden></div>
+        <label class="field"><span>Nombre y apellido completos</span><input class="input" name="name" autocomplete="name" required placeholder="Así sale en tu certificado"></label>
+        <label class="field"><span>Correo electrónico</span><input class="input" name="email" type="email" autocomplete="email" required></label>
+        <div class="phone-row">
+          <label class="field"><span>País</span><select class="input" name="country">
+            <option value="52">🇲🇽 +52</option><option value="54">🇦🇷 +54</option><option value="57">🇨🇴 +57</option><option value="51">🇵🇪 +51</option><option value="56">🇨🇱 +56</option><option value="593">🇪🇨 +593</option><option value="502">🇬🇹 +502</option><option value="506">🇨🇷 +506</option><option value="507">🇵🇦 +507</option><option value="58">🇻🇪 +58</option><option value="591">🇧🇴 +591</option><option value="595">🇵🇾 +595</option><option value="598">🇺🇾 +598</option><option value="1">🇺🇸 +1</option><option value="34">🇪🇸 +34</option></select></label>
+          <label class="field"><span>Teléfono / WhatsApp</span><input class="input" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" required></label>
+        </div>
+        <label class="field"><span>Creá tu contraseña</span><input class="input" name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="Mínimo 8 caracteres"></label>
+        <label class="check consent"><input type="checkbox" name="consent" required> Acepto que InnovaFit guarde mis datos para darme acceso al campus y contactarme sobre cursos y certificaciones.</label>
+        <p class="error-msg" id="rErr" role="alert"></p>
+        <button class="btn btn-primary" style="width:100%" id="rBtn">Crear cuenta y entrar</button>
+      </form>
+
+      <form id="loginForm" novalidate hidden>
+        <h2>Entrá a tus <span class="grad-text">cursos</span></h2>
+        <p class="muted" style="margin:0 0 16px">Usá el correo y la contraseña con los que te registraste.</p>
+        <label class="field"><span>Correo</span><input class="input" id="lEmail" type="email" autocomplete="email" required></label>
+        <label class="field"><span>Contraseña</span><input class="input" id="lPass" type="password" autocomplete="current-password" required></label>
+        <p class="error-msg" id="lErr" role="alert"></p>
+        <button class="btn btn-primary" style="width:100%" type="submit" id="lBtn">Entrar</button>
+        <p style="margin:16px 0 0;font-size:13.5px" class="muted">¿Olvidaste tu contraseña? Escribinos por WhatsApp y te ayudamos.</p>
+      </form>
+    </div>
+  </div>
 </section>
 
 <!-- App -->

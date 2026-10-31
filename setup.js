@@ -66,7 +66,13 @@ async function upsertCollection(def) {
     return res;
   }
   const names = new Set(current.fields.map((f) => f.name));
-  const fields = [...current.fields, ...(def.fields || []).filter((f) => !names.has(f.name))];
+  // En los select existentes solo sumamos opciones nuevas (nunca quitamos las que hay).
+  const merged = current.fields.map((f) => {
+    const want = (def.fields || []).find((d) => d.name === f.name);
+    if (!want || f.type !== "select" || !want.values) return f;
+    return { ...f, values: [...new Set([...f.values, ...want.values])] };
+  });
+  const fields = [...merged, ...(def.fields || []).filter((f) => !names.has(f.name))];
   const { fields: _ignored, name, type, ...rest } = def;
   const res = await pb("/api/collections/" + current.id, { method: "PATCH", body: { ...rest, fields } });
   console.log("✓ colección actualizada:", def.name);
@@ -87,6 +93,8 @@ async function setupCollections() {
       { name: "order", type: "number" },
       { name: "certEnabled", type: "bool" },
       { name: "certHours", type: "text", max: 60 },
+      // Cualquiera puede inscribirse con solo registrarse (curso gratuito de campaña).
+      { name: "openAccess", type: "bool" },
       ...created(),
     ],
     listRule: null,
@@ -119,11 +127,12 @@ async function setupCollections() {
   if (!users) throw new Error("No existe la colección users en PocketBase.");
 
   // Ahora que existe users.courses, las reglas de cursos pueden depender de ella.
+  // Los cursos de acceso libre se ven sin sesión (catálogo de la pantalla de registro).
   await pb("/api/collections/" + courses.id, {
     method: "PATCH",
     body: {
-      listRule: ADMIN + " || (published = true && @request.auth.courses.id ?= id)",
-      viewRule: ADMIN + " || (published = true && @request.auth.courses.id ?= id)",
+      listRule: ADMIN + " || (published = true && (openAccess = true || @request.auth.courses.id ?= id))",
+      viewRule: ADMIN + " || (published = true && (openAccess = true || @request.auth.courses.id ?= id))",
     },
   });
 
@@ -135,7 +144,7 @@ async function setupCollections() {
       { name: "title", type: "text", required: true, max: 200 },
       { name: "section", type: "text", max: 120 },
       { name: "description", type: "text", max: 2000 },
-      { name: "kind", type: "select", values: ["video", "audio", "pdf", "image", "embed", "text"], maxSelect: 1, required: true },
+      { name: "kind", type: "select", values: ["video", "audio", "pdf", "image", "embed", "text", "quiz", "exam"], maxSelect: 1, required: true },
       { name: "file", type: "file", maxSelect: 1, maxSize: GB2, mimeTypes: [] },
       { name: "url", type: "url" },
       { name: "content", type: "editor" },
@@ -231,6 +240,7 @@ async function setupCollections() {
       { name: "docId", type: "text", max: 40 },
       { name: "issueDate", type: "text", max: 10 },
       { name: "source", type: "select", values: ["curso", "manual"], maxSelect: 1 },
+      { name: "score", type: "number" },
       ...created(),
     ],
     indexes: ["CREATE UNIQUE INDEX idx_cert_folio ON certificates (folio)"],
@@ -240,6 +250,193 @@ async function setupCollections() {
     updateRule: ADMIN,
     deleteRule: ADMIN,
   });
+
+  // Inscripción del alumno a cada curso y su estado de acreditación. Solo el servidor la crea.
+  await upsertCollection({
+    name: "enrollments",
+    type: "base",
+    fields: [
+      { name: "user", type: "relation", collectionId: users.id, maxSelect: 1, cascadeDelete: true, required: true },
+      { name: "course", type: "relation", collectionId: courses.id, maxSelect: 1, cascadeDelete: true, required: true },
+      { name: "status", type: "select", values: ["inscripto", "acreditado"], maxSelect: 1 },
+      { name: "source", type: "select", values: ["registro", "evaluacion", "admin"], maxSelect: 1 },
+      { name: "score", type: "number" },
+      { name: "attempts", type: "number" },
+      { name: "extraAttempts", type: "number" },
+      { name: "accreditedAt", type: "date" },
+      { name: "certificate", type: "text", max: 20 },
+      ...created(),
+    ],
+    indexes: ["CREATE UNIQUE INDEX idx_enroll_user_course ON enrollments (user, course)"],
+    listRule: "user = @request.auth.id || " + ADMIN,
+    viewRule: "user = @request.auth.id || " + ADMIN,
+    createRule: ADMIN,
+    updateRule: ADMIN,
+    deleteRule: ADMIN,
+  });
+
+  // Preguntas de la comprobación y del examen. Tienen las respuestas: solo admin y servidor.
+  const assessments = await upsertCollection({
+    name: "assessments",
+    type: "base",
+    fields: [
+      { name: "course", type: "relation", collectionId: courses.id, maxSelect: 1, cascadeDelete: true, required: true },
+      { name: "lesson", type: "relation", collectionId: lessons.id, maxSelect: 1, cascadeDelete: true, required: true },
+      { name: "kind", type: "select", values: ["practica", "final"], maxSelect: 1, required: true },
+      { name: "title", type: "text", max: 200 },
+      { name: "passScore", type: "number" },
+      { name: "maxAttempts", type: "number" },
+      { name: "draft", type: "bool" },
+      { name: "questions", type: "json", maxSize: 200000 },
+      ...created(),
+    ],
+    indexes: ["CREATE UNIQUE INDEX idx_assess_lesson ON assessments (lesson)"],
+    listRule: ADMIN,
+    viewRule: ADMIN,
+    createRule: ADMIN,
+    updateRule: ADMIN,
+    deleteRule: ADMIN,
+  });
+
+  await upsertCollection({
+    name: "assessment_results",
+    type: "base",
+    fields: [
+      { name: "user", type: "relation", collectionId: users.id, maxSelect: 1, cascadeDelete: true, required: true },
+      { name: "course", type: "relation", collectionId: courses.id, maxSelect: 1, cascadeDelete: true },
+      { name: "assessment", type: "relation", collectionId: assessments.id, maxSelect: 1, cascadeDelete: true },
+      { name: "kind", type: "select", values: ["practica", "final"], maxSelect: 1 },
+      { name: "attemptNo", type: "number" },
+      { name: "score", type: "number" },
+      { name: "correct", type: "number" },
+      { name: "total", type: "number" },
+      { name: "passed", type: "bool" },
+      { name: "answers", type: "json", maxSize: 20000 },
+      ...created(),
+    ],
+    listRule: "user = @request.auth.id || " + ADMIN,
+    viewRule: "user = @request.auth.id || " + ADMIN,
+    createRule: null,
+    updateRule: null,
+    deleteRule: ADMIN,
+  });
+
+  // Ajustes generales (un solo registro): campaña comercial y sello del certificado.
+  await upsertCollection({
+    name: "settings",
+    type: "base",
+    fields: [
+      { name: "campaignOn", type: "bool" },
+      { name: "campaignTitle", type: "text", max: 80 },
+      { name: "campaignText", type: "text", max: 240 },
+      { name: "campaignLogo", type: "file", maxSelect: 1, maxSize: 5 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] },
+      { name: "sealLogo", type: "file", maxSelect: 1, maxSize: 5 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] },
+      { name: "seedVersion", type: "number" },
+      ...created(),
+    ],
+    listRule: "",
+    viewRule: "",
+    createRule: null,
+    updateRule: ADMIN,
+    deleteRule: null,
+  });
+}
+
+async function getSettings() {
+  const r = await pb("/api/collections/settings/records?perPage=1");
+  if (r.items[0]) return r.items[0];
+  return pb("/api/collections/settings/records", {
+    method: "POST",
+    body: { campaignOn: true, campaignTitle: "Buen Fin InnovaFit", campaignText: "Cursos gratis con certificado y precios especiales en certificaciones durante noviembre.", seedVersion: 0 },
+  });
+}
+
+const COVERS_DIR = path.join(ROOT, "seed", "covers");
+const slug = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+async function setImage(collection, rec, field) {
+  const p = path.join(COVERS_DIR, slug(rec.title) + ".webp");
+  if (!fs.existsSync(p)) return false;
+  const f = new FormData();
+  f.set(field, await fs.openAsBlob(p, { type: "image/webp" }), slug(rec.title) + ".webp");
+  await pb("/api/collections/" + collection + "/records/" + rec.id, { method: "PATCH", form: f });
+  return true;
+}
+
+// Cambios de datos que se aplican una sola vez por servidor (seedVersion en settings).
+async function migrate() {
+  const settings = await getSettings();
+  const v = settings.seedVersion || 0;
+
+  if (v < 1) {
+    const gift = (await pb("/api/collections/courses/records?perPage=1&filter=" + encodeURIComponent('title = "Fundamentos de Biomecánica"'))).items[0];
+    if (gift) {
+      await pb("/api/collections/courses/records/" + gift.id, { method: "PATCH", body: { openAccess: true, certEnabled: true } });
+      const lessons = (await pb("/api/collections/lessons/records?perPage=200&sort=order&filter=" + encodeURIComponent('course = "' + gift.id + '"'))).items;
+      const check = lessons.find((l) => l.title === "Comprobación de conocimientos");
+      if (check) {
+        await pb("/api/collections/lessons/records/" + check.id, {
+          method: "PATCH",
+          body: { kind: "quiz", description: "Respondé las tres preguntas del estudio de caso y comprobá al instante si las analizaste bien." },
+        });
+      }
+      if (!lessons.some((l) => l.kind === "exam")) {
+        await pb("/api/collections/lessons/records", {
+          method: "POST",
+          body: {
+            course: gift.id,
+            title: "Examen de acreditación del curso",
+            section: "Acreditación",
+            kind: "exam",
+            order: Math.max(0, ...lessons.map((l) => l.order || 0)) + 1,
+            description: "20 preguntas sobre todo el curso. Aprobás con 80% o más y tu certificado se emite al instante. Tenés 3 oportunidades.",
+          },
+        });
+      }
+    }
+    // Todos los que ya tenían cursos quedan inscriptos.
+    const users = await pb("/api/collections/users/records?perPage=500&filter=" + encodeURIComponent('role != "admin"'));
+    for (const u of users.items) {
+      for (const c of u.courses || []) {
+        try {
+          await pb("/api/collections/enrollments/records", { method: "POST", body: { user: u.id, course: c, status: "inscripto", source: "evaluacion", attempts: 0, extraAttempts: 0 } });
+        } catch (e) {
+          if (e.status !== 400) throw e;
+        }
+      }
+    }
+    console.log("✓ migración 1: acceso con registro, comprobación interactiva y examen de acreditación");
+  }
+
+  if (v < 2) {
+    let n = 0;
+    for (const c of (await pb("/api/collections/courses/records?perPage=200")).items) if (await setImage("courses", c, "cover")) n++;
+    for (const p of (await pb("/api/collections/programs/records?perPage=200")).items) if (!p.image && (await setImage("programs", p, "image"))) n++;
+    console.log("✓ migración 2: " + n + " portadas cargadas");
+  }
+
+  const LAST = 2;
+  if (v < LAST) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { seedVersion: LAST } });
+}
+
+// Carga las preguntas de la comprobación y del examen si la lección todavía no tiene (archivo fuera del repo).
+async function seedAssessments() {
+  const file = path.join(ROOT, "data", "assessments-seed.json");
+  if (!fs.existsSync(file)) return;
+  const seed = JSON.parse(fs.readFileSync(file, "utf8"));
+  const course = (await pb("/api/collections/courses/records?perPage=1&filter=" + encodeURIComponent('title = "' + seed.course + '"'))).items[0];
+  if (!course) return;
+  for (const [kind, a] of [["practica", seed.practice], ["final", seed.final]]) {
+    const lesson = (await pb("/api/collections/lessons/records?perPage=1&filter=" + encodeURIComponent('course = "' + course.id + '" && title = "' + a.lessonTitle + '"'))).items[0];
+    if (!lesson) continue;
+    const has = await pb("/api/collections/assessments/records?perPage=1&filter=" + encodeURIComponent('lesson = "' + lesson.id + '"'));
+    if (has.totalItems) continue;
+    await pb("/api/collections/assessments/records", {
+      method: "POST",
+      body: { course: course.id, lesson: lesson.id, kind, title: a.title, passScore: a.passScore, maxAttempts: a.maxAttempts, draft: !!a.draft, questions: a.questions },
+    });
+    console.log("✓ evaluación cargada:", a.title, "(" + a.questions.length + " preguntas)");
+  }
 }
 
 const SEED_PROGRAMS = [
@@ -392,6 +589,8 @@ async function seedCourse() {
     await seedCourse();
     await seedCourseCert();
     await seedPrograms();
+    await migrate();
+    await seedAssessments();
     console.log("\nListo. Arrancá con `npm start` y entrá a http://localhost:" + env.PORT + "/admin");
     console.log("Usuario admin: " + env.ADMIN_EMAIL + " · contraseña: la de ADMIN_PASSWORD en .env");
   } finally {

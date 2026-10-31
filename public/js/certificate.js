@@ -7,6 +7,10 @@
   const DIRECTOR_ROLE = "Director de Certificaciones · InnovaFit";
   const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
+  // Sello de acreditación: el que se sube en Admin → Ajustes, o el de fábrica.
+  let sealUrl = "/assets/cert/seal-default.svg";
+  function setSeal(url){ if(url) sealUrl = url; }
+
   const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
   function dateShort(iso){
@@ -52,6 +56,10 @@
     const el = document.createElement("div");
     el.className = "ifc-cert";
     const verify = location.origin + "/verificar?folio=" + encodeURIComponent(d.folio || "");
+    const accredited = d.score > 0;
+    const desc = accredited
+      ? `Por haber acreditado el examen final del curso con una calificación de <b>${esc(d.score)}/100</b>, demostrando los conocimientos y el compromiso que exigen los estándares de calidad de InnovaFit.`
+      : "Por haber completado satisfactoriamente todos los requisitos del programa, demostrando compromiso, dedicación y los más altos estándares de calidad de InnovaFit.";
     el.innerHTML = `
       <div class="ifc-lines"></div>
       <div class="ifc-ring r1"></div><div class="ifc-ring r2"></div><div class="ifc-ring r3"></div>
@@ -61,21 +69,22 @@
         <div>
           <img class="ifc-logo" src="/assets/cert/logo-white.png" alt="InnovaFit">
           <div class="ifc-t1">CERTIFICADO</div>
-          <div class="ifc-t2">DE FINALIZACIÓN</div>
+          <div class="ifc-t2">${accredited ? "DE ACREDITACIÓN" : "DE FINALIZACIÓN"}</div>
           <div class="ifc-rule"></div>
         </div>
         <div>
           <div class="ifc-kicker">Se otorga con orgullo el presente reconocimiento a</div>
           <img class="ifc-name" alt="${esc(d.studentName)}">
           <div class="ifc-name-rule"></div>
-          <div class="ifc-line"><b>${esc(d.title || "Certificación InnovaFit")}</b>${d.hours ? `<span class="ifc-pill">${esc(d.hours)}</span>` : ""}</div>
-          <p class="ifc-desc">Por haber completado satisfactoriamente todos los requisitos del programa, demostrando compromiso, dedicación y los más altos estándares de calidad de InnovaFit.</p>
+          <div class="ifc-course-k">${accredited ? "Curso acreditado" : "Programa"}</div>
+          <div class="ifc-course">${esc(d.title || "Certificación InnovaFit")}${d.hours ? `<span class="ifc-pill">${esc(d.hours)}</span>` : ""}</div>
+          <p class="ifc-desc">${desc}</p>
         </div>
         <div class="ifc-foot">
           <div class="ifc-col"><div class="ifc-val">${esc(dateShort(d.issueDate))}</div><div class="ifc-frule"></div><div class="ifc-label">Fecha de emisión</div></div>
           ${d.docId ? `<div class="ifc-col"><div class="ifc-val">${esc(d.docId)}</div><div class="ifc-frule"></div><div class="ifc-label">Identificación</div></div>` : ""}
+          <div class="ifc-col seal"><img class="ifc-seal-img" src="${esc(sealUrl)}" alt="Sello de acreditación InnovaFit"></div>
           <div class="ifc-col sign">
-            <div class="ifc-seal"><span>IF</span></div>
             <img class="ifc-sign" src="/assets/cert/signature-white.png" alt="Firma">
             <div class="ifc-frule"></div>
             <div class="ifc-val">${DIRECTOR_NAME}</div>
@@ -142,5 +151,5 @@
     }
   }
 
-  window.Cert = {build, mount, download, dateLong, dateShort};
+  window.Cert = {build, mount, download, dateLong, dateShort, setSeal};
 })();

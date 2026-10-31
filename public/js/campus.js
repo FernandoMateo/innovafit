@@ -2,7 +2,7 @@
 // catálogo de certificaciones (consulta por WhatsApp) y perfil editable.
 (function(){
   "use strict";
-  const {pb, esc, notify, api, errMsg, fileUrl, embedUrl, KIND_LABEL, KIND_ICON} = UI;
+  const {pb, esc, notify, api, errMsg, fileUrl, embedUrl, settings, KIND_LABEL, KIND_ICON} = UI;
 
   const $ = (id) => document.getElementById(id);
   const view = $("view");
@@ -15,19 +15,91 @@
   const initials = (n) => (n || "?").trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 
   // Cache por sesión
-  let courses = null;
+  let courses = null;  // cursos del alumno
+  let openCourses = []; // cursos gratuitos en los que todavía no se inscribió
   let progress = null; // Map lessonId → registro de progreso
   let certs = null;
+  let enrollments = null; // Map courseId → inscripción (estado de acreditación)
   const lessonsByCourse = {};
 
-  /* ---------- Login ---------- */
-  function showLogin(){
+  /* ---------- Campaña comercial (Buen Fin) ---------- */
+  async function campaignHtml(){
+    const s = await settings();
+    if(!s.campaignOn) return "";
+    const mark = s.campaignLogo ? `<img src="${fileUrl(s, s.campaignLogo)}" alt="${esc(s.campaignTitle || "Campaña")}">` : `<span class="bf-badge">Buen<br>Fin</span>`;
+    return `<div class="campaign">${mark}<div><b>${esc(s.campaignTitle || "")}</b><span>${esc(s.campaignText || "")}</span></div></div>`;
+  }
+  const ribbon = async () => ((await settings()).campaignOn ? `<span class="ribbon">BUEN FIN</span>` : "");
+
+  /* ---------- Acceso: registro obligatorio o ingreso ---------- */
+  let pickedCourse = null;
+
+  function authMode(mode){
+    document.querySelectorAll(".seg-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
+    $("regForm").hidden = mode !== "register";
+    $("loginForm").hidden = mode !== "login";
+    (mode === "login" ? ($("lEmail").value ? $("lPass") : $("lEmail")) : $("regForm").name).focus({preventScroll:true});
+  }
+  document.querySelectorAll(".seg-tabs button").forEach((b) => b.onclick = () => authMode(b.dataset.mode));
+
+  function pickCourse(c){
+    pickedCourse = c;
+    document.querySelectorAll(".gcourse").forEach((x) => x.classList.toggle("on", x.dataset.id === c.id));
+    const box = $("picked");
+    box.hidden = false;
+    box.innerHTML = `<i style="background-image:url('${fileUrl(c, c.cover, "640x360")}')"></i><div><small>Te inscribís en</small><b>${esc(c.title)}</b></div>`;
+  }
+
+  async function showLogin(){
     $("appView").hidden = true;
     $("loginView").hidden = false;
     const m = location.hash.match(/email=([^&]+)/);
     if(m) $("lEmail").value = decodeURIComponent(m[1]);
-    ($("lEmail").value ? $("lPass") : $("lEmail")).focus();
+    authMode(m ? "login" : "register");
+    $("gateCampaign").innerHTML = await campaignHtml();
+    try{
+      const open = await pb.collection("courses").getFullList({filter:"openAccess = true", sort:"order,created"});
+      const rib = await ribbon();
+      $("gateCourses").innerHTML = open.map((c) => `<button type="button" class="gcourse" data-id="${c.id}">${rib}
+        <div class="cv" ${c.cover ? `style="background-image:url('${fileUrl(c, c.cover, "640x360")}')"` : ""}></div>
+        <div class="gb"><h3>${esc(c.title)}</h3>${c.subtitle ? `<p>${esc(c.subtitle)}</p>` : ""}<span class="go">Inscribirme gratis →</span></div></button>`).join("");
+      const byId = new Map(open.map((c) => [c.id, c]));
+      $("gateCourses").querySelectorAll(".gcourse").forEach((b) => b.onclick = () => {
+        pickCourse(byId.get(b.dataset.id));
+        authMode("register");
+        if(innerWidth < 980) $("authCard").scrollIntoView({behavior:"smooth", block:"start"});
+      });
+      const want = location.hash.match(/curso=([^&]+)/);
+      if(open.length) pickCourse(byId.get(want && want[1]) || open[0]);
+    }catch{}
   }
+
+  $("regForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.target, err = $("rErr"), btn = $("rBtn");
+    err.textContent = "";
+    const name = f.name.value.trim().replace(/\s+/g, " ");
+    if(name.length < 5 || !name.includes(" ")) return void (err.textContent = "Escribí tu nombre y apellido completos.");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.value.trim())) return void (err.textContent = "Revisá tu correo.");
+    if(f.phone.value.replace(/\D/g, "").length < 7) return void (err.textContent = "Revisá tu número de teléfono.");
+    if(f.password.value.length < 8) return void (err.textContent = "La contraseña necesita al menos 8 caracteres.");
+    if(!f.consent.checked) return void (err.textContent = "Necesitamos tu autorización para crear la cuenta.");
+    btn.disabled = true;
+    btn.textContent = "Creando tu cuenta…";
+    try{
+      const r = await api("/api/register", {name, email: f.email.value.trim(), country: f.country.value, phone: f.phone.value, password: f.password.value, course: pickedCourse && pickedCourse.id});
+      pb.authStore.save(r.auth.token, r.auth.record);
+      location.hash = r.course ? "#/c/" + r.course.id : "#/";
+      await boot();
+      ok("¡Registro exitoso!", r.course ? "Ya estás inscripto en " + r.course.title + ". ¡A darle!" : "Tu cuenta está lista.");
+    }catch(e2){
+      err.textContent = e2.message;
+      if(e2.status === 409){ $("lEmail").value = f.email.value.trim(); setTimeout(() => authMode("login"), 1200); }
+    }finally{
+      btn.disabled = false;
+      btn.textContent = "Crear cuenta y entrar";
+    }
+  });
 
   $("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -49,7 +121,8 @@
 
   $("logout").addEventListener("click", () => {
     pb.authStore.clear();
-    courses = progress = certs = null;
+    courses = progress = certs = enrollments = null;
+    Object.keys(lessonsByCourse).forEach((k) => delete lessonsByCourse[k]);
     location.hash = "";
     showLogin();
   });
@@ -69,7 +142,17 @@
 
   /* ---------- Datos ---------- */
   async function loadBase(){
-    if(!courses) courses = await pb.collection("courses").getFullList({sort:"order,created"});
+    if(!courses){
+      // La lista incluye los cursos de acceso libre: separamos los propios de los disponibles.
+      const all = await pb.collection("courses").getFullList({sort:"order,created"});
+      const mine = new Set(me().courses || []);
+      courses = all.filter((c) => mine.has(c.id));
+      openCourses = all.filter((c) => !mine.has(c.id) && c.openAccess);
+    }
+    if(!enrollments){
+      const rows = await pb.collection("enrollments").getFullList({filter: pb.filter("user = {:u}", {u: me().id})});
+      enrollments = new Map(rows.map((r) => [r.course, r]));
+    }
     if(!progress){
       const rows = await pb.collection("progress").getFullList({filter: pb.filter("user = {:u}", {u: me().id}), fields:"id,lesson,course"});
       progress = new Map(rows.map((r) => [r.lesson, r]));
@@ -115,31 +198,45 @@
     $("burger").hidden = true;
     setTab("cursos");
     const first = (me().name || "").split(" ")[0];
-    if(!courses.length){
-      view.innerHTML = `<div class="page rise"><div class="card empty">
-        <h2>Todavía no tenés cursos</h2>
-        <p>Aprobá la evaluación de nivel para desbloquear el curso de regalo, o pedile acceso a tu asesor InnovaFit.</p>
-        <a class="btn btn-primary" href="/evaluacion">Hacer la evaluación</a></div></div>`;
-      return;
-    }
     const lessonLists = await Promise.all(courses.map((c) => loadLessons(c.id)));
+    const rib = await ribbon();
+    const cover = (c) => c.cover ? `style="background-image:url('${fileUrl(c, c.cover, "640x360")}')"` : "";
     view.innerHTML = `<div class="page">
       <div class="hello rise"><span class="eyebrow">Mis cursos</span>
         <h1>${first ? "Hola, " + esc(first) : "Bienvenido"} <span class="grad-text">💪</span></h1>
-        <p>Retomá donde lo dejaste. Al completar cada curso recibís tu certificado InnovaFit.</p></div>
-      <div class="grid">${courses.map((c, i) => {
+        <p>Retomá donde lo dejaste. Aprobá el examen de acreditación y tu certificado InnovaFit se emite al instante.</p></div>
+      <div class="rise">${await campaignHtml()}</div>
+      ${courses.length ? `<div class="grid">${courses.map((c, i) => {
         const pct = pctFor(lessonLists[i]);
-        const cover = c.cover ? `style="background-image:url('${fileUrl(c, c.cover, "640x360")}')"` : "";
+        const acc = (enrollments.get(c.id) || {}).status === "acreditado";
         return `<a class="card course" style="animation-delay:${i * 70}ms" href="#/c/${c.id}">
-          <div class="course-cover" ${cover}></div>
+          <div class="course-cover" ${cover(c)}></div>
           <div class="course-body">
+            ${acc ? '<div><span class="badge acc">✓ Acreditado</span></div>' : ""}
             <h3>${esc(c.title)}</h3>
             ${c.subtitle ? `<p>${esc(c.subtitle)}</p>` : ""}
             <div class="bar-label"><span>${lessonLists[i].length} lecciones${c.certEnabled ? " · 🎓 con certificado" : ""}</span><span>${pct}%</span></div>
             <div class="bar"><i style="width:0" data-w="${pct}"></i></div>
           </div></a>`;
-      }).join("")}</div></div>`;
+      }).join("")}</div>` : `<div class="card empty rise"><h2>Todavía no estás inscripto en ningún curso</h2><p>Elegí un curso gratuito de abajo y empezá ahora mismo.</p></div>`}
+      ${openCourses.length ? `<h2 class="more-title">Cursos <span class="grad-text">gratis</span> para vos</h2>
+      <div class="grid">${openCourses.map((c, i) => `<div class="card course" style="animation-delay:${i * 70}ms">${rib}
+          <div class="course-cover" ${cover(c)}></div>
+          <div class="course-body"><h3>${esc(c.title)}</h3>${c.subtitle ? `<p>${esc(c.subtitle)}</p>` : ""}
+            <button class="btn btn-primary" data-enroll="${c.id}" style="margin-top:auto">Inscribirme gratis</button></div></div>`).join("")}</div>` : ""}
+    </div>`;
     requestAnimationFrame(() => view.querySelectorAll("[data-w]").forEach((b) => { b.style.width = b.dataset.w + "%"; }));
+    view.querySelectorAll("[data-enroll]").forEach((b) => b.onclick = async () => {
+      b.disabled = true;
+      try{
+        const r = await api("/api/enroll", {course: b.dataset.enroll});
+        await pb.collection("users").authRefresh();
+        courses = enrollments = null;
+        await loadBase();
+        ok("¡Inscripción exitosa!", "Ya podés empezar " + r.course.title + ".");
+        location.hash = "#/c/" + r.course.id;
+      }catch(err){ fail(err.message); b.disabled = false; }
+    });
   }
 
   function playerHtml(l){
@@ -156,6 +253,9 @@
         return src ? `<div class="player"><img src="${src}" alt="${esc(l.title)}"></div>` : noMedia();
       case "embed":
         return l.url ? `<div class="player"><iframe src="${esc(embedUrl(l.url))}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="${esc(l.title)}"></iframe></div>` : noMedia();
+      case "quiz":
+      case "exam":
+        return `<div id="assess"><div class="quiz"><div class="loading" style="min-height:200px"><div class="spinner"></div></div></div></div>`;
       default:
         return `<div class="player text"><div class="rich">${l.content || "<p>Sin contenido.</p>"}</div></div>`;
     }
@@ -180,7 +280,12 @@
     const l = lessons[idx];
     const pct = pctFor(lessons);
     const C = 2 * Math.PI * 24;
-    const myCert = pct === 100 && course.certEnabled ? (await loadCerts()).find((c) => c.course === courseId) : null;
+    const hasExam = lessons.some((x) => x.kind === "exam");
+    const accredited = (enrollments.get(courseId) || {}).status === "acreditado";
+    // Con examen, el cierre del curso es la acreditación; sin examen, completar todas las lecciones.
+    const finished = hasExam ? accredited : pct === 100;
+    const myCert = finished && course.certEnabled ? (await loadCerts()).find((c) => c.course === courseId) : null;
+    const assessing = l => l.kind === "quiz" || l.kind === "exam";
 
     let lastSection = null;
     const sideItems = lessons.map((x, i) => {
@@ -216,13 +321,13 @@
         ${l.kind !== "text" && l.content ? `<div class="card notes"><span class="eyebrow">Material de la lección</span><div class="rich">${l.content}</div></div>` : ""}
         <div class="nav-row">
           ${prev ? `<a class="btn btn-ghost" href="#/c/${courseId}/${prev.id}">← Anterior</a>` : "<span></span>"}
-          <button class="btn btn-primary btn-complete${isDone ? " done" : ""}" id="completeBtn">${isDone ? "✓ Completada" : "Marcar como completa"}</button>
+          ${assessing(l) ? (isDone ? `<span class="badge good">✓ Completada</span>` : "<span></span>") : `<button class="btn btn-primary btn-complete${isDone ? " done" : ""}" id="completeBtn">${isDone ? "✓ Completada" : "Marcar como completa"}</button>`}
           ${next ? `<a class="btn btn-ghost" href="#/c/${courseId}/${next.id}">Siguiente →</a>` : "<span></span>"}
         </div>
-        ${pct === 100 ? `<div class="finale">
-          <span class="eyebrow">🏁 Curso completo</span>
+        ${finished && l.kind !== "exam" ? `<div class="finale">
+          <span class="eyebrow">🏁 ${hasExam ? "Curso acreditado" : "Curso completo"}</span>
           <h2>Esto fue el <span class="grad-text">calentamiento.</span></h2>
-          <p>Terminaste ${esc(course.title)}. La Certificación Doble de Entrenador Personal InnovaFit te lleva de la teoría a tu primer cliente pago, con respaldo nacional e internacional.</p>
+          <p>${hasExam ? "Acreditaste" : "Terminaste"} ${esc(course.title)}. La Certificación Doble de Entrenador Personal InnovaFit te lleva de la teoría a tu primer cliente pago, con respaldo nacional e internacional.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             ${course.certEnabled ? `<button class="btn btn-primary" id="certBtn">${myCert ? "🎓 Ver mi certificado" : "🎓 Obtener mi certificado"}</button>` : ""}
             <a class="btn btn-ghost" target="_blank" rel="noopener" href="${wa(waText)}">Quiero mi certificación →</a>
@@ -245,8 +350,186 @@
     }
     const media = view.querySelector("video, audio");
     if(media) media.addEventListener("ended", () => { if(!progress.has(l.id)) toggleDone(l, course, true); });
-    $("completeBtn").addEventListener("click", () => toggleDone(l, course));
-    $("certBtn")?.addEventListener("click", () => claimCertificate(course));
+    $("completeBtn")?.addEventListener("click", () => toggleDone(l, course));
+    $("certBtn")?.addEventListener("click", () => (myCert ? certModal(myCert) : claimCertificate(course)));
+    if(assessing(l)) renderAssessment(l, course, lessons);
+  }
+
+  /* =====================================================
+     COMPROBACIÓN DE CONOCIMIENTOS Y EXAMEN DE ACREDITACIÓN
+     ===================================================== */
+  const LETTERS = "ABCDEFGH";
+  const ringSvg = (score, okClass) => {
+    const C = 2 * Math.PI * 64;
+    return `<div class="ring-big ${okClass}"><svg viewBox="0 0 150 150"><circle class="t" cx="75" cy="75" r="64"/><circle class="f" cx="75" cy="75" r="64" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C - (score / 100) * C}"/></svg><b data-count="${score}">0</b></div>`;
+  };
+  function animateRing(root){
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      root.querySelectorAll("[data-off]").forEach((c) => { c.style.strokeDashoffset = c.dataset.off; });
+      root.querySelectorAll("[data-count]").forEach((b) => UI.countUp(b, +b.dataset.count));
+    }));
+  }
+  const optsHtml = (q, qi, chosen) => `<div class="opts">${q.options.map((o, oi) =>
+    `<button type="button" class="opt${chosen === oi ? " sel" : ""}" data-q="${qi}" data-o="${oi}"><span class="l">${LETTERS[oi]}</span><span>${esc(o)}</span></button>`).join("")}</div>`;
+
+  async function renderAssessment(l, course, lessons){
+    const box = $("assess");
+    let data;
+    try{ data = await api("/api/assessment/" + l.id); }
+    catch(err){ box.innerHTML = `<div class="quiz state-card"><div class="big">🛠️</div><h2>Muy pronto</h2><p>${esc(err.message)}</p></div>`; return; }
+    if(data.kind === "final") return renderExam(box, l, course, lessons, data);
+    renderPractice(box, l, course, lessons, data);
+  }
+
+  // Comprobación del estudio de caso: todas las preguntas juntas y corrección explicada.
+  function renderPractice(box, l, course, lessons, data){
+    const answers = new Array(data.questions.length).fill(null);
+    const next = lessons[lessons.indexOf(l) + 1];
+    box.innerHTML = `<div class="quiz">
+      <div class="quiz-head"><div class="quiz-meta"><span class="badge hot">${data.questions.length} preguntas</span><span class="badge">Resultado inmediato</span></div>
+        ${data.history.length ? `<span class="muted" style="font-size:13px">Tu mejor resultado: <b style="color:var(--fg)">${Math.max(...data.history.map((h) => h.score))}%</b></span>` : ""}</div>
+      ${data.questions.map((q, qi) => `<div class="qcard" data-card="${qi}"><h3><small>PREGUNTA ${qi + 1}</small>${esc(q.q)}</h3>${optsHtml(q, qi, null)}<div data-explain></div></div>`).join("")}
+      <div class="quiz-foot"><span class="muted" id="qLeft">Respondé las ${data.questions.length} preguntas</span><button class="btn btn-primary" id="qSend" disabled>Comprobar respuestas</button></div>
+    </div>`;
+    const left = () => answers.filter((a) => a === null).length;
+    box.querySelectorAll(".opt").forEach((b) => b.onclick = () => {
+      const qi = +b.dataset.q;
+      answers[qi] = +b.dataset.o;
+      box.querySelectorAll(`[data-q="${qi}"]`).forEach((x) => x.classList.toggle("sel", x === b));
+      const n = left();
+      $("qLeft").textContent = n ? "Te faltan " + n : "¡Listo para comprobar!";
+      $("qSend").disabled = !!n;
+    });
+    $("qSend").onclick = async () => {
+      $("qSend").disabled = true;
+      try{
+        const r = await api("/api/assessment/" + l.id, {answers});
+        if(!progress.has(l.id)) progress.set(l.id, {id:"", lesson:l.id});
+        r.review.forEach((rv, qi) => {
+          const card = box.querySelector(`[data-card="${qi}"]`);
+          card.querySelectorAll(".opt").forEach((o) => {
+            o.disabled = true;
+            const oi = +o.dataset.o;
+            if(oi === rv.correct) o.classList.add("right");
+            else if(oi === answers[qi]) o.classList.add("wrong");
+          });
+          card.querySelector("[data-explain]").innerHTML = `<div class="explain"><b>${rv.ok ? "✓ Correcta." : "✗ Incorrecta."}</b> ${esc(rv.explain)}</div>`;
+        });
+        box.querySelector(".quiz-foot").hidden = true;
+        const great = r.score >= (r.passScore || 67);
+        box.querySelector(".quiz").insertAdjacentHTML("afterbegin", `<div class="result" style="margin-bottom:24px;padding-bottom:22px;border-bottom:1px solid var(--line)">
+          ${ringSvg(r.score, great ? "ok" : "")}
+          <div><h2>${great ? "¡Excelente análisis!" : "Repasá el estudio de caso"}</h2>
+          <p>Acertaste ${r.correct} de ${r.total}. ${great ? "Entendiste la situación de Sarah: estás listo para el examen de acreditación." : "Leé de nuevo el estudio de caso y volvé a intentarlo: es la mejor preparación para el examen."}</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">${next ? `<a class="btn btn-primary" href="#/c/${course.id}/${next.id}">${next.kind === "exam" ? "Ir al examen de acreditación →" : "Siguiente lección →"}</a>` : ""}<button class="btn btn-ghost" id="qRetry">Intentar de nuevo</button></div></div></div>`);
+        animateRing(box);
+        box.querySelector("#qRetry").onclick = () => renderAssessment(l, course, lessons);
+        box.scrollIntoView({behavior:"smooth", block:"start"});
+        notify({type: great ? "success" : "error", title: great ? "¡Comprobación superada!" : "Casi, revisá tus respuestas", text: r.correct + " de " + r.total + " correctas"});
+        // Refresca la barra lateral (la lección quedó completa) sin perder la corrección en pantalla.
+        const link = document.querySelector(`.lesson-link[href$="${l.id}"]`);
+        if(link){ link.classList.add("done"); link.querySelector(".ic").textContent = "✓"; }
+      }catch(err){ fail(err.message); $("qSend").disabled = false; }
+    };
+  }
+
+  // Examen de acreditación: una pregunta por pantalla, intentos limitados y certificado automático.
+  function renderExam(box, l, course, lessons, data){
+    const att = data.attempts || {};
+    const firstName = (me().name || "").split(" ")[0] || "crack";
+    const help = wa("Hola InnovaFit! Soy " + (me().name || me().email) + " (" + me().email + "). Usé mis " + (att.allowed || 3) + " oportunidades del examen de acreditación de " + course.title + " y quiero pedir apoyo y una nueva oportunidad.");
+    const hist = data.history.length ? `<div class="hist">${data.history.slice().reverse().filter((h) => h.attemptNo).map((h) => `<span>Intento ${h.attemptNo}: <b style="color:${h.passed ? "var(--good)" : "var(--fg)"}">${h.score}%</b></span>`).join("")}</div>` : "";
+
+    if(data.accredited){
+      box.innerHTML = `<div class="quiz state-card"><div class="acc-stamp">ACREDITADO</div>
+        <h2>¡Felicitaciones, <span class="grad-text">${esc(firstName)}!</span></h2>
+        <p>Aprobaste ${esc(course.title)} con <b>${data.bestScore}%</b>${data.accreditedAt ? " el " + new Date(data.accreditedAt.replace(" ", "T")).toLocaleDateString("es-MX", {day:"numeric", month:"long", year:"numeric"}) : ""}. Tu certificado ya está disponible.</p>
+        ${course.certEnabled ? `<button class="btn btn-primary" id="seeCert">🎓 Ver y descargar mi certificado</button>` : ""}${hist}</div>`;
+      $("seeCert")?.addEventListener("click", async () => {
+        const c = (await loadCerts(true)).find((x) => x.course === course.id);
+        if(c) certModal(c); else fail("Todavía no encontramos tu certificado. Recargá la página.");
+      });
+      return;
+    }
+    if(data.locked){
+      const pending = lessons.find((x) => x.kind !== "exam" && !progress.has(x.id));
+      box.innerHTML = `<div class="quiz state-card"><div class="big">🔒</div><h2>Examen bloqueado</h2><p>${esc(data.locked)} Así llegás preparado: el examen evalúa todo el curso.</p>
+        ${pending ? `<a class="btn btn-primary" href="#/c/${course.id}/${pending.id}">Ir a: ${esc(pending.title)} →</a>` : ""}</div>`;
+      return;
+    }
+    if(att.allowed && att.left === 0){
+      box.innerHTML = `<div class="quiz state-card"><div class="big">🤝</div><h2>Usaste tus ${att.allowed} oportunidades</h2>
+        <p>Tu mejor resultado fue <b>${data.bestScore}%</b> y se necesita ${data.passScore}%. Comunicate con el equipo de InnovaFit: te damos apoyo para repasar y te habilitamos nuevas oportunidades.</p>
+        <a class="btn btn-primary" target="_blank" rel="noopener" href="${help}">Pedir apoyo por WhatsApp</a>${hist}</div>`;
+      return;
+    }
+
+    box.innerHTML = `<div class="quiz state-card"><div class="big">🎯</div><h2>${esc(data.title)}</h2>
+      <p>${data.questions.length} preguntas sobre todo el curso. Aprobás con <b>${data.passScore}%</b> o más y tu certificado se emite al instante.</p>
+      <div class="quiz-meta" style="justify-content:center;margin-bottom:20px"><span class="badge hot">${data.questions.length} preguntas</span><span class="badge">Mínimo ${data.passScore}%</span>${att.allowed ? `<span class="badge ${att.left === 1 ? "bad" : ""}">${att.left === att.allowed ? att.allowed + " oportunidades" : "Te quedan " + att.left + " de " + att.allowed}</span>` : ""}</div>
+      <button class="btn btn-primary" id="examStart">${att.used ? "Reintentar el examen" : "Comenzar examen"}</button>${hist}</div>`;
+    $("examStart").onclick = () => runExam(box, l, course, lessons, data);
+  }
+
+  function runExam(box, l, course, lessons, data){
+    const qs = data.questions, n = qs.length;
+    const answers = new Array(n).fill(null);
+    let cur = 0;
+    const paint = () => {
+      const done = answers.filter((a) => a !== null).length;
+      box.innerHTML = `<div class="quiz">
+        <div class="quiz-head"><span class="eyebrow">Pregunta ${cur + 1} de ${n}</span><span class="muted mono" style="font-size:12px">${done}/${n} respondidas</span></div>
+        <div class="qprog"><i style="width:${(done / n) * 100}%"></i></div>
+        <div class="qcard qslide"><h3>${esc(qs[cur].q)}</h3>${optsHtml(qs[cur], cur, answers[cur])}</div>
+        <div class="quiz-foot">
+          <button class="btn btn-ghost" id="qPrev"${cur === 0 ? " disabled" : ""}>← Anterior</button>
+          ${cur < n - 1 ? `<button class="btn btn-primary" id="qNext"${answers[cur] === null ? " disabled" : ""}>Siguiente →</button>` : `<button class="btn btn-primary" id="qFinish"${done < n ? " disabled" : ""}>Enviar examen</button>`}
+        </div>
+        <div class="qdots">${qs.map((_, i) => `<button type="button" data-go="${i}" class="${answers[i] !== null ? "done" : ""}${i === cur ? " cur" : ""}">${i + 1}</button>`).join("")}</div>
+      </div>`;
+      box.querySelectorAll(".opt").forEach((b) => b.onclick = () => {
+        answers[cur] = +b.dataset.o;
+        if(cur < n - 1) setTimeout(() => { cur++; paint(); }, 220);
+        paint();
+      });
+      box.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => { cur = +b.dataset.go; paint(); });
+      $("qPrev").onclick = () => { cur--; paint(); };
+      $("qNext")?.addEventListener("click", () => { cur++; paint(); });
+      $("qFinish")?.addEventListener("click", () => submitExam(box, l, course, lessons, data, answers));
+    };
+    paint();
+    box.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  async function submitExam(box, l, course, lessons, data, answers){
+    const btn = $("qFinish");
+    btn.disabled = true;
+    btn.textContent = "Calificando…";
+    let r;
+    try{ r = await api("/api/assessment/" + l.id, {answers}); }
+    catch(err){
+      if(err.data && err.data.noAttempts) return renderAssessment(l, course, lessons);
+      fail(err.message); btn.disabled = false; btn.textContent = "Enviar examen"; return;
+    }
+    if(r.passed){
+      progress.set(l.id, {id:"", lesson:l.id});
+      enrollments.set(course.id, {...(enrollments.get(course.id) || {}), status:"acreditado", score:r.score});
+      if(r.certificate){ await loadCerts(true); certModal(r.certificate, true, r.score); }
+      else{ ok("¡Curso acreditado!", "Aprobaste con " + r.score + "%."); }
+      renderCourse(course.id, l.id);
+      return;
+    }
+    const left = r.attempts && r.attempts.allowed ? r.attempts.left : null;
+    box.innerHTML = `<div class="quiz"><div class="result">${ringSvg(r.score, "")}
+      <div><h2>${r.noAttempts ? "No alcanzó esta vez" : "¡Estás cerca!"}</h2>
+      <p>Acertaste ${r.correct} de ${r.total} (${r.score}%). Necesitás ${r.passScore}% para acreditar.
+      ${r.noAttempts ? "Usaste todas tus oportunidades: comunicate con el equipo de InnovaFit para pedir apoyo y nuevas oportunidades." : left !== null ? "Te " + (left === 1 ? "queda 1 oportunidad" : "quedan " + left + " oportunidades") + ". Repasá las lecciones y volvé a intentarlo." : "Repasá las lecciones y volvé a intentarlo."}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">${r.noAttempts
+        ? `<a class="btn btn-primary" target="_blank" rel="noopener" href="${wa("Hola InnovaFit! Soy " + (me().name || me().email) + " (" + me().email + "). Usé mis oportunidades del examen de acreditación de " + course.title + " y quiero pedir apoyo y una nueva oportunidad.")}">Pedir apoyo por WhatsApp</a>`
+        : `<button class="btn btn-primary" id="qAgain">Volver al inicio del examen</button><a class="btn btn-ghost" href="#/c/${course.id}/${lessons[0].id}">Repasar el curso</a>`}</div></div></div></div>`;
+    animateRing(box);
+    $("qAgain")?.addEventListener("click", () => renderAssessment(l, course, lessons));
+    notify({type:"error", title:"Todavía no acreditaste", text:r.score + "% · se necesita " + r.passScore + "%"});
   }
 
   async function toggleDone(l, course, goNext){
@@ -287,9 +570,9 @@
     }catch(err){ fail(err.message); }
   }
 
-  function certModal(cert, celebrate){
-    openModal(`${celebrate ? `<span class="eyebrow">🏆 Curso completado</span><h2 style="margin:10px 0 6px;font-size:clamp(28px,5vw,44px)">¡Felicitaciones, <span class="grad-text">${esc((me().name || "").split(" ")[0] || "crack")}!</span></h2>
-      <p class="muted" style="margin:0 0 18px">Este es tu certificado oficial InnovaFit. Ya quedó guardado en “Mis certificados”.</p>`
+  function certModal(cert, celebrate, score){
+    openModal(`${celebrate ? `<span class="eyebrow">🏆 ${score ? "Curso acreditado" : "Curso completado"}</span><h2 style="margin:10px 0 6px;font-size:clamp(28px,5vw,44px)">¡Felicitaciones, <span class="grad-text">${esc((me().name || "").split(" ")[0] || "crack")}!</span></h2>
+      <p class="muted" style="margin:0 0 18px">${score ? "Aprobaste el examen con " + score + "%. " : ""}Este es tu certificado oficial InnovaFit. Ya quedó guardado en “Mis certificados”.</p>`
       : `<span class="eyebrow">Folio ${esc(cert.folio)}</span><h2 style="margin:10px 0 16px">${esc(cert.title)}</h2>`}
       <div id="cPrev"></div>
       <div class="modal-actions" style="justify-content:center;margin-top:18px">
@@ -347,7 +630,7 @@
         <h3>${esc(c.title)}</h3><small>Folio ${esc(c.folio)} · ${esc(Cert.dateLong(c.issueDate))}</small>
         <div class="cert-actions"><button class="btn btn-primary btn-sm" data-open="${c.id}">Ver grande</button><button class="btn btn-ghost btn-sm" data-dl="pdf" data-id="${c.id}">PDF</button><button class="btn btn-ghost btn-sm" data-dl="png" data-id="${c.id}">Imagen</button></div>
       </div>`).join("")}</div>`
-      : `<div class="card empty rise"><h2>Todavía no tenés certificados</h2><p>Completá todas las lecciones de un curso y tu certificado se genera al instante.</p><a class="btn btn-primary" href="#/">Ir a mis cursos</a></div>`}
+      : `<div class="card empty rise"><h2>Todavía no tenés certificados</h2><p>Aprobá el examen de acreditación de tu curso con 80% o más y tu certificado se genera al instante.</p><a class="btn btn-primary" href="#/">Ir a mis cursos</a></div>`}
     </div>`;
     const byId = new Map(list.map((c) => [c.id, c]));
     view.querySelectorAll("[data-prev]").forEach((el) => Cert.mount(el, byId.get(el.dataset.prev)));
@@ -364,10 +647,12 @@
     $("burger").hidden = true;
     setTab("certificaciones");
     const items = await pb.collection("programs").getFullList({sort:"order,title"});
+    const rib = await ribbon();
     view.innerHTML = `<div class="page">
       <div class="hello rise"><span class="eyebrow">Tu próximo nivel</span><h1>Certificaciones <span class="grad-text">disponibles</span></h1>
         <p>Elegí la que te interesa y consultanos por WhatsApp. Un asesor te responde con precios, fechas y condiciones para alumnos del campus.</p></div>
-      <div class="progs">${items.map((p, i) => `<article class="card prog" style="animation:rise .55s ${i * 60}ms both">
+      <div class="rise">${await campaignHtml()}</div>
+      <div class="progs">${items.map((p, i) => `<article class="card prog" style="animation:rise .55s ${i * 60}ms both">${rib}
         <div class="cv" ${p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}>${p.image ? "" : `<span>${esc(initials(p.title))}</span>`}</div>
         <div class="pb">
           <div class="meta"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${p.duration ? `<span class="badge">${esc(p.duration)}</span>` : ""}${p.modality ? `<span class="badge">${esc(p.modality)}</span>` : ""}</div>
@@ -520,6 +805,7 @@
   window.addEventListener("resize", () => { const on = $("tabs").querySelector("a.on"); if(on) setTab(on.dataset.tab); });
 
   async function boot(){
+    settings(); // sello del certificado y campaña
     if(!pb.authStore.isValid){ showLogin(); return; }
     try{
       await pb.collection("users").authRefresh();
