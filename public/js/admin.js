@@ -1108,8 +1108,12 @@
           <label class="field"><span>Duración</span><input class="input" name="duration" value="${esc(x.duration || "")}" placeholder="Ej: 4 meses"></label>
           <label class="field"><span>Modalidad</span><input class="input" name="modality" value="${esc(x.modality || "")}"></label>
         </div>
+        <div class="two">
+          <label class="field"><span>Precio en la web</span><input class="input" name="priceLabel" value="${esc(x.priceLabel || "")}" placeholder="Consultá"></label>
+          <label class="field"><span>Nota destacada (opcional)</span><input class="input" name="note" value="${esc(x.note || "")}" placeholder="Ej: Precio Buen Fin"></label>
+        </div>
         <label class="field"><span>Imagen (opcional)</span><input class="input" type="file" name="image" accept="image/*"></label>
-        <label class="check" style="margin-bottom:14px"><input type="checkbox" name="published"${x.published ? " checked" : ""}> Visible para los alumnos</label>
+        <label class="check" style="margin-bottom:14px"><input type="checkbox" name="published"${x.published ? " checked" : ""}> Visible en el campus y en la web</label>
         <p class="error-msg" id="pErr" role="alert"></p>
         <div class="modal-actions">${isNew ? "" : '<button type="button" class="btn btn-danger" id="pDel" style="margin-right:auto">Eliminar</button>'}<button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="pSave">${isNew ? "Crear" : "Guardar"}</button></div>
       </form>`, (m) => {
@@ -1118,7 +1122,7 @@
         e.preventDefault();
         if(!form.title.value.trim()){ m.querySelector("#pErr").textContent = "Falta el nombre."; return; }
         const fd = new FormData();
-        ["title", "kind", "summary", "duration", "modality"].forEach((k) => fd.set(k, form[k].value.trim()));
+        ["title", "kind", "summary", "duration", "modality", "priceLabel", "note"].forEach((k) => fd.set(k, form[k].value.trim()));
         fd.set("order", form.order.value || "0");
         fd.set("published", form.published.checked ? "true" : "false");
         if(form.image.files[0]) fd.set("image", form.image.files[0]);
@@ -1342,6 +1346,129 @@
     $("sealRm")?.addEventListener("click", () => save({sealLogo: null}, "Volvió el sello de fábrica."));
   }
 
+  /* =====================================================
+     WEB: textos de la landing, editables
+     ===================================================== */
+  const WEB_SPEC = [
+    {key:"hero", label:"Portada", fields:[["title", "Título grande (que entre en 2 líneas)"], ["sub", "Bajada", "area"], ["cta", "Botón principal"], ["alt", "Link al reto de 25 preguntas"]]},
+    {key:"exam", label:"Pregunta de ejemplo de la portada", fields:[["q", "Pregunta", "area"], ["a", "Opción A"], ["b", "Opción B"], ["c", "Opción C"], ["correct", "Respuesta correcta", "abc"], ["ok", "Mensaje si acierta", "area"], ["no", "Mensaje si se equivoca", "area"]]},
+    {key:"intro", label:"Frase de presentación", hint:"Las tres miniaturas redondas aparecen donde escribas [1], [2] y [3].", fields:[["text", "Frase", "area"]]},
+    {key:"stages", label:"Cómo funciona", list:{fields:[["title", "Título"], ["text", "Texto", "area"]], names:["Etapa Registro", "Etapa Curso", "Etapa Examen", "Etapa Certificado"], fixed:true}},
+    {key:"cut", label:"El corte de 80", fields:[["fail", "Texto con menos de 80", "area"], ["pass", "Texto con 80 o más", "area"], ["link", "Texto del link al reto"]]},
+    {key:"band", label:"Banda del salto", fields:[["caption", "Epígrafe", "area"], ["side", "Texto a la derecha"]]},
+    {key:"catalog", label:"Catálogo", hint:"Los cursos salen de Cursos (los publicados con Inscripción libre) y las certificaciones de Certificaciones, con su precio y nota.", fields:[["title", "Título"], ["lead", "Bajada", "area"], ["freeNote", "Nota del curso gratis"], ["freeButton", "Botón del curso gratis"], ["groupFree", "Nombre del grupo de cursos gratis"], ["groupCert", "Nombre del grupo de certificaciones"], ["groupEsp", "Nombre del grupo de especializaciones"], ["groupPaq", "Nombre del grupo de paquetes"]]},
+    {key:"board", label:"Recursos (tablero)", fields:[["title", "Título"]], list:{key:"tiles", fields:[["title", "Título"], ["text", "Texto"]], names:["Video, audio y lectura", "Avance", "Corrección", "Folio", "Oportunidades", "WhatsApp", "Estudio de caso", "Perfil"], fixed:true}},
+    {key:"plans", label:"Elegí tu camino", hint:"Si dejás el link vacío, el botón abre WhatsApp con un mensaje sobre ese plan.", fields:[["title", "Título"]], list:{key:"items", fields:[["name", "Nombre"], ["fig", "Cifra grande"], ["unit", "Texto junto a la cifra"], ["text", "Descripción", "area"], ["btn", "Texto del botón"], ["link", "Link del botón (opcional)"]], names:["Plan 1", "Plan 2 (se ve primero)", "Plan 3"], fixed:true}},
+    {key:"faq", label:"Preguntas frecuentes", fields:[["title", "Título"], ["caption", "Epígrafe de la lámina", "area"]], list:{key:"items", fields:[["q", "Pregunta"], ["a", "Respuesta", "area"]], add:"+ Agregar pregunta"}},
+    {key:"cta", label:"Cierre", fields:[["word", "Palabra gigante (corta)"], ["text", "Frase", "area"]]},
+    {key:"footer", label:"Pie de página", fields:[["about", "Descripción"], ["contact", "Contacto"]]},
+  ];
+
+  async function renderWeb(){
+    const s = await UI.settings(true);
+    const LCm = window.LandingContent;
+    let C = LCm.merge(LCm.DEFAULTS, s.landing);
+    const input = (path, label, type, value) => {
+      if(type === "abc") return `<label class="field"><span>${esc(label)}</span><select class="input" data-path="${path}">${["A", "B", "C"].map((x) => `<option${value === x ? " selected" : ""}>${x}</option>`).join("")}</select></label>`;
+      if(type === "area") return `<label class="field"><span>${esc(label)}</span><textarea class="input" rows="3" data-path="${path}">${esc(value)}</textarea></label>`;
+      return `<label class="field"><span>${esc(label)}</span><input class="input" data-path="${path}" value="${esc(value)}"></label>`;
+    };
+    const listHtml = (b) => {
+      const L = b.list, base = L.key ? b.key + "." + L.key : b.key, arr = L.key ? C[b.key][L.key] : C[b.key];
+      return `<div class="witems" data-list="${base}">${arr.map((it, i) => `<div class="witem">
+        <div class="witem-h"><b>${esc(L.names ? L.names[i] || "Ítem " + (i + 1) : "Pregunta " + (i + 1))}</b>${L.fixed ? "" : `<button type="button" class="btn btn-danger btn-sm" data-rm="${i}">Quitar</button>`}</div>
+        ${L.fields.map(([k, label, type]) => input(base + "." + i + "." + k, label, type, it[k])).join("")}</div>`).join("")}
+        ${L.add ? `<button type="button" class="btn btn-ghost btn-sm" data-add>${esc(L.add)}</button>` : ""}</div>`;
+    };
+    const blocksHtml = () => WEB_SPEC.map((b, bi) => `<details class="wblock"${bi === 0 ? " open" : ""}><summary>${esc(b.label)}</summary><div class="wbody">
+      ${b.hint ? `<p class="hint" style="margin:0 0 12px">${esc(b.hint)}</p>` : ""}
+      ${(b.fields || []).map(([k, label, type]) => input(b.key + "." + k, label, type, C[b.key][k])).join("")}
+      ${b.list ? listHtml(b) : ""}</div></details>`).join("");
+
+    view.innerHTML = `
+      <div class="head"><div><span class="eyebrow">La landing de innovafit</span><h1>Web</h1></div>
+        <div class="actions"><a class="btn btn-ghost" href="/" target="_blank">Ver la web ↗</a><button class="btn btn-primary" id="wSave">Guardar y publicar</button></div></div>
+      <div class="web">
+        <div>
+          <div class="card panel spot" style="margin-bottom:14px">
+            <h2 style="font-size:22px;margin-bottom:10px">Imagen de la portada</h2>
+            <div class="whero"><div class="whero-img" id="wHeroPrev" style="background-image:url('${s.heroImage ? fileUrl(s, s.heroImage, "1200x1200") : "/assets/campus/disco-boxeadores.webp"}')"></div>
+              <div><p class="hint" style="margin:0 0 10px">Va dentro del círculo naranja y gira despacio. Ideal: una imagen cuadrada.</p>
+              <input class="input" type="file" id="wHero" accept="image/png,image/jpeg,image/webp">
+              ${s.heroImage ? '<button type="button" class="btn btn-ghost btn-sm" id="wHeroRm" style="margin-top:10px">Volver a la imagen original</button>' : ""}</div></div>
+          </div>
+          <form id="wForm" novalidate>${blocksHtml()}</form>
+          <div class="wfoot"><button type="button" class="btn btn-ghost btn-sm" id="wReset">Restaurar todos los textos originales</button></div>
+        </div>
+        <div class="wprev"><div class="wprev-frame" id="wFrameBox"><iframe id="wFrame" src="/" title="Vista previa de la web" loading="lazy"></iframe></div><p class="hint" style="margin-top:8px">Vista previa de lo publicado. Se actualiza al guardar.</p></div>
+      </div>`;
+    stagger(view);
+
+    // Escala la vista previa (la web real a 1440 px) al ancho disponible.
+    const box = $("wFrameBox"), frame = $("wFrame");
+    const fit = () => { const k = box.clientWidth / 1440; frame.style.transform = "scale(" + k + ")"; frame.style.height = (box.clientHeight / k) + "px"; };
+    fit(); new ResizeObserver(fit).observe(box);
+
+    const form = $("wForm");
+    // Lee el formulario sobre una copia del contenido actual.
+    const collect = () => {
+      const out = JSON.parse(JSON.stringify(C));
+      form.querySelectorAll("[data-path]").forEach((el) => {
+        const parts = el.dataset.path.split(".");
+        let o = out;
+        parts.slice(0, -1).forEach((p) => { o = o[p]; });
+        o[parts[parts.length - 1]] = el.value;
+      });
+      return out;
+    };
+    const repaint = () => {
+      const open = [...form.querySelectorAll("details")].map((d) => d.open);
+      form.innerHTML = blocksHtml();
+      form.querySelectorAll("details").forEach((d, i) => { d.open = open[i]; });
+      bindLists();
+    };
+    function bindLists(){
+      form.querySelectorAll("[data-list]").forEach((box) => {
+        const path = box.dataset.list.split(".");
+        const arr = () => path.reduce((o, p) => o[p], C);
+        box.querySelectorAll("[data-rm]").forEach((b) => b.onclick = () => { C = collect(); arr().splice(+b.dataset.rm, 1); repaint(); });
+        box.querySelector("[data-add]")?.addEventListener("click", () => { C = collect(); arr().push({q:"", a:""}); repaint(); });
+      });
+    }
+    bindLists();
+
+    const saveFile = async (data, msg) => {
+      try{ await pb.collection("settings").update(s.id, data); await UI.settings(true); ok("¡Guardado con éxito!", msg); renderWeb(); }
+      catch(err){ fail(err); }
+    };
+    $("wHero").onchange = () => {
+      const f = $("wHero").files[0];
+      if(!f) return;
+      $("wHeroPrev").style.backgroundImage = "url('" + URL.createObjectURL(f) + "')";
+      const fd = new FormData(); fd.set("heroImage", f);
+      saveFile(fd, "La nueva imagen ya está en la portada.");
+    };
+    $("wHeroRm")?.addEventListener("click", () => saveFile({heroImage: null}, "Volvió la imagen original."));
+    $("wSave").onclick = async () => {
+      const data = collect();
+      if(data.faq.items.some((f) => !f.q.trim() || !f.a.trim())) return fail("Hay una pregunta frecuente sin pregunta o sin respuesta.");
+      if(!data.hero.title.trim()) return fail("La portada necesita un título.");
+      const btn = $("wSave");
+      btn.disabled = true;
+      try{
+        await pb.collection("settings").update(s.id, {landing: data});
+        C = data;
+        ok("¡Publicado con éxito!", "Los cambios ya se ven en la web.");
+        frame.contentWindow.location.reload();
+      }catch(err){ fail(err); }
+      finally{ btn.disabled = false; }
+    };
+    $("wReset").onclick = async () => {
+      if(!(await confirmBox("Restaurar textos", "La web vuelve a los textos originales. Las imágenes, cursos y certificaciones no cambian.", "Restaurar"))) return;
+      saveFile({landing: null}, "La web volvió a los textos originales.");
+    };
+  }
+
   /* ---------- Router ---------- */
   async function route(keepModal){
     const [, section = "resumen", id] = (location.hash.match(/^#\/([^/]+)(?:\/([^/]+))?/) || []);
@@ -1359,6 +1486,7 @@
       else if(section === "certificaciones") await renderCertificaciones();
       else if(section === "seguimiento") await renderSeguimiento();
       else if(section === "ajustes") await renderAjustes();
+      else if(section === "web") await renderWeb();
       else await renderResumen();
       view.classList.remove("view-in"); void view.offsetWidth; view.classList.add("view-in");
     }catch(err){

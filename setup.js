@@ -215,6 +215,8 @@ async function setupCollections() {
       { name: "duration", type: "text", max: 60 },
       { name: "modality", type: "text", max: 60 },
       { name: "image", type: "file", maxSelect: 1, maxSize: 10 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp"], thumbs: ["640x360"] },
+      { name: "priceLabel", type: "text", max: 40 },
+      { name: "note", type: "text", max: 120 },
       { name: "published", type: "bool" },
       { name: "order", type: "number" },
       ...created(),
@@ -332,6 +334,9 @@ async function setupCollections() {
       { name: "campaignLogo", type: "file", maxSelect: 1, maxSize: 5 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] },
       { name: "sealLogo", type: "file", maxSelect: 1, maxSize: 5 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] },
       { name: "seedVersion", type: "number" },
+      // Contenido editable de la landing (Admin → Web) y su imagen principal.
+      { name: "landing", type: "json", maxSize: 200000 },
+      { name: "heroImage", type: "file", maxSelect: 1, maxSize: 8 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp"], thumbs: ["1200x1200"] },
       ...created(),
     ],
     listRule: "",
@@ -415,7 +420,16 @@ async function migrate() {
     console.log("✓ migración 2: " + n + " portadas cargadas");
   }
 
-  const LAST = 2;
+  if (v < 3) {
+    // Notas de la landing que antes estaban fijas en el HTML.
+    const notes = { "Certificación Personal Trainer (CPT)": "Doble aval: nacional e internacional", "Paquete Entrenador Élite": "Precios especiales de Buen Fin en noviembre" };
+    for (const p of (await pb("/api/collections/programs/records?perPage=200")).items) {
+      if (notes[p.title] && !p.note) await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", body: { note: notes[p.title] } });
+    }
+    console.log("✓ migración 3: notas del catálogo");
+  }
+
+  const LAST = 3;
   if (v < LAST) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { seedVersion: LAST } });
 }
 

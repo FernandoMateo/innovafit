@@ -580,6 +580,7 @@
 </footer>
 
 <script src="/js/certificate.js"></script>
+<script src="/js/landing-content.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -591,25 +592,28 @@
   rev.forEach((el) => io ? io.observe(el) : el.classList.add("is-in"));
   addEventListener("load", () => setTimeout(() => rev.forEach((el) => { const r = el.getBoundingClientRect(); if(r.top < innerHeight && r.bottom > 0) el.classList.add("is-in"); }), 2500));
 
+  // Contenido editable desde Admin → Web (si no carga, quedan los textos del HTML).
+  const LC = window.LandingContent;
+  let C = LC.clone();
+  let waNum = "5213223208254";
+  const wa = (text) => "https://wa.me/" + waNum + (text ? "?text=" + encodeURIComponent(text) : "");
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const setText = (sel, v) => { const el = typeof sel === "string" ? document.querySelector(sel) : sel; if(el && v != null) el.textContent = v; };
+  const fileUrl = (r, f, thumb) => "/pb/api/files/" + r.collectionId + "/" + r.id + "/" + encodeURIComponent(f) + (thumb ? "?thumb=" + thumb : "");
+
   // Hero: la pregunta de ejemplo funciona de verdad.
-  const opts = document.querySelectorAll("#heroExam .opt");
-  opts.forEach((b) => b.addEventListener("click", () => {
-    const good = b.dataset.ok === "1";
-    opts.forEach((o) => { o.disabled = true; if(o.dataset.ok === "1") o.classList.add("ok"); });
+  const LETTERS = ["A", "B", "C"];
+  const opts = [...document.querySelectorAll("#heroExam .opt")];
+  opts.forEach((b, i) => b.addEventListener("click", () => {
+    const good = LETTERS[i] === C.exam.correct;
+    opts.forEach((o, k) => { o.disabled = true; if(LETTERS[k] === C.exam.correct) o.classList.add("ok"); });
     if(!good) b.classList.add("no");
     $("heroBar").style.width = "100%";
-    $("heroMsg").innerHTML = good
-      ? 'Correcta. Así son las 20 del examen: 16 bien y estás acreditado. <a href="/campus">Empezá gratis</a>'
-      : 'Era sagital: se mueve hacia adelante y arriba. El curso te lo explica en 10 minutos. <a href="/campus">Empezá gratis</a>';
+    $("heroMsg").innerHTML = esc(good ? C.exam.ok : C.exam.no) + ' <a href="/campus">Empezá gratis</a>';
   }));
 
   // Cómo funciona: un control que mueve el texto y el fragmento.
-  const STAGES = [
-    ["Registrate en 30 segundos", "Nombre, correo y WhatsApp. Elegís tu curso gratis y entrás al campus en el momento, sin esperar a nadie."],
-    ["Estudiá a tu ritmo", "Videos, audios, lecturas y un estudio de caso real. El campus guarda tu avance y te muestra qué te falta."],
-    ["Rendí y pasá el 80", "Veinte preguntas sobre todo el curso. Con 16 correctas quedás acreditado; si no, tenés 3 oportunidades."],
-    ["Tu certificado, al instante", "Con tu nombre, el curso, tu calificación y un folio verificable. Lo descargás en PDF en el momento."],
-  ];
+  let curStage = 0;
   const range = $("howRange"), stops = [...$("howStops").children], frags = document.querySelectorAll(".frag[data-stage]");
   let certMounted = null;
   function mountCert(){
@@ -619,13 +623,14 @@
   }
   function stage(i){
     i = Math.max(0, Math.min(3, i));
+    curStage = i;
     range.value = i;
     range.style.setProperty("--p", (i / 3) * 100 + "%");
     range.setAttribute("aria-valuetext", stops[i].textContent);
     stops.forEach((s, k) => s.classList.toggle("on", k === i));
     const h = $("howTitle"), p = $("howText");
     h.style.opacity = p.style.opacity = 0;
-    setTimeout(() => { h.textContent = STAGES[i][0]; p.textContent = STAGES[i][1]; h.style.opacity = p.style.opacity = 1; }, reduce ? 0 : 180);
+    setTimeout(() => { h.textContent = C.stages[i].title; p.textContent = C.stages[i].text; h.style.opacity = p.style.opacity = 1; }, reduce ? 0 : 180);
     frags.forEach((f) => { f.hidden = +f.dataset.stage !== i; });
     if(i === 2) requestAnimationFrame(() => { $("howRing").style.strokeDashoffset = 389.6 * .1; });
     else $("howRing").style.strokeDashoffset = 389.6;
@@ -642,32 +647,111 @@
     $("dialVal").textContent = v + "%";
     show.classList.toggle("pass", pass);
     $("showTitle").textContent = pass ? "Con " + v + ", acreditado" : "Con " + v + ", todavía no";
-    $("showCopy").firstChild.textContent = pass
-      ? "Pasaste el corte: quedás acreditado y tu certificado se emite solo, con tu calificación y un folio verificable. ¿Querés medirte ya? "
-      : "El examen final tiene 20 preguntas y el corte es 80. Si no llegás, repasás y volvés: tenés 3 oportunidades. ¿Querés medirte ya? ";
+    $("showCopy").firstChild.textContent = (pass ? C.cut.pass : C.cut.fail) + " ";
   }
   dial.addEventListener("input", score);
 
   // Planes: un nombre a la vez, la cifra queda en su lugar.
-  const WA = "https://wa.me/5213223208254?text=";
-  const PLANS = [
-    {fig:"$0", unit:"para siempre", text:"Fundamentos de Biomecánica completo: 15 lecciones, estudio de caso, comprobación y examen de acreditación. Si aprobás, tu certificado también es gratis.", btn:"Crear cuenta gratis", href:"/campus"},
-    {fig:"2", unit:"avales", text:"Certificación de Entrenador Personal con aval nacional e internacional. Si aprobaste el curso gratis, ya tenés el primer módulo hecho. En noviembre, precios especiales de Buen Fin.", btn:"Consultar por WhatsApp", href: WA + encodeURIComponent("Hola InnovaFit! Quiero info de la Certificación Doble de Entrenador Personal.")},
-    {fig:"4", unit:"especialidades", text:"Culturismo, Instrucción Grupal, Ejercicio Correctivo y Envejecimiento Funcional. Para sumar un nicho a tu certificación y cobrar como especialista.", btn:"Consultar por WhatsApp", href: WA + encodeURIComponent("Hola InnovaFit! Quiero info de las especializaciones.")},
-  ];
-  const names = document.querySelectorAll("[data-plan]");
-  function plan(i){
+  const names = [...document.querySelectorAll("[data-plan]")];
+  let curPlan = 1;
+  function plan(i, instant){
+    curPlan = i;
     names.forEach((n, k) => { n.classList.toggle("on", k === i); n.setAttribute("aria-selected", k === i); });
-    const body = $("planBody"), p = PLANS[i];
+    const body = $("planBody"), p = C.plans.items[i];
+    if(!p) return;
+    const href = p.link || wa("Hola InnovaFit! Quiero info de " + p.name + ".");
     body.classList.add("out");
     setTimeout(() => {
       $("planFig").textContent = p.fig; $("planUnit").textContent = p.unit; $("planText").textContent = p.text;
-      const b = $("planBtn"); b.textContent = p.btn; b.href = p.href;
-      if(p.href.startsWith("/")){ b.removeAttribute("target"); } else { b.target = "_blank"; }
+      const b = $("planBtn"); b.textContent = p.btn; b.href = href;
+      if(href.startsWith("/")) b.removeAttribute("target"); else b.target = "_blank";
       body.classList.remove("out");
-    }, reduce ? 0 : 200);
+    }, reduce || instant ? 0 : 200);
   }
   names.forEach((n, k) => { n.addEventListener("click", () => plan(k)); n.addEventListener("focus", () => plan(k)); });
+
+  /* ---------- Aplicar el contenido editado ---------- */
+  const thumbs = [...document.querySelectorAll(".intro .th")];
+  function apply(){
+    setText(".hero h1", C.hero.title); setText(".hero-sub", C.hero.sub);
+    setText(".hero-act .btn", C.hero.cta); setText(".hero-act .tlink", C.hero.alt);
+    setText("#heroExam h2", C.exam.q);
+    ["a", "b", "c"].forEach((k, i) => { if(opts[i]) opts[i].lastChild.textContent = C.exam[k]; });
+
+    // La frase de la intro lleva las miniaturas donde dice [1], [2], [3].
+    const span = document.querySelector(".intro p > span");
+    if(span){
+      span.textContent = "";
+      C.intro.text.split(/(\[[1-3]\])/).forEach((part) => {
+        const m = part.match(/^\[([1-3])\]$/);
+        span.append(m ? thumbs[+m[1] - 1] || "" : part);
+      });
+    }
+
+    setText("#howTitle", C.stages[curStage].title); setText("#howText", C.stages[curStage].text);
+    const link = document.querySelector("#showCopy a"); setText(link, C.cut.link); score();
+    const cap = document.querySelectorAll(".band-cap span"); setText(cap[0], C.band.caption); setText(cap[1], C.band.side);
+    setText("#catTitle", C.catalog.title); setText(".cat-lead", C.catalog.lead);
+
+    setText("#boardTitle", C.board.title);
+    document.querySelectorAll(".tile:not(.head) .cap").forEach((el, i) => { const t = C.board.tiles[i]; if(t){ setText(el.querySelector("b"), t.title); setText(el.querySelector("span"), t.text); } });
+
+    setText(".plan-names h2", C.plans.title);
+    names.forEach((n, i) => { const p = C.plans.items[i]; n.hidden = !p; if(p) n.textContent = p.name; });
+    plan(Math.min(curPlan, C.plans.items.length - 1), true);
+
+    setText("#faqTitle", C.faq.title); setText(".faq-l figcaption", C.faq.caption);
+    document.querySelector(".faq-r").innerHTML = C.faq.items.map((f, i) =>
+      `<details name="faq"${i === 0 ? " open" : ""}><summary>${esc(f.q)}<span class="pm"></span></summary><p>${esc(f.a)}</p></details>`).join("");
+
+    setText(".cta p", C.cta.text); setText(".cta strong", C.cta.word);
+    const contact = document.querySelectorAll(".contact p"); setText(contact[0], C.footer.about); setText(contact[1], C.footer.contact);
+    document.querySelectorAll('a[href^="https://wa.me/"]').forEach((a) => { a.href = a.href.replace(/wa\.me\/\d+/, "wa.me/" + waNum); });
+  }
+
+  // Catálogo en vivo: los cursos de inscripción libre y las certificaciones que se cargan en el admin.
+  function renderCatalog(courses, programs){
+    const cat = document.querySelector(".cat");
+    cat.querySelectorAll(".group").forEach((g) => g.remove());
+    const plain = (html) => { const d = document.createElement("div"); d.innerHTML = html || ""; return d.textContent.trim(); };
+    let html = courses.map((c, i) => `<div class="group free is-in" data-reveal>
+      <div class="free-txt">
+        ${i === 0 ? `<div class="group-h"><h3>${esc(C.catalog.groupFree)}</h3><span>${courses.length} ${courses.length === 1 ? "curso" : "cursos"}</span></div>` : ""}
+        <div class="item-top"><b>${esc(c.title)}</b><em>$0</em></div>
+        <p>${esc(plain(c.description) || c.subtitle || "")}</p>
+        <small>${esc(C.catalog.freeNote)}</small>
+        <a class="btn" href="/campus#curso=${c.id}">${esc(C.catalog.freeButton)}</a>
+      </div>
+      <a class="free-cover" href="/campus#curso=${c.id}" aria-label="Inscribirme en ${esc(c.title)}">${c.cover ? `<img src="${fileUrl(c, c.cover)}" alt="Portada del curso ${esc(c.title)}" width="1280" height="720" loading="lazy">` : ""}</a>
+    </div>`).join("");
+    const GROUPS = [["certificacion", C.catalog.groupCert, "programa", "programas"], ["especializacion", C.catalog.groupEsp, "programa", "programas"], ["paquete", C.catalog.groupPaq, "ruta", "rutas"]];
+    for(const [kind, title, one, many] of GROUPS){
+      const list = programs.filter((p) => (p.kind || "certificacion") === kind);
+      if(!list.length) continue;
+      html += `<div class="group is-in" data-reveal>
+        <div class="group-h"><h3>${esc(title)}</h3><span>${list.length} ${list.length === 1 ? one : many}</span></div>
+        <ul class="items">${list.map((p) => `<li class="item">${p.image ? `<img src="${fileUrl(p, p.image, "640x360")}" alt="" width="72" height="72" loading="lazy">` : `<span style="width:72px;height:72px;border-radius:50%;background:var(--ground-3)"></span>`}
+          <div><div class="item-top"><b>${esc(p.title)}</b><em>${esc(p.priceLabel || "Consultá")}</em></div>${p.summary ? `<p>${esc(p.summary)}</p>` : ""}${p.note ? `<small>${esc(p.note)}</small>` : ""}</div></li>`).join("")}</ul>
+      </div>`;
+    }
+    cat.insertAdjacentHTML("beforeend", html);
+  }
+
+  (async () => {
+    const get = (p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const [cfg, set, courses, programs] = await Promise.all([
+      get("/api/config"),
+      get("/pb/api/collections/settings/records?perPage=1"),
+      get("/pb/api/collections/courses/records?perPage=50&sort=order,created&filter=" + encodeURIComponent("published = true && openAccess = true")),
+      get("/pb/api/collections/programs/records?perPage=200&sort=order,title&filter=" + encodeURIComponent("published = true")),
+    ]);
+    if(cfg && cfg.waNumber) waNum = cfg.waNumber;
+    const s = set && set.items && set.items[0];
+    if(s && s.landing) C = LC.merge(LC.DEFAULTS, s.landing);
+    if(s && s.heroImage) document.querySelector(".disc img").src = fileUrl(s, s.heroImage, "1200x1200");
+    apply();
+    if(courses && programs && (courses.items.length || programs.items.length)) renderCatalog(courses.items, programs.items);
+  })();
 })();
 </script>
 </body>
