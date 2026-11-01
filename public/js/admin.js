@@ -621,6 +621,8 @@
           <div class="field"><span>Portada (16:9)</span>
             <div class="cover-prev" id="coverPrev" ${c.cover ? `style="background-image:url('${fileUrl(c, c.cover, "640x360")}')"` : ""}>${c.cover ? "" : "Sin portada"}</div>
             <input class="input" type="file" name="cover" accept="image/*"></div>
+          <label class="field"><span>Foto para la web${c.photo ? " · ya cargada" : ""}</span><input class="input" type="file" name="photo" accept="image/png,image/webp"></label>
+          <p class="hint">PNG recortado, sin fondo: va en la tarjeta del curso en la landing (solo cursos con inscripción libre).</p>
           <div class="two">
             <label class="field"><span>Orden</span><input class="input" name="order" type="number" value="${esc(c.order || 0)}"></label>
             <div class="field"><span>Visibilidad</span>
@@ -668,6 +670,7 @@
       fd.set("certEnabled", form.certEnabled.checked ? "true" : "false");
       fd.set("certHours", form.certHours.value.trim());
       if(form.cover.files[0]) fd.set("cover", form.cover.files[0]);
+      if(form.photo.files[0]) fd.set("photo", form.photo.files[0]);
       btn.disabled = true;
       try{
         const rec = isNew ? await pb.collection("courses").create(fd) : await pb.collection("courses").update(c.id, fd);
@@ -1114,6 +1117,8 @@
           <label class="field"><span>Nota destacada (opcional)</span><input class="input" name="note" value="${esc(x.note || "")}" placeholder="Ej: Precio Buen Fin"></label>
         </div>
         <label class="field"><span>Imagen (opcional)</span><input class="input" type="file" name="image" accept="image/*"></label>
+        <label class="field"><span>Foto para la web${x.photo ? " · ya cargada" : ""}</span><input class="input" type="file" name="photo" accept="image/png,image/webp"></label>
+        <p class="hint" style="margin-top:-6px">PNG recortado, sin fondo: va en la tarjeta de la landing. Si no subís nada, se usa una de nuestras fotos.</p>
         <label class="check" style="margin-bottom:14px"><input type="checkbox" name="published"${x.published ? " checked" : ""}> Visible en el campus y en la web</label>
         ${isNew ? '<p class="hint">Guardá la certificación y después creale su evaluación.</p>' : `<div class="field"><span>Evaluación de la certificación</span><div class="card" id="pExam" style="padding:14px 16px"><span class="muted">Cargando…</span></div></div>`}
         <p class="error-msg" id="pErr" role="alert"></p>
@@ -1128,6 +1133,7 @@
         fd.set("order", form.order.value || "0");
         fd.set("published", form.published.checked ? "true" : "false");
         if(form.image.files[0]) fd.set("image", form.image.files[0]);
+        if(form.photo.files[0]) fd.set("photo", form.photo.files[0]);
         m.querySelector("#pSave").disabled = true;
         try{
           if(isNew) await pb.collection("programs").create(fd);
@@ -1407,15 +1413,25 @@
      WEB: textos de la landing, editables
      ===================================================== */
   const WEB_SPEC = [
-    {key:"hero", label:"Portada", fields:[["label", "Etiqueta chica"], ["title1", "Título · línea 1"], ["title2", "Título · línea 2"], ["title3", "Título · línea 3 (en degradado)"], ["sub", "Bajada", "area"], ["cta", "Botón principal"], ["alt", "Botón al reto de 25 preguntas"], ["panel", "Texto sobre el panel naranja", "area"]]},
-    {key:"stats", label:"Cifras de la portada", list:{fields:[["fig", "Cifra"], ["label", "Texto"]], names:["Cifra 1", "Cifra 2", "Cifra 3"], fixed:true}},
-    {key:"steps", label:"Cómo funciona (arco de pasos)", fields:[["title", "Título"], ["sub", "Bajada"]], list:{key:"items", fields:[["title", "Paso"], ["text", "Texto"]], names:["Paso 1", "Paso 2", "Paso 3", "Paso 4", "Paso 5"], fixed:true}},
-    {key:"resources", label:"Recursos", fields:[["title", "Título"], ["sub", "Frase junto al atleta", "area"]], list:{key:"items", fields:[["title", "Título"], ["text", "Texto", "area"]], names:["Tarjeta 1", "Tarjeta 2", "Tarjeta 3", "Tarjeta 4", "Tarjeta 5"], fixed:true}},
+    {key:"hero", label:"Portada (primer plano del recorrido)", fields:[["label", "Etiqueta chica"], ["title1", "Título · línea 1"], ["title2", "Título · línea 2 (en degradado)"], ["sub", "Bajada", "area"], ["cta", "Botón principal"], ["alt", "Botón al reto de 25 preguntas"], ["scroll", "Indicación para deslizar"]]},
+    {key:"story", label:"Recorrido con el iPad (5 planos)", hint:"Cada texto aparece en un plano de cámara distinto mientras el iPad muestra esa parte del campus.", list:{key:"items", fields:[["title", "Título"], ["text", "Texto", "area"]], names:["Plano 2 · Registro", "Plano 3 · Cursos y certificaciones", "Plano 4 · Clases", "Plano 5 · Examen", "Plano 6 · Certificado"], fixed:true}},
+    {key:"steps", label:"Cómo funciona (cronograma)", fields:[["title", "Título"], ["sub", "Bajada", "area"]], list:{key:"items", fields:[["when", "Cuándo (abajo de la columna)"], ["title", "Paso"], ["text", "Texto"]], names:["Paso 1", "Paso 2", "Paso 3", "Paso 4", "Paso 5"], fixed:true}},
     {key:"catalog", label:"Catálogo de cursos", hint:"Las tarjetas salen de Cursos (publicados con Inscripción libre) y de Certificaciones, con su precio y nota.", fields:[["title", "Título"], ["sub", "Bajada", "area"], ["centerLabel", "Texto del círculo"], ["tags", "Etiquetas (separadas por coma)", "area"], ["freeBadge", "Etiqueta de los cursos gratis"], ["freeNote", "Nota de los cursos gratis"], ["freeButton", "Botón de los cursos gratis"], ["askButton", "Botón de las certificaciones"]]},
     {key:"cert", label:"Certificado en vivo", fields:[["title", "Título"], ["text", "Texto", "area"], ["inputLabel", "Texto sobre el campo del nombre"]]},
     {key:"faq", label:"Preguntas frecuentes", fields:[["title", "Título"]], list:{key:"items", fields:[["q", "Pregunta"], ["a", "Respuesta", "area"]], add:"+ Agregar pregunta"}},
     {key:"cta", label:"Cierre", fields:[["title", "Título"], ["highlight", "Título en degradado"], ["text", "Frase", "area"], ["button", "Botón principal"], ["alt", "Botón de WhatsApp"]]},
     {key:"footer", label:"Pie de página", fields:[["about", "Descripción"], ["contact", "Contacto"]]},
+  ];
+  // Imágenes de la landing: campo en settings, nombre, ayuda e imagen de fábrica (sin imagen = pantalla de muestra).
+  const WEB_IMAGES = [
+    ["heroImage", "Persona de la escena", "La que mira el iPad durante el recorrido. Ideal: PNG recortado, sin fondo, de la cintura para arriba y mirando hacia la izquierda.", "/assets/campus/atleta-retrato.webp"],
+    ["screen1", "iPad · pantalla de inicio", "Captura horizontal 4:3 (ej. 1600 × 1200). Si no subís nada, se ve la pantalla de muestra.", ""],
+    ["screen2", "iPad · registro", "Captura horizontal 4:3.", ""],
+    ["screen3", "iPad · cursos y certificaciones", "Captura horizontal 4:3.", ""],
+    ["screen4", "iPad · clase", "Captura horizontal 4:3.", ""],
+    ["screen5", "iPad · examen", "Captura horizontal 4:3.", ""],
+    ["screen6", "iPad · certificado", "Captura horizontal 4:3.", ""],
+    ["ctaImage", "Foto del cierre", "Va en el bloque final, sobre el brillo naranja. Ideal: PNG recortado sin fondo.", "/assets/campus/pareja-innovafit.webp"],
   ];
   async function renderWeb(){
     const s = await UI.settings(true);
@@ -1444,11 +1460,13 @@
       <div class="web">
         <div>
           <div class="card panel spot" style="margin-bottom:14px">
-            <h2 style="font-size:22px;margin-bottom:10px">Imagen de la portada</h2>
-            <div class="whero"><div class="whero-img" id="wHeroPrev" style="background-image:url('${s.heroImage ? fileUrl(s, s.heroImage) : "/assets/campus/atleta-innovafit.webp"}')"></div>
-              <div><p class="hint" style="margin:0 0 10px">Va sobre el panel naranja de la portada. Ideal: una persona recortada, PNG con fondo transparente.</p>
-              <input class="input" type="file" id="wHero" accept="image/png,image/jpeg,image/webp">
-              ${s.heroImage ? '<button type="button" class="btn btn-ghost btn-sm" id="wHeroRm" style="margin-top:10px">Volver a la imagen original</button>' : ""}</div></div>
+            <h2 style="font-size:22px;margin-bottom:6px">Imágenes de la web</h2>
+            <p class="hint" style="margin:0 0 14px">Las fotos de las tarjetas del catálogo se cambian en cada curso y certificación (campo "Foto para la web").</p>
+            ${WEB_IMAGES.map(([f, label, hint, def]) => `<div class="whero" style="margin-bottom:14px">
+              <div class="whero-img" style="background-image:url('${s[f] ? fileUrl(s, s[f]) : def}');${def || s[f] ? "" : "display:grid;place-items:center;font-size:12px;color:var(--muted)"}">${def || s[f] ? "" : "Pantalla de muestra"}</div>
+              <div><b style="display:block;margin-bottom:4px">${esc(label)}</b><p class="hint" style="margin:0 0 10px">${esc(hint)}</p>
+              <input class="input" type="file" data-img="${f}" accept="image/png,image/jpeg,image/webp">
+              ${s[f] ? `<button type="button" class="btn btn-ghost btn-sm" data-img-rm="${f}" style="margin-top:10px">${def ? "Volver a la imagen original" : "Volver a la pantalla de muestra"}</button>` : ""}</div></div>`).join("")}
           </div>
           <form id="wForm" novalidate>${blocksHtml()}</form>
           <div class="wfoot"><button type="button" class="btn btn-ghost btn-sm" id="wReset">Restaurar todos los textos originales</button></div>
@@ -1494,18 +1512,18 @@
       try{ await pb.collection("settings").update(s.id, data); await UI.settings(true); ok("¡Guardado con éxito!", msg); renderWeb(); }
       catch(err){ fail(err); }
     };
-    $("wHero").onchange = () => {
-      const f = $("wHero").files[0];
+    view.querySelectorAll("[data-img]").forEach((inp) => inp.onchange = () => {
+      const f = inp.files[0];
       if(!f) return;
-      $("wHeroPrev").style.backgroundImage = "url('" + URL.createObjectURL(f) + "')";
-      const fd = new FormData(); fd.set("heroImage", f);
-      saveFile(fd, "La nueva imagen ya está en la portada.");
-    };
-    $("wHeroRm")?.addEventListener("click", () => saveFile({heroImage: null}, "Volvió la imagen original."));
+      inp.closest(".whero").querySelector(".whero-img").style.backgroundImage = "url('" + URL.createObjectURL(f) + "')";
+      const fd = new FormData(); fd.set(inp.dataset.img, f);
+      saveFile(fd, "La nueva imagen ya está en la web.");
+    });
+    view.querySelectorAll("[data-img-rm]").forEach((b) => b.onclick = () => saveFile({[b.dataset.imgRm]: null}, "Volvió la imagen original."));
     $("wSave").onclick = async () => {
       const data = collect();
       if(data.faq.items.some((f) => !f.q.trim() || !f.a.trim())) return fail("Hay una pregunta frecuente sin pregunta o sin respuesta.");
-      if(!(data.hero.title1 + data.hero.title2 + data.hero.title3).trim()) return fail("La portada necesita un título.");
+      if(!(data.hero.title1 + data.hero.title2).trim()) return fail("La portada necesita un título.");
       const btn = $("wSave");
       btn.disabled = true;
       try{

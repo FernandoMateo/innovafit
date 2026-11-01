@@ -88,6 +88,7 @@ async function setupCollections() {
       { name: "subtitle", type: "text", max: 240 },
       { name: "description", type: "editor" },
       { name: "cover", type: "file", maxSelect: 1, maxSize: 15 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/gif"], thumbs: ["640x360"] },
+      { name: "photo", type: "file", maxSelect: 1, maxSize: 8 * 1024 * 1024, mimeTypes: ["image/png", "image/webp"] },
       { name: "published", type: "bool" },
       { name: "isGift", type: "bool" },
       { name: "order", type: "number" },
@@ -217,6 +218,8 @@ async function setupCollections() {
       { name: "image", type: "file", maxSelect: 1, maxSize: 10 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp"], thumbs: ["640x360"] },
       { name: "priceLabel", type: "text", max: 40 },
       { name: "note", type: "text", max: 120 },
+      // Foto recortada (PNG sin fondo) para la tarjeta de la landing.
+      { name: "photo", type: "file", maxSelect: 1, maxSize: 8 * 1024 * 1024, mimeTypes: ["image/png", "image/webp"] },
       // Curso propio de la certificación: tiene su examen y, si se quiere, material de estudio.
       { name: "course", type: "relation", collectionId: courses.id, maxSelect: 1, cascadeDelete: false },
       { name: "published", type: "bool" },
@@ -339,6 +342,9 @@ async function setupCollections() {
       // Contenido editable de la landing (Admin → Web) y su imagen principal.
       { name: "landing", type: "json", maxSize: 200000 },
       { name: "heroImage", type: "file", maxSelect: 1, maxSize: 8 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp"], thumbs: ["1200x1200"] },
+      // Capturas opcionales para cada pantalla del iPad de la landing (si faltan, se ve la pantalla de muestra).
+      ...[1, 2, 3, 4, 5, 6].map((n) => ({ name: "screen" + n, type: "file", maxSelect: 1, maxSize: 8 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp"] })),
+      { name: "ctaImage", type: "file", maxSelect: 1, maxSize: 8 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp"] },
       ...created(),
     ],
     listRule: "",

@@ -5,40 +5,33 @@
 
   const DEFAULTS = {
     hero: {
-      label: "Campus InnovaFit",
-      title1: "Aprendé.",
-      title2: "Rendí.",
-      title3: "Certificate.",
-      sub: "El campus digital para entrenadores personales: cursos gratis y certificaciones, un examen que valida lo que sabés y tu certificado al instante cuando aprobás con 80%.",
+      label: "Formación para entrenadores personales",
+      title1: "Campus",
+      title2: "InnovaFit",
+      sub: "Estudiá, validá lo que sabés y certificate. Cursos gratis y certificaciones con examen real, desde tu celular y a tu ritmo.",
       cta: "Crear cuenta gratis",
       alt: "Tomar el reto",
-      panel: "Tu certificado sale solo, con folio verificable, en el momento en que aprobás.",
+      scroll: "Deslizá y recorré el campus",
     },
-    stats: [
-      {fig: "+10", label: "cursos y certificaciones en el campus"},
-      {fig: "80%", label: "para acreditar el examen final"},
-      {fig: "24/7", label: "para estudiar a tu ritmo, desde el celular"},
-    ],
-    steps: {
-      title: "Cómo funciona",
-      sub: "Cinco pasos, del registro al certificado.",
+    // Los cinco planos del recorrido con el iPad (después de la portada).
+    story: {
       items: [
-        {title: "Registrate", text: "Nombre, correo y WhatsApp. En 30 segundos."},
-        {title: "Estudiá", text: "Videos, audios y lecturas a tu ritmo."},
-        {title: "Resolvé el caso", text: "Aplicá la teoría a un cliente real."},
-        {title: "Rendí el examen", text: "20 preguntas, mínimo 80%, 3 oportunidades."},
-        {title: "Certificate", text: "Descargá tu certificado con folio al instante."},
+        {title: "Registrate en 30 segundos", text: "Nombre, correo y WhatsApp. Entrás y empezás tu primer curso gratis en ese mismo momento."},
+        {title: "Cursos gratis y certificaciones", text: "Arrancá con Fundamentos de Biomecánica sin pagar nada y seguí con la certificación que te lleve a tu próximo cliente."},
+        {title: "Aprendé a tu ritmo", text: "Clases en video, audios para el gym, lecturas en PDF y un estudio de caso real. Todo desde el celular."},
+        {title: "Validá lo que sabés", text: "Un examen de 20 preguntas con corrección automática. Aprobás con 80% y tenés 3 oportunidades."},
+        {title: "Tu certificado, al instante", text: "Con tu nombre, tu calificación y un folio que cualquiera verifica en línea. Sin trámites ni esperas."},
       ],
     },
-    resources: {
-      title: "Todo lo que hay adentro",
-      sub: "Recursos pensados para entrenadores que trabajan: cortos, claros y aplicables mañana mismo.",
+    steps: {
+      title: "Cómo funciona",
+      sub: "Del registro al certificado en cinco pasos, a tu ritmo y sin trámites.",
       items: [
-        {title: "Clases en video", text: "Planos de movimiento, palancas y leyes del movimiento explicadas por especialistas."},
-        {title: "Audios para el gym", text: "Repasá los conceptos clave mientras entrenás o vas en camino."},
-        {title: "Lecturas en PDF", text: "El material base para consultar cuando lo necesites, siempre a mano."},
-        {title: "Estudio de caso", text: "La sentadilla de Sarah: observás, corregís y explicás como con un cliente."},
-        {title: "Examen y certificado", text: "Corrección automática, tu calificación y un folio que cualquiera verifica."},
+        {when: "Día 1", title: "Registro", text: "Creás tu cuenta gratis en 30 segundos."},
+        {when: "Semana 1", title: "Clases", text: "Videos, audios y lecturas a tu ritmo."},
+        {when: "Semana 2", title: "Estudio de caso", text: "Aplicás la teoría a un cliente real."},
+        {when: "Semana 2", title: "Examen final", text: "20 preguntas, mínimo 80%, 3 oportunidades."},
+        {when: "Al aprobar", title: "Certificado", text: "Se emite solo, con folio verificable."},
       ],
     },
     catalog: {
