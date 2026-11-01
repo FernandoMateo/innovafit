@@ -4,753 +4,508 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Campus InnovaFit · Cursos y certificación para entrenadores personales</title>
-<meta name="description" content="El campus digital de InnovaFit para entrenadores personales: cursos gratis y certificaciones, examen que valida lo que sabés y certificado al instante cuando aprobás con 80%.">
-<meta name="theme-color" content="#0c0b0e">
+<meta name="description" content="El campus digital de InnovaFit para entrenadores personales: cursos gratis y certificaciones, examen que valida lo que sabés y certificado al instante al aprobar con 80%.">
+<meta name="theme-color" content="#0b0b0c">
 <link rel="icon" href="/assets/innovafit-logo.png">
-<meta property="og:title" content="Campus InnovaFit · El campus que te certifica">
+<meta property="og:title" content="Campus InnovaFit · Aprendé. Rendí. Certificate.">
 <meta property="og:description" content="Cursos para entrenadores personales con examen real y certificado al instante.">
-<meta property="og:image" content="/assets/covers/fundamentos-de-biomecanica.webp">
+<meta property="og:image" content="/assets/campus/atleta-innovafit.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/cert.css">
 <script>document.documentElement.classList.add("js")</script>
 <style>
   :root{
-    --ground:#0c0b0e; --ground-2:#17151a; --ground-3:#222026;
-    --ink:#f1f0ed; --soft:#c4c1bb;
-    --orange:#ff5a1f; --yellow:#ffc93c; --on-accent:#160900;
-    --display:"Anton",Impact,"Arial Narrow",sans-serif;
-    --text:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
-    --m:clamp(16px,3vw,40px);
-    --s-xl:clamp(52px,7vw,124px); --s-h2:clamp(40px,4.6vw,78px); --s-st:clamp(24px,2.4vw,36px); --s-body:18px; --s-small:16px;
-    --gap:clamp(120px,14vw,220px);
+    --ink:#0b0b0c; --ink-2:#141416; --ink-3:#1c1c1e; --line:rgba(255,255,255,.1);
+    --white:#fff; --cream:#fff3e8; --muted:#9a978f;
+    --red:#ff4d1f; --orange:#ff8a00; --yellow:#ffc93c;
+    --grad:linear-gradient(90deg,#ff4d1f 0%,#ff8a00 55%,#ffc93c 100%);
+    --display:"Anton",Impact,sans-serif; --body:"Manrope",system-ui,sans-serif; --mono:"Space Mono",ui-monospace,monospace;
+    --w:min(1320px,calc(100% - 32px));
     --ease:cubic-bezier(.2,.9,.25,1);
   }
   *{box-sizing:border-box;margin:0}
   html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-  body{background:var(--ground);color:var(--ink);font-family:var(--text);font-size:var(--s-body);line-height:1.55;overflow-x:hidden}
+  body{font-family:var(--body);color:var(--white);line-height:1.55;overflow-x:hidden;
+    background:linear-gradient(175deg,#c93a0c 0%,#ef5a12 14%,#ff7a12 40%,#ff8a00 62%,#f39a2c 84%,#e8892a 100%);background-color:#ef5a12}
   img{display:block;max-width:100%}
-  a{color:inherit}
+  a{color:inherit;text-decoration:none}
   button,input{font:inherit;color:inherit}
   :focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
-  ::selection{background:var(--orange);color:var(--on-accent)}
-  h1,h2,h3{font-family:var(--display);font-weight:400;line-height:.98;letter-spacing:-.01em;text-transform:uppercase}
-  .wrap{padding-inline:var(--m)}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:54px;padding:0 28px;border-radius:999px;border:0;cursor:pointer;
-    background:var(--orange);color:var(--on-accent);font-weight:800;font-size:17px;text-decoration:none;transition:transform .2s var(--ease),background .2s}
-  .btn:hover{background:var(--yellow);transform:translateY(-2px)}
-  .btn:active{transform:translateY(1px) scale(.98)}
-  .btn.dark{background:var(--ground);color:var(--ink)}
-  .btn.dark:hover{background:var(--ground-3)}
-  .tlink{font-weight:700;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;transition:color .2s}
-  .tlink:hover{color:var(--yellow)}
+  ::selection{background:var(--ink);color:var(--yellow)}
+  .disp{font-family:var(--display);font-weight:400;text-transform:uppercase;line-height:.92;letter-spacing:.005em}
+  .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.04em}
+  .label{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;display:inline-flex;align-items:center;gap:12px}
+  .label::before{content:"";width:28px;height:2px;background:currentColor}
+  .btn{display:inline-flex;align-items:center;gap:12px;min-height:52px;padding:0 26px;border-radius:999px;border:0;cursor:pointer;
+    font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;transition:transform .25s var(--ease),box-shadow .25s,background .25s,color .25s}
+  .btn svg{width:16px;height:16px;transition:transform .25s var(--ease)}
+  .btn:hover svg{transform:translateX(4px)}
+  .btn-grad{background:var(--grad);color:var(--ink);box-shadow:0 10px 30px -10px rgba(255,90,20,.8)}
+  .btn-grad:hover{transform:translateY(-2px);box-shadow:0 16px 40px -12px rgba(255,120,20,.95)}
+  .btn-line{border:1.5px solid rgba(255,255,255,.7);color:#fff;background:transparent}
+  .btn-line:hover{background:#fff;color:var(--ink)}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-dark:hover{background:#fff;color:var(--ink);transform:translateY(-2px)}
 
-  /* ---------- Entrada escalonada (si no hay script, todo queda visible) ---------- */
-  .js [data-reveal]>*{opacity:0;transform:translateY(24px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
-  .js [data-reveal].is-in>*{opacity:1;transform:none}
-  .js [data-reveal].is-in>*:nth-child(2){transition-delay:.08s}
-  .js [data-reveal].is-in>*:nth-child(3){transition-delay:.16s}
-  .js [data-reveal].is-in>*:nth-child(4){transition-delay:.24s}
-  .js [data-reveal].is-in>*:nth-child(n+5){transition-delay:.3s}
+  /* Entradas al hacer scroll (sin script queda todo visible) */
+  .js [data-in]{opacity:0;transform:translateY(34px);transition:opacity .8s var(--ease),transform .8s var(--ease);transition-delay:var(--d,0s)}
+  .js [data-in].on{opacity:1;transform:none}
 
-  /* ---------- Navegación ---------- */
-  .nav{position:absolute;inset:0 0 auto;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:26px var(--m)}
-  .nav img{height:30px;width:auto}
-  .nav ul{display:flex;align-items:center;gap:30px;list-style:none;padding:0;font-size:15px;font-weight:700}
-  .nav ul a{text-decoration:none;transition:color .2s}
-  .nav ul a:hover{color:var(--yellow)}
-  .nav .btn{min-height:44px;padding:0 22px;font-size:15px}
-  @media (max-width:900px){.nav ul li:not(:last-child){display:none}}
+  /* ---------- HERO: la pantalla negra ---------- */
+  .screen{position:relative;width:var(--w);margin:20px auto 0;border-radius:34px;background:var(--ink);overflow:hidden;
+    box-shadow:0 50px 120px -40px rgba(60,10,0,.75),0 0 0 1px rgba(255,255,255,.04)}
+  .screen::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(700px 500px at 18% 0%,rgba(255,110,20,.13),transparent 60%),radial-gradient(600px 600px at 100% 100%,rgba(255,140,0,.1),transparent 60%)}
+  .nav{position:relative;z-index:5;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;margin:16px;padding:10px 10px 10px 26px;border-radius:999px;
+    background:rgba(28,28,30,.72);border:1px solid rgba(255,138,0,.22);backdrop-filter:blur(12px)}
+  .nav ul{display:flex;gap:28px;list-style:none;padding:0}
+  .nav ul a,.nav .in{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#d8d6d0;transition:color .2s}
+  .nav ul a:hover,.nav .in:hover{color:var(--yellow)}
+  .nav .logo img{height:26px;width:auto}
+  .nav .right{display:flex;justify-content:flex-end;align-items:center;gap:20px}
+  .nav .btn{min-height:44px;padding:0 22px;font-size:12px}
+  @media (max-width:980px){.nav{grid-template-columns:auto 1fr;padding-left:18px}.nav ul,.nav .in{display:none}.nav .logo{order:-1}}
 
-  /* ---------- Hero: el anillo del 80% como escenario ---------- */
-  .hero{position:relative;min-height:max(100svh,760px);overflow:hidden}
-  .hero-copy{position:relative;z-index:3;padding:150px var(--m) 60px;width:min(46vw,720px)}
-  .hero h1{font-size:var(--s-xl)}
-  .hero-sub{font-size:20px;max-width:40ch;margin:36px 0 34px;color:var(--ink)}
-  .hero-act{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
-  .stage{position:absolute;z-index:1;width:125vh;height:125vh;min-width:900px;min-height:900px;left:44vw;top:12vh;border-radius:50%;background:var(--orange);
-    clip-path:circle(0% at 30% 40%);animation:shutter 1.15s .15s var(--ease) forwards}
-  @keyframes shutter{to{clip-path:circle(75% at 30% 40%)}}
-  .disc{position:absolute;width:56%;aspect-ratio:1;left:12%;top:9%;border-radius:50%;overflow:hidden;background:var(--ground)}
-  .disc img{width:100%;height:100%;object-fit:cover;animation:spin 48s linear infinite;transform:scale(1.12)}
-  @keyframes spin{to{transform:scale(1.12) rotate(360deg)}}
-  .disc{border:18px solid var(--orange)}
-  /* Fragmento real del examen */
-  .exam{position:absolute;z-index:2;left:calc(44vw - 40px);top:calc(12vh + 58vh);width:min(560px,52vw);background:var(--ground);color:var(--ink);border-radius:28px;padding:26px 26px 22px;
-    opacity:0;transform:translateY(40px);animation:up .9s .9s var(--ease) forwards}
-  @keyframes up{to{opacity:1;transform:none}}
-  .exam-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:700;color:var(--soft);margin-bottom:10px}
-  .exam-bar{height:8px;border-radius:9px;background:var(--ground-3);overflow:hidden;margin-bottom:18px}
-  .exam-bar i{display:block;height:100%;width:5%;background:var(--orange);border-radius:9px;transition:width .6s var(--ease)}
-  .exam h2{font-family:var(--text);text-transform:none;font-size:19px;font-weight:800;line-height:1.35;letter-spacing:0;margin-bottom:14px}
-  .opt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px;margin-top:8px;border-radius:16px;border:0;background:var(--ground-2);cursor:pointer;font-size:16px;font-weight:600;transition:background .2s,transform .2s var(--ease)}
-  .opt:hover:not(:disabled){background:var(--ground-3);transform:translateX(4px)}
-  .opt b{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--ground-3);font-size:13px}
-  .opt.ok{background:#1f3a2c}.opt.ok b{background:#34d399;color:#03140b}
-  .opt.no{background:#3d1d1a}.opt.no b{background:#f87171;color:#1a0505}
-  .opt:disabled{cursor:default}
-  .exam-msg{min-height:24px;margin-top:14px;font-size:15px;font-weight:600}
-  .exam-msg a{color:var(--yellow)}
-  @media (max-width:900px){
-    .hero{min-height:0;padding-bottom:0}
-    .hero-copy{width:auto;padding-top:120px}
-    .hero h1{font-size:clamp(46px,12vw,84px)}
-    .hero-sub{font-size:17px;margin:24px 0 26px}
-    .hero-mob{position:relative;height:640px;margin-top:40px;overflow:hidden}
-    .stage{left:-10vw;top:0;width:150vw;height:150vw;min-width:0;min-height:0}
-    .exam{left:var(--m);right:var(--m);width:auto;top:300px}
-  }
-  @media (min-width:901px){.hero-mob{position:static}}
-
-  /* ---------- Intro: frase con miniaturas redondas ---------- */
-  .intro{padding:var(--gap) var(--m);display:grid;place-items:center}
-  .intro p{font-size:var(--s-st);font-weight:700;line-height:1.3;max-width:36ch;text-align:center}
-  .th{display:inline-block;height:.95em;width:.95em;vertical-align:-.14em;margin:0 .14em;border-radius:50%;overflow:hidden;background:var(--ground-3)}
-  .th img{width:100%;height:100%;object-fit:cover}
-  @media (max-width:640px){.intro{padding-block:96px;place-items:start}.intro p{text-align:left;font-size:24px}}
-
-  /* ---------- Cómo funciona: arrastrá las etapas ---------- */
-  .how{display:grid;grid-template-columns:1fr 1fr;min-height:88svh;position:relative}
-  .how-l{background:var(--ground-2);padding:clamp(40px,5vw,80px) var(--m) 150px}
-  .how-l h2{font-size:var(--s-h2);max-width:12ch;transition:opacity .2s}
-  .how-l p{font-size:var(--s-body);max-width:38ch;margin-top:28px;transition:opacity .2s}
-  .how-r{background:var(--orange);display:grid;place-items:center;padding:60px var(--m) 150px;overflow:hidden}
-  .frag{width:min(460px,100%);background:var(--ground);border-radius:28px;padding:24px;color:var(--ink);transition:opacity .2s,transform .3s var(--ease)}
-  .frag[hidden]{display:none}
-  .frag h3{font-family:var(--text);text-transform:none;font-size:20px;font-weight:800;letter-spacing:0;line-height:1.3;margin-bottom:14px}
-  .ff{display:block;margin-top:10px}
-  .ff span{display:block;font-size:14px;font-weight:700;color:var(--soft);margin-bottom:6px}
-  .ff i{display:block;height:46px;border-radius:14px;background:var(--ground-2);font-style:normal;padding:12px 14px;font-size:15px}
-  .frag .btn{width:100%;margin-top:16px;min-height:48px;pointer-events:none}
-  .lrow{display:flex;gap:12px;align-items:center;padding:11px 12px;border-radius:14px;background:var(--ground-2);margin-top:8px;font-size:15px;font-weight:600}
-  .lrow b{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--ground-3);font-size:13px}
-  .lrow.done b{background:#34d399;color:#03140b}
-  .lrow.now{background:var(--ground-3)}
-  .ringbox{display:flex;gap:22px;align-items:center}
-  .ring{position:relative;width:150px;height:150px;flex:none}
-  .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-  .ring circle{fill:none;stroke-width:13}
-  .ring .t{stroke:var(--ground-3)}.ring .f{stroke:#34d399;stroke-linecap:round;transition:stroke-dashoffset 1s var(--ease)}
-  .ring strong{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:400;font-size:46px}
-  .ringbox p{font-size:16px}
-  .stamp{display:inline-block;margin-bottom:8px;padding:4px 12px;border-radius:999px;background:#34d399;color:#03140b;font-weight:800;font-size:14px}
-  .certfrag{width:min(560px,100%);padding:16px}
-  .certfrag label{display:block;font-size:14px;font-weight:700;color:var(--soft);margin:14px 4px 6px}
-  .certfrag input{width:100%;height:50px;border-radius:999px;border:0;background:var(--ground-2);padding:0 20px;font-size:17px;font-weight:700}
-  .slider{position:absolute;left:var(--m);right:var(--m);bottom:36px;z-index:2}
-  .slider input{width:100%;-webkit-appearance:none;appearance:none;height:8px;border-radius:9px;background:rgba(243,239,233,.28);cursor:pointer}
-  .slider input::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;border-radius:50%;background:var(--yellow);border:6px solid var(--ground);transition:transform .2s}
-  .slider input::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--yellow);border:6px solid var(--ground)}
-  .slider input:active::-webkit-slider-thumb{transform:scale(1.15)}
-  .stops{display:grid;grid-template-columns:repeat(4,1fr);margin-top:14px;font-size:16px;font-weight:700}
-  .stops button{border:0;background:none;text-align:left;cursor:pointer;color:rgba(255,246,235,.55);padding:4px 0;transition:color .2s}
-  .stops button:nth-child(2){text-align:center;padding-right:12%}.stops button:nth-child(3){text-align:center;padding-left:12%}.stops button:nth-child(4){text-align:right}
-  .stops button.on{color:var(--ink)}
-  @media (max-width:900px){
-    .how{grid-template-columns:1fr}
-    .how-r{order:-1;min-height:auto;padding:40px 16px 110px}
-    .how-l{padding:40px var(--m) 60px}
-    .how-l h2{font-size:clamp(40px,11vw,64px)}
-    .slider{position:absolute;top:auto;bottom:auto}
-    .how .slider{position:relative;left:auto;right:auto;bottom:auto;margin:-86px var(--m) 0;grid-row:2}
-    .stops{grid-template-columns:1fr 1fr;gap:4px}
-    .stops button:nth-child(n){text-align:left;padding:4px 0}
+  .hero{position:relative;z-index:2;display:grid;grid-template-columns:1.05fr 1fr;gap:22px;padding:30px 16px 16px 56px;min-height:min(78vh,760px)}
+  .hero-l{display:flex;flex-direction:column;justify-content:center;padding:20px 0 40px}
+  .hero-l .label{color:var(--orange)}
+  .hero h1{font-size:clamp(64px,8.4vw,138px);margin:22px 0 26px}
+  .hero h1 span{display:block}
+  .hero-sub{font-size:18px;color:#d8d6d0;max-width:46ch}
+  .hero-act{display:flex;gap:14px;flex-wrap:wrap;margin-top:32px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:44px;max-width:560px}
+  .stat{padding:16px 16px 14px;border-radius:18px;background:var(--ink-2);border:1px solid var(--line);transition:transform .3s var(--ease),border-color .3s}
+  .stat:hover{transform:translateY(-4px);border-color:rgba(255,138,0,.45)}
+  .stat b{display:block;font-family:var(--display);font-weight:400;font-size:34px;line-height:1}
+  .stat span{display:block;margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.4}
+  .stage{position:relative;border-radius:26px;overflow:hidden;background:linear-gradient(160deg,#ff4d1f 0%,#ff7a12 55%,#ff9a1a 100%);min-height:520px}
+  .stage::before{content:"";position:absolute;width:120%;aspect-ratio:1;left:10%;top:18%;border-radius:50%;border:1.5px solid rgba(255,255,255,.28)}
+  .stage::after{content:"";position:absolute;width:80%;aspect-ratio:1;left:30%;top:34%;border-radius:50%;background:radial-gradient(circle,rgba(255,220,150,.55),transparent 62%)}
+  .stage-word{position:absolute;left:28px;top:20px;z-index:1;font-family:var(--display);font-size:clamp(90px,11vw,180px);line-height:.85;color:rgba(255,255,255,.14);text-transform:uppercase}
+  .stage .athlete{position:absolute;z-index:2;right:4%;bottom:0;height:96%;width:auto;max-width:none;filter:drop-shadow(0 30px 40px rgba(80,15,0,.45));
+    animation:enter 1.2s .2s var(--ease) both}
+  @keyframes enter{from{opacity:0;transform:translateX(60px) scale(.96)}}
+  .float-card{position:absolute;z-index:3;right:20px;top:20px;width:230px;padding:14px 16px;border-radius:18px;background:rgba(11,11,12,.86);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);
+    animation:bob 5s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(-8px)}}
+  .float-card small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow)}
+  .float-card b{display:block;font-size:15px;margin-top:6px;line-height:1.3}
+  .float-card .seal{display:flex;align-items:center;gap:10px;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .float-card .seal i{width:26px;height:26px;border-radius:50%;background:#34d399;display:grid;place-items:center;color:#04130c;font-style:normal;font-weight:800}
+  .stage-txt{position:absolute;z-index:3;left:24px;bottom:24px;max-width:220px;font-size:13.5px;font-weight:600;line-height:1.45;color:#fff}
+  .go{position:absolute;z-index:3;right:20px;bottom:20px;width:64px;height:64px;border-radius:50%;background:#fff;color:var(--ink);display:grid;place-items:center;transition:transform .35s var(--ease)}
+  .go:hover{transform:rotate(-45deg) scale(1.08)}
+  .go svg{width:24px;height:24px}
+  @media (max-width:980px){
+    .hero{grid-template-columns:1fr;padding:10px 16px 16px}
+    .hero-l{padding:20px 6px 10px}
+    .hero h1{font-size:clamp(56px,17vw,96px)}
+    .stats{grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .stat b{font-size:26px}.stat span{font-size:11.5px}
+    .stage{min-height:460px}
+    .float-card{width:190px;right:12px;top:12px}
   }
 
-  /* ---------- Vitrina: el corte de 80, a tamaño póster ---------- */
-  .show{position:relative;min-height:92svh;overflow:hidden;background:var(--orange);color:var(--on-accent);padding:clamp(48px,6vw,90px) var(--m);transition:background .35s}
-  .show.pass{background:var(--yellow)}
-  .show h2{font-size:var(--s-h2);max-width:12ch;position:relative;z-index:2}
-  .show-copy{position:relative;z-index:2;max-width:44ch;margin-top:24px;font-size:var(--s-body);font-weight:600}
-  .show-copy a{font-weight:800}
-  .dial{position:absolute;right:-6vw;bottom:7vh;width:min(1000px,70vw);font-size:clamp(10px,1.25vw,21px)}
-  .dial-val{font-family:var(--display);font-size:15em;line-height:.8;letter-spacing:-.02em}
-  .dial input{width:100%;-webkit-appearance:none;appearance:none;height:1.6em;border-radius:2em;background:var(--on-accent);margin-top:.6em;cursor:pointer}
-  .dial input::-webkit-slider-thumb{-webkit-appearance:none;width:4.4em;height:4.4em;border-radius:50%;background:var(--ink);border:.8em solid var(--on-accent);transition:transform .2s}
-  .dial input::-moz-range-thumb{width:2.8em;height:2.8em;border-radius:50%;background:var(--ink);border:.8em solid var(--on-accent)}
-  .dial input:hover::-webkit-slider-thumb{transform:scale(1.08)}
-  .dial label{display:block;font-weight:800;font-size:1.3em;margin-bottom:.4em}
-  .cut{position:absolute;left:66.6%;top:calc(100% - 3.4em);height:3.4em;width:.3em;background:var(--on-accent);border-radius:1em;pointer-events:none}
-  @media (max-width:900px){
-    .show{min-height:86svh}
-    .show h2{font-size:clamp(34px,9vw,52px)}
-    .dial{left:var(--m);right:auto;bottom:5vh;width:125vw;font-size:2.7vw}
+  /* ---------- Encabezado de sección (estilo referencia) ---------- */
+  .sec{width:var(--w);margin:0 auto;padding-top:clamp(100px,12vw,170px)}
+  .sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;padding-bottom:18px;border-bottom:1.5px solid rgba(255,255,255,.35);margin-bottom:46px}
+  .sec-head p{max-width:30ch;font-size:15px;font-weight:600;color:rgba(255,255,255,.9)}
+  .sec-head h2{font-size:clamp(46px,6.4vw,104px);text-align:right}
+  @media (max-width:760px){.sec-head{flex-direction:column-reverse;align-items:flex-start;gap:12px}.sec-head h2{text-align:left}}
+
+  /* ---------- CÓMO FUNCIONA: el arco ---------- */
+  .arc{position:relative;max-width:1100px;margin:0 auto;aspect-ratio:1000/600}
+  .arc svg.line{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .arc .path{fill:none;stroke:rgba(255,255,255,.75);stroke-width:2;stroke-dasharray:1400;stroke-dashoffset:1400;transition:stroke-dashoffset 2.2s var(--ease)}
+  .arc.on .path{stroke-dashoffset:0}
+  .orb{position:absolute;left:50%;top:41%;width:38%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(circle at 50% 35%,#ffb347 0%,#ff7a12 45%,#e5520c 100%);box-shadow:inset 0 -30px 60px rgba(160,40,0,.35),0 40px 80px -30px rgba(120,25,0,.6)}
+  .orb img{position:absolute;left:50%;bottom:0;height:128%;width:auto;max-width:none;transform:translateX(-50%);filter:drop-shadow(0 20px 30px rgba(80,15,0,.5))}
+  .step{position:absolute;width:210px;opacity:0;transform:scale(.85);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+  .arc.on .step{opacity:1;transform:none}
+  .step i{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 6px rgba(255,255,255,.25)}
+  .step b{display:block;font-size:17px;font-weight:800;line-height:1.25}
+  .step span{display:block;font-size:13.5px;line-height:1.45;color:rgba(255,255,255,.88);margin-top:4px}
+  .step em{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--ink);font-weight:700}
+  .steps-list{display:none}
+  @media (max-width:860px){
+    .arc{display:none}
+    .steps-list{display:grid;gap:0;list-style:none;padding:0 0 0 28px;position:relative}
+    .steps-list::before{content:"";position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:rgba(255,255,255,.6)}
+    .steps-list li{position:relative;padding:0 0 26px}
+    .steps-list li::before{content:"";position:absolute;left:-28px;top:5px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.25)}
+    .steps-list b{display:block;font-size:18px;font-weight:800}.steps-list span{font-size:15px;color:rgba(255,255,255,.9)}
+    .steps-orb{position:relative;width:min(340px,80vw);aspect-ratio:1;margin:30px auto 40px}
+    .steps-orb .orb{left:50%;top:50%;width:100%}
   }
+  @media (min-width:861px){.steps-orb{display:none}}
 
-  /* ---------- Banda: el salto, en loop ---------- */
-  .band{margin:var(--gap) var(--m) 0;border-radius:999px;overflow:hidden;background:var(--ground-2);aspect-ratio:1060/300;max-height:360px;position:relative}
-  .band video{display:block;width:100%;height:100%;object-fit:cover;object-position:center 62%;filter:invert(1) sepia(.35) saturate(1.4);mix-blend-mode:screen}
-  .band-cap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:14px var(--m) 0;font-size:var(--s-small);color:var(--soft)}
-  @media (max-width:640px){.band{aspect-ratio:16/9;border-radius:40px}}
+  /* ---------- RECURSOS: atleta + tarjetas translúcidas ---------- */
+  .res{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;position:relative}
+  .res-athlete{grid-column:1/-1;height:clamp(280px,32vw,460px);position:relative}
+  .res-athlete img{position:absolute;left:4%;bottom:-40px;height:118%;width:auto;max-width:none;filter:drop-shadow(0 30px 40px rgba(90,20,0,.45));z-index:0}
+  .res-athlete p{position:absolute;right:0;top:28%;max-width:600px;font-size:clamp(22px,2.6vw,38px);font-weight:800;line-height:1.25}
+  .card{position:relative;z-index:1;padding:22px 20px 24px;border-radius:22px;min-height:250px;display:flex;flex-direction:column;
+    background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(14px);transition:transform .35s var(--ease),background .35s}
+  .card:hover{transform:translateY(-8px);background:rgba(11,11,12,.88)}
+  .card .q{font-family:var(--display);font-size:56px;line-height:.85;color:var(--ink);transition:color .3s;margin-bottom:22px}
+  .card:hover .q{color:var(--orange)}
+  .card b{display:block;margin-top:auto;font-size:18px;font-weight:800;line-height:1.25}
+  .card span{display:block;margin-top:8px;font-size:14px;line-height:1.5;color:rgba(255,255,255,.9)}
+  @media (max-width:980px){.res{grid-template-columns:1fr 1fr}.res-athlete p{position:static;font-size:20px;margin-top:10px}.res-athlete{height:auto}.res-athlete img{position:relative;left:0;bottom:0;height:300px;margin:0 auto -40px}.card{min-height:200px}}
 
-  /* ---------- Catálogo: menú en dos columnas con viñetas redondas ---------- */
-  .cat{padding:var(--gap) var(--m) 0}
-  .cat-head{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:end}.cat h2#catTitle{font-size:var(--s-h2);max-width:14ch}@media (max-width:800px){.cat-head{grid-template-columns:1fr;gap:0}}
-  .cat-lead{font-size:20px;max-width:46ch;margin-top:24px}
-  .group{margin-top:96px}
-  .group-h{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:40px}
-  .group-h h3{font-size:clamp(32px,3.4vw,52px)}
-  .group-h span{font-size:16px;color:var(--soft);font-weight:700}
-  .items{display:grid;grid-template-columns:1fr 1fr;column-gap:64px;row-gap:36px;list-style:none;padding:0}
-  .item{display:grid;grid-template-columns:72px 1fr;gap:20px;align-items:start}
-  .item img{width:72px;height:72px;border-radius:50%;object-fit:cover;object-position:68% 50%;transition:transform .4s var(--ease)}
-  .item:hover img{transform:scale(1.08) rotate(-6deg)}
-  .item-top{display:flex;justify-content:space-between;gap:14px;align-items:baseline}
-  .item-top b{font-size:18px;line-height:1.3}
-  .item-top em{font-style:normal;font-weight:800;font-size:16px;white-space:nowrap}
-  .item p{font-size:var(--s-small);color:var(--soft);margin-top:6px;max-width:44ch}
-  .item small{display:block;margin-top:6px;color:var(--yellow);font-size:var(--s-small);font-weight:700}
-  .free{display:grid;grid-template-columns:5fr 7fr;gap:clamp(32px,5vw,80px);align-items:center}
-  .free .group-h{margin-bottom:28px}
-  .free .item-top b{font-size:24px}.free .item-top em{font-size:24px;color:var(--orange)}
-  .free p{font-size:var(--s-body);margin:12px 0 10px;max-width:46ch}
-  .free small{display:block;color:var(--yellow);font-weight:700;font-size:var(--s-small);margin-bottom:26px}
-  .free-cover{display:block;border-radius:999px 999px 999px 0;overflow:hidden;aspect-ratio:16/9}
-  .free-cover img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease)}
-  .free-cover:hover img{transform:scale(1.05)}
-  @media (max-width:800px){.free{grid-template-columns:1fr}.free-cover{order:-1;border-radius:120px 120px 120px 0}}
-  @media (max-width:800px){.items{grid-template-columns:1fr}.item{grid-template-columns:56px 1fr}.item img{width:56px;height:56px}.group-h h3{font-size:9vw}}
+  /* ---------- CATÁLOGO: círculo, etiquetas y tarjetas ---------- */
+  .cat-top{display:grid;grid-template-columns:auto 1fr;gap:40px;align-items:center;margin-bottom:40px}
+  .count{width:200px;aspect-ratio:1;border-radius:50%;border:1.5px solid rgba(255,255,255,.7);display:grid;place-content:center;text-align:center;padding:20px}
+  .count b{font-family:var(--display);font-weight:400;font-size:64px;line-height:1}
+  .count span{font-size:13px;font-weight:600;line-height:1.35;margin-top:6px}
+  .tags{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:820px;margin:0 auto}
+  .tags span{padding:7px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.65);font-size:13px;font-weight:600;transition:background .2s,color .2s}
+  .tags span:hover{background:#fff;color:var(--ink)}
+  .rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.5) transparent}
+  .prog{scroll-snap-align:start;display:flex;flex-direction:column}
+  .rail-nav{display:flex;justify-content:flex-end;gap:10px;margin-bottom:14px}
+  .rail-nav button{width:52px;height:52px;border-radius:50%;border:1.5px solid rgba(255,255,255,.75);background:transparent;cursor:pointer;display:grid;place-items:center;transition:background .2s,color .2s,transform .2s}
+  .rail-nav button:hover{background:#fff;color:var(--ink);transform:scale(1.06)}
+  .rail-nav svg{width:20px;height:20px}
+  .prog-card{position:relative;aspect-ratio:3/4;border-radius:22px;overflow:hidden;background:var(--ink);transition:transform .4s var(--ease)}
+  .prog-card::before{content:"";position:absolute;left:50%;bottom:-10%;width:110%;aspect-ratio:1;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,120,20,.75),rgba(255,77,31,.15) 55%,transparent 70%);transition:transform .5s var(--ease)}
+  .prog:hover .prog-card{transform:translateY(-8px)}
+  .prog:hover .prog-card::before{transform:translateX(-50%) scale(1.15)}
+  .prog-card img{position:absolute;left:50%;bottom:0;height:72%;width:auto;max-width:none;transform:translateX(-50%);transition:transform .5s var(--ease)}
+  .prog:hover .prog-card img{transform:translateX(-50%) scale(1.05)}
+  .prog-card .top{position:absolute;z-index:2;left:14px;right:14px;top:14px}
+  .prog-card .top b{display:block;font-size:15px;font-weight:800;line-height:1.25}
+  .prog-card .top small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow);margin-top:4px}
+  .prog-card .tag{position:absolute;z-index:2;left:12px;bottom:12px;padding:6px 12px;border-radius:999px;background:#fff;color:var(--ink);font-size:12px;font-weight:800}
+  .prog-card .tag.free{background:var(--grad)}
+  .prog ul{list-style:none;padding:14px 4px 0;display:grid;gap:8px;font-size:13.5px;line-height:1.45}
+  .prog li{position:relative;padding-left:16px}
+  .prog li::before{content:"";position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%;background:#fff}
+  .prog li.note{font-weight:800}
+  .prog .btn{margin-top:auto;min-height:44px;font-size:11.5px;justify-content:center}
+  .prog ul{margin-bottom:14px}
+  @media (max-width:760px){.cat-top{grid-template-columns:1fr;justify-items:center;gap:24px}.count{width:160px}.count b{font-size:50px}.rail{grid-auto-columns:72%}}
 
-  /* ---------- Recursos: tablero de primeros planos ---------- */
-  .board{padding:var(--gap) var(--m) 0}
-  .tiles{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:104px;gap:8px}
-  .tile{position:relative;overflow:hidden;border-radius:28px;background:var(--ground-2);padding:20px}
-  .tile .cap{position:absolute;left:22px;bottom:20px;right:22px;z-index:2}
-  .tile .cap b{display:block;font-size:18px;font-weight:800}
-  .tile .cap span{font-size:var(--s-small);color:inherit;opacity:.85}
-  .t64{grid-column:span 6;grid-row:span 4}.t62{grid-column:span 6;grid-row:span 2}.t34{grid-column:span 3;grid-row:span 4}.t32{grid-column:span 3;grid-row:span 2}
-  .tile.or{background:var(--orange);color:var(--on-accent)}.tile.ye{background:var(--yellow);color:var(--on-accent)}.tile.g3{background:var(--ground-3)}
-  .tile.head h2{font-size:clamp(36px,4vw,64px);max-width:11ch}
-  .big{position:absolute;font-size:var(--z,48px);line-height:1;transition:transform .5s var(--ease)}
-  .tile:hover .big{transform:translate(-8px,-6px) rotate(-2deg)}
-  .keys{display:flex;flex-wrap:wrap;gap:.2em;right:-.6em;top:.3em;width:7.5em;justify-content:flex-end}
-  .keys i{font-style:normal;display:grid;place-items:center;height:1.5em;padding:0 .7em;border-radius:1em;background:var(--ground);color:var(--ink);font-family:var(--display);font-size:.9em;text-transform:uppercase}
-  .keys i:nth-child(2){background:var(--on-accent);color:var(--yellow)}
-  .tries{display:flex;gap:.18em;right:-.5em;top:.3em}
-  .tries i{width:1em;height:1em;border-radius:50%;background:var(--on-accent)}
-  .tries i:first-child{background:transparent;border:.14em solid var(--on-accent)}
-  .folio{right:-.25em;top:.35em;font-family:var(--display);letter-spacing:-.01em}
-  .bubble{right:-2.5em;top:.6em;background:var(--ground);color:var(--ink);padding:.7em 1em;border-radius:1.2em 1.2em .2em 1.2em;font-weight:700;font-size:clamp(16px,1.35vw,21px);width:21em;line-height:1.35}
-  .bubble i{font-style:normal;display:block;opacity:.6;font-size:.7em;margin-top:.3em}
-  .opt-big{left:22px;right:-30%;top:22px;font-size:var(--z,34px)}
-  .opt-big .opt{font-size:.6em;padding:.5em .6em;background:var(--ground-2);color:var(--ink);border-radius:.6em}
-  .opt-big .opt b{width:1.5em;height:1.5em;font-size:.8em}
-  .ini{right:-.2em;top:-.1em;width:2.6em;height:2.6em;border-radius:50%;background:var(--orange);color:var(--on-accent);display:grid;place-items:center;font-weight:800;font-size:var(--z,56px)}
-  .ini::before{content:"ML";font-size:.75em}
-  .mini-ring{right:-1.4em;top:-.9em;width:4.6em;height:4.6em}
-  .board-img{position:absolute;inset:0 0 auto;width:100%;height:58%;object-fit:cover;object-position:50% 12%;filter:grayscale(1) contrast(1.15);mix-blend-mode:multiply}
-  @media (max-width:900px){
-    .tiles{grid-template-columns:1fr 1fr;grid-auto-rows:clamp(120px,26vw,190px);gap:6px}
-    .tile.head{grid-column:span 2;grid-row:span 1}
-    .t64,.t62{grid-column:span 2;grid-row:span 2}
-    .t34,.t32{grid-column:span 1;grid-row:span 2}
-    .tile.head.t62{grid-row:span 1}.tile.head h2{font-size:clamp(34px,8vw,60px)}
-    .tile .cap b{font-size:16px}.tile .cap span{font-size:14px}
-  }
-  @media (max-width:640px){
-    .tiles{grid-auto-rows:118px}
-    .tiles .big{zoom:.55}
-    .t34,.t32{grid-row:span 2}
-    .tile .cap{left:16px;right:14px;bottom:14px}
-    .tile .cap span{display:none}
-    .board-img{height:52%}
-  }
+  /* ---------- CERTIFICADO EN VIVO ---------- */
+  .certsec{display:grid;grid-template-columns:.8fr 1.2fr;gap:40px;align-items:center;padding:clamp(28px,4vw,56px)}
+  .certsec .label{color:var(--orange)}
+  .certsec h2{font-size:clamp(44px,5vw,84px);margin:18px 0}
+  .certsec p{color:#d8d6d0;font-size:17px;max-width:42ch}
+  .certsec label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:26px 0 8px}
+  .certsec input{width:100%;max-width:420px;height:56px;border-radius:999px;border:1.5px solid rgba(255,138,0,.4);background:var(--ink-2);padding:0 22px;font-size:18px;font-weight:700;transition:border-color .2s}
+  .certsec input:focus{outline:none;border-color:var(--orange)}
+  .certsec .verify{display:inline-block;margin-top:18px;font-size:14px;color:var(--yellow);font-weight:700;text-decoration:underline;text-underline-offset:4px}
+  @media (max-width:980px){.certsec{grid-template-columns:1fr}}
 
-  /* ---------- Planes: nombres y una cifra viva ---------- */
-  .plans{padding:var(--gap) var(--m) 0;display:grid;grid-template-columns:repeat(12,1fr);gap:0 24px;align-items:start}
-  .plan-names{grid-column:1/7;display:flex;flex-direction:column;align-items:flex-start}
-  .plan-names h2{font-size:clamp(28px,2.6vw,40px);color:var(--orange);margin-bottom:28px}
-  .plan-names button{border:0;background:none;cursor:pointer;font-family:var(--display);font-size:clamp(40px,5vw,86px);line-height:1.1;text-transform:uppercase;color:rgba(255,246,235,.32);display:flex;align-items:center;gap:.25em;padding:0;transition:color .25s,transform .3s var(--ease)}
-  .plan-names button::before{content:"";width:.3em;height:.3em;border-radius:50%;background:var(--orange);opacity:0;transform:scale(.5);transition:transform .3s var(--ease),opacity .3s}
-  .plan-names button.on{color:var(--ink)}
-  .plan-names button.on::before{transform:none;opacity:1}
-  .plan-names button:hover{color:var(--ink)}
-  .plan-stage{grid-column:8/13;position:sticky;top:60px;background:var(--ground-2);border-radius:36px;padding:36px;min-height:420px}
-  .plan-fig{font-family:var(--display);font-size:clamp(80px,9vw,150px);line-height:.9;display:flex;align-items:baseline;gap:14px}
-  .plan-fig span{font-family:var(--text);font-size:18px;font-weight:700;color:var(--soft)}
-  .plan-stage p{font-size:18px;margin:22px 0 28px;min-height:5.6em}
-  .plan-stage .fade{transition:opacity .2s}
-  .plan-stage .fade.out{opacity:0}
-  @media (max-width:900px){.plans{display:block}.plan-names button{font-size:10vw}.plan-stage{position:static;margin-top:24px;padding:26px;min-height:0}.plan-fig{font-size:20vw}}
-
-  /* ---------- Preguntas ---------- */
-  .faq{padding:var(--gap) var(--m) 0;display:grid;grid-template-columns:repeat(12,1fr);gap:24px}
-  .faq-l{grid-column:1/5;position:sticky;top:60px;align-self:start}
-  .faq-l h2{font-size:clamp(40px,4vw,68px)}
-  .faq-l figure{margin-top:32px;width:min(320px,100%);aspect-ratio:1;border-radius:50%;overflow:hidden;background:#e9dfcc}
-  .faq-l figure img{width:100%;height:100%;object-fit:cover;object-position:40% 30%;filter:grayscale(.2) contrast(1.05)}
-  .faq-l figcaption{font-size:var(--s-small);color:var(--soft);margin-top:12px;max-width:30ch}
-  .faq-r{grid-column:5/13}
-  details{background:var(--ground-2);border-radius:28px;margin-bottom:8px;transition:background .25s}
-  details[open]{background:var(--orange);color:var(--on-accent)}
-  summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:76px;padding:18px 26px;cursor:pointer;font-size:20px;font-weight:700}
+  /* ---------- PREGUNTAS ---------- */
+  .faq{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-items:start}
+  details{border-radius:20px;background:var(--ink);border:1px solid rgba(255,255,255,.06);transition:border-color .3s}
+  details[open]{border-color:rgba(255,138,0,.55)}
+  summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 22px;font-size:17px;font-weight:700}
   summary::-webkit-details-marker{display:none}
-  .pm{position:relative;flex:none;width:18px;height:18px}
-  .pm::before,.pm::after{content:"";position:absolute;left:0;top:7.5px;width:18px;height:3px;border-radius:2px;background:currentColor;transition:transform .3s var(--ease)}
-  .pm::after{transform:rotate(90deg)}
-  details[open] .pm::after{transform:rotate(0)}
-  details p{padding:0 26px 24px;font-size:17px;max-width:58ch}
-  @media (max-width:900px){.faq{display:block}.faq-l{position:static;margin-bottom:24px}.faq-l h2{font-size:9vw}.faq-l figure{width:200px}summary{font-size:18px;padding:16px 20px}details p{font-size:16px;padding:0 20px 20px}}
+  summary i{flex:none;width:30px;height:30px;border-radius:50%;background:var(--grad);position:relative;transition:transform .35s var(--ease)}
+  summary i::before,summary i::after{content:"";position:absolute;left:9px;top:14px;width:12px;height:2px;background:var(--ink);border-radius:2px}
+  summary i::after{transform:rotate(90deg)}
+  details[open] summary i{transform:rotate(135deg)}
+  details p{padding:0 22px 22px;color:#d8d6d0;font-size:15.5px}
+  @media (max-width:860px){.faq{grid-template-columns:1fr}}
 
-  /* ---------- Llamado: una palabra es el botón ---------- */
-  .cta{display:block;position:relative;margin-top:var(--gap);min-height:60svh;background:var(--orange);color:var(--on-accent);text-decoration:none;border-radius:clamp(60px,12vw,220px) clamp(60px,12vw,220px) 0 0;overflow:hidden;transition:background .15s,color .15s}
-  .cta:hover,.cta:focus-visible{background:var(--on-accent);color:var(--orange)}
-  .cta p{position:absolute;left:clamp(40px,8vw,140px);top:clamp(40px,6vw,80px);font-size:20px;font-weight:700;max-width:34ch}
-  .cta svg{position:absolute;right:clamp(40px,8vw,140px);top:clamp(40px,6vw,80px);width:48px;height:48px;transition:transform .3s var(--ease)}
-  .cta:hover svg{transform:translate(6px,-6px)}
-  .cta strong{position:absolute;left:var(--m);right:var(--m);bottom:24px;font-family:var(--display);font-weight:400;font-size:clamp(90px,26vw,460px);line-height:.78;text-align:center;letter-spacing:-.02em}
-  @media (max-width:640px){.cta{min-height:46svh}.cta p{font-size:17px;left:28px;right:90px}.cta svg{width:32px;height:32px;right:28px}}
+  /* ---------- CIERRE ---------- */
+  .final{display:grid;grid-template-columns:1.2fr .8fr;align-items:stretch;margin-top:clamp(100px,12vw,170px)}
+  .final-l{padding:clamp(32px,5vw,70px);align-self:center}
+  .final h2{font-size:clamp(56px,8vw,140px)}
+  .final h2 span{display:block}
+  .final p{color:#d8d6d0;font-size:18px;max-width:44ch;margin:24px 0 30px}
+  .final-r{position:relative;min-height:440px;background:linear-gradient(160deg,#ff4d1f,#ff8a00);border-radius:26px;margin:16px;overflow:hidden}
+  .final-r img{position:absolute;left:50%;bottom:0;height:94%;width:auto;max-width:none;transform:translateX(-50%)}
+  @media (max-width:980px){.final{grid-template-columns:1fr}.final-r{min-height:360px}}
 
-  /* ---------- Pie: la marca, en grande ---------- */
-  .foot{background:var(--ground-2);padding:clamp(60px,7vw,110px) var(--m) 30px}
-  .mark{display:grid;grid-template-columns:auto 1fr;gap:clamp(20px,4vw,60px);align-items:center}
-  .mark-ring{position:relative;width:clamp(140px,22vw,340px);aspect-ratio:1}
-  .mark-ring img{position:absolute;inset:11%;width:78%;height:78%;border-radius:50%;object-fit:cover;animation:spin 60s linear infinite reverse}
-  .mark-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
-  .mark-name{font-family:var(--display);font-size:clamp(64px,13vw,240px);line-height:.85;text-transform:uppercase;letter-spacing:-.01em}
-  .mark-name span{color:var(--orange)}
-  .foot-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;margin-top:56px;font-size:var(--s-small)}
-  .foot-grid nav{grid-column:span 2;display:flex;flex-direction:column;gap:10px}
-  .foot-grid nav b{font-size:16px;margin-bottom:4px}
-  .foot-grid a{text-decoration:none;color:var(--soft)}
-  .foot-grid a:hover{color:var(--ink)}
-  .foot-grid .contact{grid-column:9/13}
-  .foot-grid .contact p{color:var(--soft)}
-  .credits{margin-top:48px;font-size:14px;color:var(--soft);max-width:72ch}
-  .credits a{color:var(--soft)}
-  .last{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:28px;font-size:14px;color:var(--soft)}
-  .last .btn{min-height:42px;font-size:14px;padding:0 20px}
-  @media (max-width:900px){.mark{grid-template-columns:1fr}.foot-grid nav{grid-column:span 6}.foot-grid .contact{grid-column:span 12}}
+  /* ---------- PIE ---------- */
+  footer{margin-top:clamp(80px,10vw,140px);background:var(--ink);padding:56px 0 30px}
+  .foot{width:var(--w);margin:0 auto;display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:30px}
+  .foot img{height:30px;width:auto;margin-bottom:16px}
+  .foot p{color:var(--muted);font-size:14px;max-width:36ch}
+  .foot b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);margin-bottom:14px}
+  .foot nav a{display:block;color:#d8d6d0;font-size:14.5px;margin-bottom:8px;transition:color .2s}
+  .foot nav a:hover{color:var(--yellow)}
+  .copy{width:var(--w);margin:40px auto 0;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  @media (max-width:860px){.foot{grid-template-columns:1fr 1fr}}
+
+  .wa-float{position:fixed;right:20px;bottom:20px;z-index:50;width:62px;height:62px;border-radius:50%;background:var(--grad);display:grid;place-items:center;box-shadow:0 12px 30px -8px rgba(255,90,20,.9);transition:transform .3s var(--ease)}
+  .wa-float:hover{transform:scale(1.08) rotate(-6deg)}
+  .wa-float svg{width:30px;height:30px}
 
   @media (prefers-reduced-motion:reduce){
-    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-    .stage{clip-path:none}.exam{opacity:1;transform:none}
-    .js [data-reveal]>*{opacity:1;transform:none}
+    *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+    .js [data-in]{opacity:1;transform:none}
+    .arc .path{stroke-dashoffset:0}.step{opacity:1;transform:none}
   }
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
-  <symbol id="i-ring" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="3"/></symbol>
-  <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor"/></symbol>
-</svg>
 
-<header class="hero" id="top">
+<!-- ============ HERO ============ -->
+<header class="screen" id="top">
   <nav class="nav" aria-label="Principal">
-    <a href="/" aria-label="InnovaFit, inicio"><img src="/assets/innovafit-logo.png" alt="InnovaFit" width="190" height="30"></a>
     <ul>
       <li><a href="#cursos">Cursos</a></li>
       <li><a href="#como">Cómo funciona</a></li>
-      <li><a href="#planes">Certificaciones</a></li>
-      <li><a href="/verificar">Verificar certificado</a></li>
-      <li><a class="btn" href="/campus">Entrar al campus</a></li>
+      <li><a href="/verificar">Verificar</a></li>
     </ul>
+    <a class="logo" href="/" aria-label="InnovaFit, inicio"><img src="/assets/innovafit-logo.png" alt="InnovaFit" width="170" height="26"></a>
+    <div class="right"><a class="in" href="/campus">Entrar</a><a class="btn btn-grad" href="/campus">Crear cuenta</a></div>
   </nav>
 
-  <div class="hero-copy">
-    <h1>El campus que te certifica</h1>
-    <p class="hero-sub">Cursos para entrenadores personales con un examen de verdad: aprobás con 80% y tu certificado InnovaFit sale al instante.</p>
-    <div class="hero-act">
-      <a class="btn" href="/campus">Crear cuenta gratis</a>
-      <a class="tlink" href="/evaluacion">O medite con el reto de 25 preguntas</a>
+  <div class="hero">
+    <div class="hero-l">
+      <span class="label" data-k="hero.label">Campus InnovaFit</span>
+      <h1 class="disp"><span data-k="hero.title1">Aprendé.</span><span data-k="hero.title2">Rendí.</span><span class="grad" data-k="hero.title3">Certificate.</span></h1>
+      <p class="hero-sub" data-k="hero.sub">El campus digital para entrenadores personales: cursos gratis y certificaciones, un examen que valida lo que sabés y tu certificado al instante cuando aprobás con 80%.</p>
+      <div class="hero-act">
+        <a class="btn btn-grad" href="/campus"><span data-k="hero.cta">Crear cuenta gratis</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn-line" href="/evaluacion" data-k="hero.alt">Tomar el reto</a>
+      </div>
+      <div class="stats" id="stats"></div>
     </div>
-  </div>
-
-  <div class="hero-mob">
-    <div class="stage" aria-hidden="true">
-      <div class="disc"><img src="/assets/campus/disco-boxeadores.webp" alt="" width="1200" height="1200" fetchpriority="high"></div>
-    </div>
-    <div class="exam" data-ui id="heroExam" aria-label="Pregunta de ejemplo del examen">
-      <div class="exam-top"><span>Pregunta 1 de 20</span><span id="heroScore">Examen final · Biomecánica</span></div>
-      <div class="exam-bar"><i id="heroBar"></i></div>
-      <h2>Un salto vertical se realiza principalmente en el plano…</h2>
-      <button class="opt" data-ok="0"><b>A</b>Frontal</button>
-      <button class="opt" data-ok="1"><b>B</b>Sagital</button>
-      <button class="opt" data-ok="0"><b>C</b>Transversal</button>
-      <p class="exam-msg" id="heroMsg" aria-live="polite">Respondé: así se siente el examen del campus.</p>
+    <div class="stage">
+      <div class="stage-word" aria-hidden="true">Fit</div>
+      <img class="athlete" id="heroImg" src="/assets/campus/atleta-innovafit.webp" alt="Entrenador con la remera de InnovaFit" width="547" height="847" fetchpriority="high">
+      <div class="float-card" aria-hidden="true">
+        <small>Certificado emitido</small>
+        <b>Fundamentos de Biomecánica</b>
+        <div class="seal"><i>✓</i>Folio IF-2026-0142 · 90/100</div>
+      </div>
+      <p class="stage-txt" data-k="hero.panel">Tu certificado sale solo, con folio verificable, en el momento en que aprobás.</p>
+      <a class="go" href="/campus" aria-label="Entrar al campus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
     </div>
   </div>
 </header>
 
 <main>
-  <section class="intro" aria-label="Qué hay en el campus">
-    <p data-reveal><span>Clases en video <span class="th"><img src="/assets/covers/fundamentos-de-biomecanica.webp" alt="" width="72" height="72" loading="lazy"></span>, un caso real <span class="th"><img src="/assets/campus/borelli-1734.webp" alt="" width="72" height="72" loading="lazy" style="object-position:40% 25%"></span>, un examen que no regala nada <span class="th"><img src="/assets/campus/disco-zoopraxiscopio.webp" alt="" width="72" height="72" loading="lazy"></span> y un certificado que cualquiera puede verificar.</span></p>
+  <!-- ============ CÓMO FUNCIONA ============ -->
+  <section class="sec" id="como" aria-labelledby="stepsTitle">
+    <div class="sec-head" data-in><p data-k="steps.sub">Cinco pasos, del registro al certificado.</p><h2 class="disp" id="stepsTitle" data-k="steps.title">Cómo funciona</h2></div>
+    <div class="arc" id="arc">
+      <svg class="line" viewBox="0 0 1000 600" aria-hidden="true"><path class="path" d="M70 560 A430 430 0 0 1 930 560"/></svg>
+      <div class="orb"><img src="/assets/campus/entrenador-zancada.webp" alt="Entrenador de InnovaFit en zancada" width="705" height="843" loading="lazy"></div>
+      <div id="arcSteps"></div>
+    </div>
+    <div class="steps-orb"><div class="orb"><img src="/assets/campus/entrenador-zancada.webp" alt="" width="705" height="843" loading="lazy"></div></div>
+    <ol class="steps-list" id="stepsList"></ol>
   </section>
 
-  <section class="how" id="como" aria-labelledby="howTitle">
-    <div class="how-l" data-reveal>
-      <h2 id="howTitle">Registrate en 30 segundos</h2>
-      <p id="howText">Nombre, correo y WhatsApp. Elegís tu curso gratis y entrás al campus en el momento, sin esperar a nadie.</p>
-    </div>
-    <div class="how-r">
-      <div class="frag" data-ui data-stage="0">
-        <h3>Registrate gratis</h3>
-        <span class="ff"><span>Nombre y apellido</span><i>Mariana López Ruiz</i></span>
-        <span class="ff"><span>Correo</span><i>mariana@correo.com</i></span>
-        <span class="ff"><span>WhatsApp</span><i>+52 33 1122 3344</i></span>
-        <span class="btn">Crear cuenta y entrar</span>
-      </div>
-      <div class="frag" data-ui data-stage="1" hidden>
-        <h3>Fundamentos de Biomecánica · 60%</h3>
-        <div class="lrow done"><b><svg width="14" height="14"><use href="#i-check"/></svg></b>Planos de movimiento</div>
-        <div class="lrow done"><b><svg width="14" height="14"><use href="#i-check"/></svg></b>Leyes del movimiento</div>
-        <div class="lrow done"><b><svg width="14" height="14"><use href="#i-check"/></svg></b>Los músculos como motores</div>
-        <div class="lrow now"><b><svg width="12" height="12"><use href="#i-play"/></svg></b>Estudio de caso: la sentadilla de Sarah</div>
-        <div class="lrow"><b><svg width="14" height="14"><use href="#i-ring"/></svg></b>Comprobación de conocimientos</div>
-        <div class="lrow"><b><svg width="14" height="14"><use href="#i-dot"/></svg></b>Examen de acreditación</div>
-      </div>
-      <div class="frag" data-ui data-stage="2" hidden>
-        <h3>Examen de acreditación</h3>
-        <div class="ringbox">
-          <div class="ring"><svg viewBox="0 0 150 150"><circle class="t" cx="75" cy="75" r="62"/><circle class="f" id="howRing" cx="75" cy="75" r="62" stroke-dasharray="389.6" stroke-dashoffset="389.6"/></svg><strong>90</strong></div>
-          <div><span class="stamp">Acreditado</span><p>18 de 20 correctas. Intento 1 de 3. El corte era 80.</p></div>
-        </div>
-      </div>
-      <div class="frag certfrag" data-ui data-stage="3" hidden>
-        <div id="certPrev"></div>
-        <label for="certName">Escribí tu nombre y mirá tu certificado</label>
-        <input id="certName" maxlength="40" autocomplete="name" placeholder="Tu nombre completo" value="Mariana López Ruiz">
-      </div>
-    </div>
-    <div class="slider">
-      <label class="sr" for="howRange" style="position:absolute;left:-9999px">Etapa del recorrido</label>
-      <input id="howRange" type="range" min="0" max="3" step="1" value="0" aria-valuetext="Registro">
-      <div class="stops" id="howStops"><button type="button" class="on">Registro</button><button type="button">Curso</button><button type="button">Examen</button><button type="button">Certificado</button></div>
+  <!-- ============ RECURSOS ============ -->
+  <section class="sec" id="recursos" aria-labelledby="resTitle">
+    <div class="sec-head" data-in><p>Recursos educativos</p><h2 class="disp" id="resTitle" data-k="resources.title">Todo lo que hay adentro</h2></div>
+    <div class="res" id="res">
+      <div class="res-athlete"><img src="/assets/campus/entrenador-fuerza.webp" alt="Entrenador de InnovaFit con mancuerna" width="705" height="853" loading="lazy"><p data-in data-k="resources.sub">Recursos pensados para entrenadores que trabajan: cortos, claros y aplicables mañana mismo.</p></div>
     </div>
   </section>
 
-  <section class="show" id="corte" aria-labelledby="showTitle">
-    <h2 id="showTitle">Con 72, todavía no</h2>
-    <p class="show-copy" id="showCopy">El examen final tiene 20 preguntas y el corte es 80. Si no llegás, repasás y volvés: tenés 3 oportunidades. ¿Querés medirte ya? <a href="/evaluacion">Tomá el reto de 25 preguntas</a>.</p>
-    <div class="dial" data-ui>
-      <label for="dialRange">Tu calificación</label>
-      <div class="dial-val" id="dialVal">72%</div>
-      <div style="position:relative"><input id="dialRange" type="range" min="40" max="100" value="72"><span class="cut" aria-hidden="true"></span></div>
+  <!-- ============ CATÁLOGO ============ -->
+  <section class="sec" id="cursos" aria-labelledby="catTitle">
+    <div class="sec-head" data-in><p data-k="catalog.sub">Arrancá gratis y seguí con la certificación que te lleve a tu próximo cliente.</p><h2 class="disp" id="catTitle" data-k="catalog.title">Elegí tu camino</h2></div>
+    <div class="cat-top" data-in>
+      <div class="count"><b id="progCount">+11</b><span data-k="catalog.centerLabel">programas en el campus</span></div>
+      <div class="tags" id="tags"></div>
+    </div>
+    <div class="rail-nav"><button type="button" id="railPrev" aria-label="Anteriores"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><button type="button" id="railNext" aria-label="Siguientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    <div class="rail" id="rail"></div>
+  </section>
+
+  <!-- ============ CERTIFICADO EN VIVO ============ -->
+  <section class="screen" style="margin-top:clamp(100px,12vw,170px)" aria-labelledby="certTitle">
+    <div class="certsec">
+      <div data-in>
+        <span class="label">Certificado InnovaFit</span>
+        <h2 class="disp" id="certTitle" data-k="cert.title">Tu certificado, con tu nombre</h2>
+        <p data-k="cert.text">Así se ve el certificado que recibís al aprobar: tu nombre, el curso, tu calificación y un folio que cualquiera puede verificar en línea.</p>
+        <label for="certName" data-k="cert.inputLabel">Escribí tu nombre</label>
+        <input id="certName" maxlength="40" autocomplete="name" value="Tu Nombre Completo">
+        <div><a class="verify" href="/verificar">Verificar un certificado →</a></div>
+      </div>
+      <div id="certPrev" data-in style="--d:.15s"></div>
     </div>
   </section>
 
-  <figure class="band-fig">
-    <div class="band"><video src="/assets/campus/salto-largo.webm" poster="/assets/campus/salto-largo.jpg" width="1060" height="482" autoplay muted loop playsinline preload="metadata" aria-label="Secuencia animada de un atleta haciendo un salto largo sin impulso, fotografiada por Eadweard Muybridge en 1887"></video></div>
-    <figcaption class="band-cap"><span>Salto largo, Eadweard Muybridge, 1887. La biomecánica empezó así: mirando el movimiento cuadro por cuadro.</span><span>Hoy lo estudiás desde el celular.</span></figcaption>
-  </figure>
-
-  <section class="cat" id="cursos" aria-labelledby="catTitle">
-    <div class="cat-head" data-reveal>
-      <h2 id="catTitle">Lo que hay adentro</h2>
-      <p class="cat-lead">Un curso gratis para arrancar hoy, y el camino completo cuando quieras ir por más. Todo con examen y certificado InnovaFit.</p>
-    </div>
-
-    <div class="group free" data-reveal>
-      <div class="free-txt">
-        <div class="group-h"><h3>Gratis</h3><span>1 curso</span></div>
-        <div class="item-top"><b>Fundamentos de Biomecánica</b><em>$0</em></div>
-        <p>Planos de movimiento, palancas y leyes de Newton aplicadas al entrenamiento. Cuatro videos, seis audios, dos lecturas, el estudio de caso de Sarah y su sentadilla, una comprobación con corrección explicada y el examen de acreditación.</p>
-        <small>15 lecciones · certificado al aprobar</small>
-        <a class="btn" href="/campus">Inscribirme gratis</a>
-      </div>
-      <a class="free-cover" href="/campus" aria-label="Inscribirme en Fundamentos de Biomecánica"><img src="/assets/covers/fundamentos-de-biomecanica.webp" alt="Portada del curso Fundamentos de Biomecánica: figura en sentadilla con sus ángulos de cadera y rodilla" width="1280" height="720" loading="lazy"></a>
-    </div>
-
-    <div class="group" data-reveal>
-      <div class="group-h"><h3>Certificaciones</h3><span>4 programas</span></div>
-      <ul class="items">
-        <li class="item"><img src="/assets/covers/certificacion-personal-trainer-cpt.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Personal Trainer (CPT)</b><em>Consultá</em></div><p>La certificación base del entrenador profesional: anatomía, biomecánica, programación y evaluación de clientes.</p><small>Doble aval: nacional e internacional</small></div></li>
-        <li class="item"><img src="/assets/covers/certificacion-coach-en-nutricion-cnc.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Coach en Nutrición (CNC)</b><em>Consultá</em></div><p>Nutrición aplicada para acompañar los resultados de tus clientes con criterio profesional.</p></div></li>
-        <li class="item"><img src="/assets/covers/certificacion-fuerza-y-acondicionamiento-s-c.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Fuerza y Acondicionamiento (S&amp;C)</b><em>Consultá</em></div><p>Rendimiento, potencia y periodización para atletas y clientes avanzados.</p></div></li>
-        <li class="item"><img src="/assets/covers/certificacion-coaching-negocio-fitness.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Coaching &amp; Negocio Fitness</b><em>Consultá</em></div><p>Convertí tu conocimiento en un negocio: captación, ventas y retención de clientes.</p></div></li>
-      </ul>
-    </div>
-
-    <div class="group" data-reveal>
-      <div class="group-h"><h3>Especializaciones</h3><span>4 programas</span></div>
-      <ul class="items">
-        <li class="item"><img src="/assets/covers/especializacion-en-culturismo.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Culturismo</b><em>Consultá</em></div><p>Hipertrofia, preparación de competencia y estrategias de definición.</p></div></li>
-        <li class="item"><img src="/assets/covers/especializacion-en-instruccion-grupal-gei.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Instrucción Grupal (GEI)</b><em>Consultá</em></div><p>Diseñá y dirigí clases grupales seguras, efectivas y con energía.</p></div></li>
-        <li class="item"><img src="/assets/covers/especializacion-en-ejercicio-correctivo.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Ejercicio Correctivo</b><em>Consultá</em></div><p>Detectá desequilibrios posturales y programá para corregirlos.</p></div></li>
-        <li class="item"><img src="/assets/covers/especializacion-en-envejecimiento-funcional.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Envejecimiento Funcional</b><em>Consultá</em></div><p>Entrenamiento seguro y efectivo para adultos mayores.</p></div></li>
-      </ul>
-    </div>
-
-    <div class="group" data-reveal>
-      <div class="group-h"><h3>Paquetes</h3><span>2 rutas</span></div>
-      <ul class="items">
-        <li class="item"><img src="/assets/covers/paquete-entrenador-elite.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Entrenador Élite</b><em>Consultá</em></div><p>La ruta completa para el entrenador que quiere destacarse: certificaciones combinadas.</p><small>Precios especiales de Buen Fin en noviembre</small></div></li>
-        <li class="item"><img src="/assets/covers/paquete-fitness-coach.webp" alt="" width="72" height="72" loading="lazy"><div><div class="item-top"><b>Fitness Coach</b><em>Consultá</em></div><p>Entrenamiento y nutrición en un solo camino profesional.</p></div></li>
-      </ul>
-    </div>
+  <!-- ============ PREGUNTAS ============ -->
+  <section class="sec" id="preguntas" aria-labelledby="faqTitle">
+    <div class="sec-head" data-in><p>Lo que más nos preguntan</p><h2 class="disp" id="faqTitle" data-k="faq.title">Preguntas frecuentes</h2></div>
+    <div class="faq" id="faq"></div>
   </section>
 
-  <section class="board" id="recursos" aria-labelledby="boardTitle">
-    <div class="tiles" data-reveal>
-      <div class="tile head t62"><h2 id="boardTitle">Simple por dentro</h2></div>
-      <div class="tile or t64">
-        <div class="big keys" style="--z:clamp(64px,7vw,116px)" data-ui aria-hidden="true"><i>Video</i><i>Audio</i><i>PDF</i></div>
-        <div class="cap"><b>Video, audio y lectura</b><span>Cada lección en el formato que mejor se aprende: miralo, escuchalo en el gym o leelo con calma.</span></div>
-      </div>
-      <div class="tile t34">
-        <svg class="big mini-ring" style="--z:clamp(50px,6vw,90px)" viewBox="0 0 100 100" aria-hidden="true" data-ui><circle cx="50" cy="50" r="40" fill="none" stroke="#222026" stroke-width="14"/><circle cx="50" cy="50" r="40" fill="none" stroke="#ff5a1f" stroke-width="14" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="70" transform="rotate(-90 50 50)"/></svg>
-        <div class="cap"><b>Tu avance, guardado</b><span>Retomás donde lo dejaste, en cualquier dispositivo.</span></div>
-      </div>
-      <div class="tile ye t34">
-        <div class="big opt-big" data-ui aria-hidden="true"><span class="opt ok"><b>B</b>Sagital</span><span class="opt" style="margin-top:.3em"><b>C</b>Transversal</span></div>
-        <div class="cap"><b>Corrección explicada</b><span>La comprobación te dice qué fallaste y por qué.</span></div>
-      </div>
-      <div class="tile g3 t32">
-        <div class="big folio" style="--z:clamp(44px,4.6vw,78px)" data-ui aria-hidden="true">IF-2026-0142</div>
-        <div class="cap"><b>Folio verificable</b><span>Cualquiera lo comprueba en línea.</span></div>
-      </div>
-      <div class="tile or t32">
-        <div class="big tries" style="--z:clamp(44px,4.6vw,76px)" data-ui aria-hidden="true"><i></i><i></i><i></i></div>
-        <div class="cap"><b>3 oportunidades</b><span>Y apoyo del equipo si las usás.</span></div>
-      </div>
-      <div class="tile g3 t62">
-        <div class="big bubble" style="--z:clamp(48px,5vw,80px)" data-ui aria-hidden="true">Hola InnovaFit! Soy Mariana y me interesa la Certificación Personal Trainer.<i>Enviado desde el campus</i></div>
-        <div class="cap"><b>Consultas por WhatsApp</b><span>Un mensaje armado con tus datos, directo a un asesor.</span></div>
-      </div>
-      <div class="tile ye t32">
-        <img class="board-img" src="/assets/campus/borelli-1734.webp" alt="Lámina de De motu animalium de Borelli con figuras humanas y sus palancas" width="1000" height="1340" loading="lazy">
-        <div class="cap"><b>Estudio de caso real</b><span>Teoría que se aplica a un cliente.</span></div>
-      </div>
-      <div class="tile t32">
-        <div class="big ini" data-ui aria-hidden="true"></div>
-        <div class="cap"><b>Tu perfil, tu nombre</b><span>Así sale en tu certificado.</span></div>
+  <!-- ============ CIERRE ============ -->
+  <section class="screen final" aria-labelledby="ctaTitle">
+    <div class="final-l" data-in>
+      <h2 class="disp" id="ctaTitle"><span data-k="cta.title">Tu próximo nivel</span><span class="grad" data-k="cta.highlight">empieza hoy</span></h2>
+      <p data-k="cta.text">Creá tu cuenta gratis y empezá Fundamentos de Biomecánica ahora mismo.</p>
+      <div class="hero-act" style="margin-top:0">
+        <a class="btn btn-grad" href="/campus"><span data-k="cta.button">Crear cuenta gratis</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn-line" id="ctaWa" href="https://wa.me/5213223208254" target="_blank" rel="noopener" data-k="cta.alt">Hablar por WhatsApp</a>
       </div>
     </div>
+    <div class="final-r"><img src="/assets/campus/pareja-innovafit.webp" alt="Entrenadores de InnovaFit" width="845" height="851" loading="lazy"></div>
   </section>
-
-  <section class="plans" id="planes" aria-label="Planes">
-    <div class="plan-names" role="tablist" aria-label="Elegí un camino">
-      <h2>Elegí tu camino</h2>
-      <button role="tab" data-plan="0">Curso gratis</button>
-      <button role="tab" data-plan="1" class="on" aria-selected="true">Certificación doble</button>
-      <button role="tab" data-plan="2">Especialización</button>
-    </div>
-    <div class="plan-stage" role="tabpanel" aria-live="polite">
-      <div class="fade" id="planBody">
-        <div class="plan-fig"><b id="planFig">2</b><span id="planUnit">avales</span></div>
-        <p id="planText">Certificación de Entrenador Personal con aval nacional e internacional. Si aprobaste el curso gratis, ya tenés el primer módulo hecho. En noviembre, precios especiales de Buen Fin.</p>
-        <a class="btn" id="planBtn" href="https://wa.me/5213223208254?text=Hola%20InnovaFit!%20Quiero%20info%20de%20la%20Certificaci%C3%B3n%20Doble%20de%20Entrenador%20Personal." target="_blank" rel="noopener">Consultar por WhatsApp</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="faq" id="preguntas" aria-labelledby="faqTitle">
-    <div class="faq-l" data-reveal>
-      <h2 id="faqTitle">Preguntas, sin vueltas</h2>
-      <figure><img src="/assets/campus/borelli-1734.webp" alt="Grabado de 1734 de De motu animalium de Giovanni Borelli: figuras humanas con sus palancas y fuerzas" width="1000" height="1340" loading="lazy"></figure>
-      <figcaption>Borelli, De motu animalium, 1734: el primer libro que explicó el cuerpo como palancas.</figcaption>
-    </div>
-    <div class="faq-r">
-      <details name="faq" open><summary>¿El curso gratis es gratis de verdad?<span class="pm"></span></summary><p>Sí. Te registrás, entrás y hacés todo el curso de Fundamentos de Biomecánica, el examen incluido. Si aprobás, el certificado también es gratis.</p></details>
-      <details name="faq"><summary>¿Cómo se aprueba el examen?<span class="pm"></span></summary><p>Son 20 preguntas sobre todo el curso. Con 80% o más (16 correctas) quedás acreditado y el certificado se emite en el momento, sin trámites.</p></details>
-      <details name="faq"><summary>¿Y si no llego al 80?<span class="pm"></span></summary><p>Repasás las lecciones y volvés a rendir. Tenés 3 oportunidades; si las usás todas, el equipo de InnovaFit te ayuda y te habilita nuevas.</p></details>
-      <details name="faq"><summary>¿Qué dice el certificado?<span class="pm"></span></summary><p>Tu nombre completo, el título exacto del curso, la calificación, la fecha y un folio único. Lo descargás en PDF o imagen.</p></details>
-      <details name="faq"><summary>¿Cómo sabe alguien que es real?<span class="pm"></span></summary><p>Cualquier persona entra a la página de verificación, escribe el folio y ve tus datos. Un cliente o un gimnasio lo comprueba en segundos.</p></details>
-      <details name="faq"><summary>¿Qué es el reto de 25 preguntas?<span class="pm"></span></summary><p>Una evaluación de nivel abierta a cualquiera. Si aprobás, se te habilita el curso gratis al instante; si no, te mostramos en qué bloques reforzar.</p></details>
-      <details name="faq"><summary>¿Las certificaciones pagas también son online?<span class="pm"></span></summary><p>Sí, con práctica. Escribinos por WhatsApp desde el campus y un asesor te pasa precios, fechas y formas de pago.</p></details>
-    </div>
-  </section>
-
-  <a class="cta" href="/campus">
-    <p>Creá tu cuenta gratis y empezá Fundamentos de Biomecánica ahora mismo.</p>
-    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 36L36 12M16 12h20v20"/></svg>
-    <strong>Empezá</strong>
-  </a>
 </main>
 
-<footer class="foot">
-  <div class="mark">
-    <div class="mark-ring">
-      <img src="/assets/campus/disco-zoopraxiscopio.webp" alt="Disco de zoopraxiscopio de Muybridge con boxeadores en secuencia" width="1024" height="1015" loading="lazy">
-      <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="#222026" stroke-width="7"/><circle cx="50" cy="50" r="46" fill="none" stroke="#ff5a1f" stroke-width="7" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="57.8"/></svg>
-    </div>
-    <div class="mark-name" aria-label="InnovaFit">Innova<span>fit</span></div>
-  </div>
-  <div class="foot-grid">
+<footer>
+  <div class="foot">
+    <div><img src="/assets/innovafit-logo.png" alt="InnovaFit" width="196" height="30"><p data-k="footer.about">InnovaFit · Formación y certificación para entrenadores personales.</p><p style="margin-top:10px" data-k="footer.contact">Asesores por WhatsApp: +52 322 320 8254</p></div>
     <nav aria-label="Campus"><b>Campus</b><a href="/campus">Crear cuenta</a><a href="/campus">Entrar</a><a href="#cursos">Cursos</a></nav>
-    <nav aria-label="Acreditación"><b>Acreditación</b><a href="/evaluacion">Reto de 25 preguntas</a><a href="#corte">El corte de 80</a><a href="/verificar">Verificar certificado</a></nav>
-    <nav aria-label="Ayuda"><b>Ayuda</b><a href="#preguntas">Preguntas</a><a href="https://wa.me/5213223208254" target="_blank" rel="noopener">WhatsApp</a></nav>
-    <div class="contact"><p>InnovaFit · Formación y certificación para entrenadores personales.</p><p>Asesores por WhatsApp: +52 322 320 8254</p></div>
+    <nav aria-label="Acreditación"><b>Acreditación</b><a href="/evaluacion">Reto de 25 preguntas</a><a href="#como">Cómo funciona</a><a href="/verificar">Verificar certificado</a></nav>
+    <nav aria-label="Ayuda"><b>Ayuda</b><a href="#preguntas">Preguntas</a><a class="wa" href="https://wa.me/5213223208254" target="_blank" rel="noopener">WhatsApp</a><a href="https://innovafit.mx" target="_blank" rel="noopener">innovafit.mx</a></nav>
   </div>
-  <p class="credits">Imágenes de dominio público y licencia libre vía Wikimedia Commons: discos de Muybridge («Phenakistoscope 3g07692u» y «The zoopraxiscope, Athletes boxing», Library of Congress); «Descriptive Zoopraxography: Athlete, standing long jump», Eadweard Muybridge; «Borelli, De motu animalium, 1734», Wellcome Collection, <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener" target="_blank">CC BY 4.0</a>.</p>
-  <div class="last"><span>© 2026 InnovaFit</span><a class="btn" href="#top">Volver arriba</a></div>
+  <div class="copy"><span>© 2026 InnovaFit</span><a href="#top">Volver arriba ↑</a></div>
 </footer>
+
+<a class="wa-float wa" href="https://wa.me/5213223208254" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp"><svg viewBox="0 0 24 24" fill="#0b0b0c"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.4a.5.5 0 000-.4c0-.1-.6-1.4-.8-1.9s-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.7 11.8 11.8 0 004.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 001.8-1.2 2.2 2.2 0 00.1-1.2c0-.1-.2-.2-.5-.3z"/></svg></a>
 
 <script src="/js/certificate.js"></script>
 <script src="/js/landing-content.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  // Entrada por secciones: una sola vez, y nada queda oculto si el observador falla.
-  const rev = document.querySelectorAll("[data-reveal]");
-  const io = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => { if(e.isIntersecting){ e.target.classList.add("is-in"); io.unobserve(e.target); } }), {rootMargin:"0px 0px -10% 0px", threshold:.08}) : null;
-  rev.forEach((el) => io ? io.observe(el) : el.classList.add("is-in"));
-  addEventListener("load", () => setTimeout(() => rev.forEach((el) => { const r = el.getBoundingClientRect(); if(r.top < innerHeight && r.bottom > 0) el.classList.add("is-in"); }), 2500));
-
-  // Contenido editable desde Admin → Web (si no carga, quedan los textos del HTML).
   const LC = window.LandingContent;
   let C = LC.clone();
   let waNum = "5213223208254";
   const wa = (text) => "https://wa.me/" + waNum + (text ? "?text=" + encodeURIComponent(text) : "");
   const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const setText = (sel, v) => { const el = typeof sel === "string" ? document.querySelector(sel) : sel; if(el && v != null) el.textContent = v; };
   const fileUrl = (r, f, thumb) => "/pb/api/files/" + r.collectionId + "/" + r.id + "/" + encodeURIComponent(f) + (thumb ? "?thumb=" + thumb : "");
+  const get = (path) => path.split(".").reduce((o, k) => (o == null ? o : o[k]), C);
 
-  // Hero: la pregunta de ejemplo funciona de verdad.
-  const LETTERS = ["A", "B", "C"];
-  const opts = [...document.querySelectorAll("#heroExam .opt")];
-  opts.forEach((b, i) => b.addEventListener("click", () => {
-    const good = LETTERS[i] === C.exam.correct;
-    opts.forEach((o, k) => { o.disabled = true; if(LETTERS[k] === C.exam.correct) o.classList.add("ok"); });
-    if(!good) b.classList.add("no");
-    $("heroBar").style.width = "100%";
-    $("heroMsg").innerHTML = esc(good ? C.exam.ok : C.exam.no) + ' <a href="/campus">Empezá gratis</a>';
-  }));
+  /* ---------- Entradas al hacer scroll ---------- */
+  let io = null;
+  function watch(root){
+    const els = (root || document).querySelectorAll("[data-in]:not(.on)");
+    if(!("IntersectionObserver" in window)){ els.forEach((e) => e.classList.add("on")); return; }
+    io = io || new IntersectionObserver((es) => es.forEach((e) => { if(e.isIntersecting){ e.target.classList.add("on"); io.unobserve(e.target); } }), {rootMargin:"0px 0px -8% 0px", threshold:.1});
+    els.forEach((e) => io.observe(e));
+  }
 
-  // Cómo funciona: un control que mueve el texto y el fragmento.
-  let curStage = 0;
-  const range = $("howRange"), stops = [...$("howStops").children], frags = document.querySelectorAll(".frag[data-stage]");
-  let certMounted = null;
+  /* ---------- Bloques que se arman desde el contenido ---------- */
+  // Posiciones de los 5 pasos sobre el arco (ángulos de izquierda a derecha).
+  const ANG = [168, 128, 90, 52, 12];
+  function render(){
+    document.querySelectorAll("[data-k]").forEach((el) => { const v = get(el.dataset.k); if(typeof v === "string") el.textContent = v; });
+
+    $("stats").innerHTML = C.stats.map((s, i) => `<div class="stat" data-in style="--d:${.1 + i * .08}s"><b class="grad">${esc(s.fig)}</b><span>${esc(s.label)}</span></div>`).join("");
+
+    $("arcSteps").innerHTML = C.steps.items.slice(0, 5).map((s, i) => {
+      const a = ANG[i] * Math.PI / 180, x = 500 + 430 * Math.cos(a), y = 560 - 430 * Math.sin(a);
+      const left = x / 10, top = y / 6, side = ANG[i] > 100 ? "l" : ANG[i] < 80 ? "r" : "c";
+      const pos = side === "l" ? `right:${100 - left + 1.4}%;top:calc(${top}% + 6px);translate:0 -100%;text-align:right` : side === "r" ? `left:${left + 1.4}%;top:calc(${top}% + 6px);translate:0 -100%` : `left:calc(${left}% - 105px);top:calc(${top}% - 118px);text-align:center`;
+      const dot = side === "l" ? "right:-22px;bottom:-1px" : side === "r" ? "left:-22px;bottom:-1px" : "left:98px;bottom:-24px";
+      return `<div class="step" style="${pos};transition-delay:${.5 + i * .25}s"><i style="${dot}"></i><em>0${i + 1}</em><b>${esc(s.title)}</b><span>${esc(s.text)}</span></div>`;
+    }).join("");
+    $("stepsList").innerHTML = C.steps.items.map((s) => `<li><b>${esc(s.title)}</b><span>${esc(s.text)}</span></li>`).join("");
+
+    const res = $("res");
+    res.querySelectorAll(".card").forEach((c) => c.remove());
+    res.insertAdjacentHTML("beforeend", C.resources.items.map((r, i) => `<article class="card" data-in style="--d:${i * .08}s"><span class="q">0${i + 1}</span><b>${esc(r.title)}</b><span>${esc(r.text)}</span></article>`).join(""));
+
+    $("tags").innerHTML = C.catalog.tags.split(",").map((t) => t.trim()).filter(Boolean).map((t) => `<span>${esc(t)}</span>`).join("");
+
+    $("faq").innerHTML = C.faq.items.map((f, i) => `<details data-in style="--d:${(i % 2) * .08}s"${i === 0 ? " open" : ""}><summary>${esc(f.q)}<i></i></summary><p>${esc(f.a)}</p></details>`).join("");
+
+    document.querySelectorAll(".wa").forEach((a) => { a.href = wa(); });
+    $("ctaWa").href = wa("Hola InnovaFit! Quiero info del campus y las certificaciones.");
+    watch();
+  }
+
+  /* ---------- Catálogo: cursos libres y certificaciones del admin ---------- */
+  const PHOTOS = [
+    [/biomec|movimiento/i, "entrenador-zancada"], [/negocio/i, "pareja-innovafit"], [/personal|cpt|élite|elite/i, "atleta-innovafit"], [/nutri|fitness coach/i, "entrenadora-nutricion"],
+    [/fuerza|s&c|culturismo/i, "entrenador-fuerza"], [/paquete/i, "pareja-innovafit"], [/grupal|adulto|envejec/i, "atleta-mancuerna"], [/correctiv|postura/i, "atleta-retrato"],
+  ];
+  const POOL = ["atleta-innovafit", "entrenadora-nutricion", "entrenador-fuerza", "pareja-innovafit", "atleta-mancuerna", "atleta-retrato", "entrenador-zancada"];
+  const photo = (title, i) => "/assets/campus/" + ((PHOTOS.find(([re]) => re.test(title)) || [])[1] || POOL[i % POOL.length]) + ".webp";
+  const KIND = {certificacion:"Certificación", especializacion:"Especialización", paquete:"Paquete"};
+  const STATIC = [
+    {free:true, id:"", title:"Fundamentos de Biomecánica", kind:"Curso gratis", lines:["Planos de movimiento, palancas y leyes de Newton.", "Videos, audios, estudio de caso y examen."]},
+    {title:"Certificación Personal Trainer (CPT)", kind:"Certificación", lines:["La certificación base del entrenador profesional."], note:"Doble aval: nacional e internacional"},
+    {title:"Certificación Coach en Nutrición (CNC)", kind:"Certificación", lines:["Nutrición aplicada a los resultados de tus clientes."]},
+    {title:"Certificación Fuerza y Acondicionamiento (S&C)", kind:"Certificación", lines:["Rendimiento, potencia y periodización."]},
+    {title:"Paquete Entrenador Élite", kind:"Paquete", lines:["Certificaciones combinadas para destacarte."], note:"Precios especiales de Buen Fin en noviembre"},
+  ];
+  function card(p, i){
+    const href = p.free ? "/campus" + (p.id ? "#curso=" + p.id : "") : wa("Hola InnovaFit! Quiero info de " + p.title + ".");
+    const ext = p.free ? "" : ' target="_blank" rel="noopener"';
+    return `<article class="prog" data-in style="--d:${Math.min(i, 5) * .07}s">
+      <a class="prog-card" href="${href}"${ext}>
+        <div class="top"><b>${esc(p.title)}</b><small>${esc(p.kind)}</small></div>
+        <img src="${photo(p.title, i)}" alt="" loading="lazy">
+        <span class="tag${p.free ? " free" : ""}">${esc(p.free ? C.catalog.freeBadge : p.price || "Consultá")}</span>
+      </a>
+      <ul>${p.lines.filter(Boolean).map((l) => `<li>${esc(l)}</li>`).join("")}${p.note ? `<li class="note">${esc(p.note)}</li>` : ""}</ul>
+      <a class="btn ${p.free ? "btn-dark" : "btn-line"}" href="${href}"${ext}>${esc(p.free ? C.catalog.freeButton : C.catalog.askButton)}</a>
+    </article>`;
+  }
+  function renderRail(items){
+    $("rail").innerHTML = items.map(card).join("");
+    $("progCount").textContent = (items.length > 9 ? "+" : "") + items.length;
+    watch($("rail"));
+  }
+  renderRail(STATIC);
+  const step = () => ($("rail").firstElementChild ? $("rail").firstElementChild.offsetWidth + 12 : 300);
+  $("railPrev").onclick = () => $("rail").scrollBy({left:-step(), behavior:"smooth"});
+  $("railNext").onclick = () => $("rail").scrollBy({left:step(), behavior:"smooth"});
+
+  /* ---------- Certificado en vivo ---------- */
+  let cert = null, t;
   function mountCert(){
     if(!window.Cert) return;
-    if(certMounted) certMounted.destroy();
-    certMounted = Cert.mount($("certPrev"), {studentName: $("certName").value.trim() || "Tu nombre completo", title:"Fundamentos de Biomecánica", hours:"Módulo introductorio", issueDate:new Date().toISOString().slice(0, 10), folio:"IF-2026-0142", score:90});
+    if(cert) cert.destroy();
+    cert = Cert.mount($("certPrev"), {studentName: $("certName").value.trim() || "Tu Nombre Completo", title:"Fundamentos de Biomecánica", hours:"Módulo introductorio", issueDate:new Date().toISOString().slice(0, 10), folio:"IF-2026-0142", score:90});
   }
-  function stage(i){
-    i = Math.max(0, Math.min(3, i));
-    curStage = i;
-    range.value = i;
-    range.style.setProperty("--p", (i / 3) * 100 + "%");
-    range.setAttribute("aria-valuetext", stops[i].textContent);
-    stops.forEach((s, k) => s.classList.toggle("on", k === i));
-    const h = $("howTitle"), p = $("howText");
-    h.style.opacity = p.style.opacity = 0;
-    setTimeout(() => { h.textContent = C.stages[i].title; p.textContent = C.stages[i].text; h.style.opacity = p.style.opacity = 1; }, reduce ? 0 : 180);
-    frags.forEach((f) => { f.hidden = +f.dataset.stage !== i; });
-    if(i === 2) requestAnimationFrame(() => { $("howRing").style.strokeDashoffset = 389.6 * .1; });
-    else $("howRing").style.strokeDashoffset = 389.6;
-    if(i === 3) mountCert();
-  }
-  range.addEventListener("input", () => stage(+range.value));
-  stops.forEach((s, k) => s.addEventListener("click", () => stage(k)));
-  let t; $("certName").addEventListener("input", () => { clearTimeout(t); t = setTimeout(mountCert, 160); });
+  $("certName").addEventListener("input", () => { clearTimeout(t); t = setTimeout(mountCert, 150); });
+  $("certName").addEventListener("focus", (e) => { if(e.target.value === "Tu Nombre Completo") e.target.select(); });
+  mountCert();
 
-  // Vitrina: el corte de 80 cambia el campo y el veredicto.
-  const dial = $("dialRange"), show = document.querySelector(".show");
-  function score(){
-    const v = +dial.value, pass = v >= 80;
-    $("dialVal").textContent = v + "%";
-    show.classList.toggle("pass", pass);
-    $("showTitle").textContent = pass ? "Con " + v + ", acreditado" : "Con " + v + ", todavía no";
-    $("showCopy").firstChild.textContent = (pass ? C.cut.pass : C.cut.fail) + " ";
-  }
-  dial.addEventListener("input", score);
+  /* ---------- El arco se dibuja al llegar ---------- */
+  const arc = $("arc");
+  if("IntersectionObserver" in window){
+    const ao = new IntersectionObserver((es) => { if(es[0].isIntersecting){ arc.classList.add("on"); ao.disconnect(); } }, {threshold:.3});
+    ao.observe(arc);
+  }else arc.classList.add("on");
 
-  // Planes: un nombre a la vez, la cifra queda en su lugar.
-  const names = [...document.querySelectorAll("[data-plan]")];
-  let curPlan = 1;
-  function plan(i, instant){
-    curPlan = i;
-    names.forEach((n, k) => { n.classList.toggle("on", k === i); n.setAttribute("aria-selected", k === i); });
-    const body = $("planBody"), p = C.plans.items[i];
-    if(!p) return;
-    const href = p.link || wa("Hola InnovaFit! Quiero info de " + p.name + ".");
-    body.classList.add("out");
-    setTimeout(() => {
-      $("planFig").textContent = p.fig; $("planUnit").textContent = p.unit; $("planText").textContent = p.text;
-      const b = $("planBtn"); b.textContent = p.btn; b.href = href;
-      if(href.startsWith("/")) b.removeAttribute("target"); else b.target = "_blank";
-      body.classList.remove("out");
-    }, reduce || instant ? 0 : 200);
-  }
-  names.forEach((n, k) => { n.addEventListener("click", () => plan(k)); n.addEventListener("focus", () => plan(k)); });
-
-  /* ---------- Aplicar el contenido editado ---------- */
-  const thumbs = [...document.querySelectorAll(".intro .th")];
-  function apply(){
-    setText(".hero h1", C.hero.title); setText(".hero-sub", C.hero.sub);
-    setText(".hero-act .btn", C.hero.cta); setText(".hero-act .tlink", C.hero.alt);
-    setText("#heroExam h2", C.exam.q);
-    ["a", "b", "c"].forEach((k, i) => { if(opts[i]) opts[i].lastChild.textContent = C.exam[k]; });
-
-    // La frase de la intro lleva las miniaturas donde dice [1], [2], [3].
-    const span = document.querySelector(".intro p > span");
-    if(span){
-      span.textContent = "";
-      C.intro.text.split(/(\[[1-3]\])/).forEach((part) => {
-        const m = part.match(/^\[([1-3])\]$/);
-        span.append(m ? thumbs[+m[1] - 1] || "" : part);
+  /* ---------- Parallax suave de los atletas ---------- */
+  const par = [...document.querySelectorAll(".res-athlete img, .orb img, .final-r img")];
+  if(!matchMedia("(prefers-reduced-motion: reduce)").matches){
+    let ticking = false;
+    addEventListener("scroll", () => {
+      if(ticking) return; ticking = true;
+      requestAnimationFrame(() => {
+        par.forEach((img) => { const r = img.getBoundingClientRect(); const k = (r.top + r.height / 2 - innerHeight / 2) / innerHeight; img.style.translate = "0 " + (k * -26).toFixed(1) + "px"; });
+        ticking = false;
       });
-    }
-
-    setText("#howTitle", C.stages[curStage].title); setText("#howText", C.stages[curStage].text);
-    const link = document.querySelector("#showCopy a"); setText(link, C.cut.link); score();
-    const cap = document.querySelectorAll(".band-cap span"); setText(cap[0], C.band.caption); setText(cap[1], C.band.side);
-    setText("#catTitle", C.catalog.title); setText(".cat-lead", C.catalog.lead);
-
-    setText("#boardTitle", C.board.title);
-    document.querySelectorAll(".tile:not(.head) .cap").forEach((el, i) => { const t = C.board.tiles[i]; if(t){ setText(el.querySelector("b"), t.title); setText(el.querySelector("span"), t.text); } });
-
-    setText(".plan-names h2", C.plans.title);
-    names.forEach((n, i) => { const p = C.plans.items[i]; n.hidden = !p; if(p) n.textContent = p.name; });
-    plan(Math.min(curPlan, C.plans.items.length - 1), true);
-
-    setText("#faqTitle", C.faq.title); setText(".faq-l figcaption", C.faq.caption);
-    document.querySelector(".faq-r").innerHTML = C.faq.items.map((f, i) =>
-      `<details name="faq"${i === 0 ? " open" : ""}><summary>${esc(f.q)}<span class="pm"></span></summary><p>${esc(f.a)}</p></details>`).join("");
-
-    setText(".cta p", C.cta.text); setText(".cta strong", C.cta.word);
-    const contact = document.querySelectorAll(".contact p"); setText(contact[0], C.footer.about); setText(contact[1], C.footer.contact);
-    document.querySelectorAll('a[href^="https://wa.me/"]').forEach((a) => { a.href = a.href.replace(/wa\.me\/\d+/, "wa.me/" + waNum); });
+    }, {passive:true});
   }
 
-  // Catálogo en vivo: los cursos de inscripción libre y las certificaciones que se cargan en el admin.
-  function renderCatalog(courses, programs){
-    const cat = document.querySelector(".cat");
-    cat.querySelectorAll(".group").forEach((g) => g.remove());
-    const plain = (html) => { const d = document.createElement("div"); d.innerHTML = html || ""; return d.textContent.trim(); };
-    let html = courses.map((c, i) => `<div class="group free is-in" data-reveal>
-      <div class="free-txt">
-        ${i === 0 ? `<div class="group-h"><h3>${esc(C.catalog.groupFree)}</h3><span>${courses.length} ${courses.length === 1 ? "curso" : "cursos"}</span></div>` : ""}
-        <div class="item-top"><b>${esc(c.title)}</b><em>$0</em></div>
-        <p>${esc(plain(c.description) || c.subtitle || "")}</p>
-        <small>${esc(C.catalog.freeNote)}</small>
-        <a class="btn" href="/campus#curso=${c.id}">${esc(C.catalog.freeButton)}</a>
-      </div>
-      <a class="free-cover" href="/campus#curso=${c.id}" aria-label="Inscribirme en ${esc(c.title)}">${c.cover ? `<img src="${fileUrl(c, c.cover)}" alt="Portada del curso ${esc(c.title)}" width="1280" height="720" loading="lazy">` : ""}</a>
-    </div>`).join("");
-    const GROUPS = [["certificacion", C.catalog.groupCert, "programa", "programas"], ["especializacion", C.catalog.groupEsp, "programa", "programas"], ["paquete", C.catalog.groupPaq, "ruta", "rutas"]];
-    for(const [kind, title, one, many] of GROUPS){
-      const list = programs.filter((p) => (p.kind || "certificacion") === kind);
-      if(!list.length) continue;
-      html += `<div class="group is-in" data-reveal>
-        <div class="group-h"><h3>${esc(title)}</h3><span>${list.length} ${list.length === 1 ? one : many}</span></div>
-        <ul class="items">${list.map((p) => `<li class="item">${p.image ? `<img src="${fileUrl(p, p.image, "640x360")}" alt="" width="72" height="72" loading="lazy">` : `<span style="width:72px;height:72px;border-radius:50%;background:var(--ground-3)"></span>`}
-          <div><div class="item-top"><b>${esc(p.title)}</b><em>${esc(p.priceLabel || "Consultá")}</em></div>${p.summary ? `<p>${esc(p.summary)}</p>` : ""}${p.note ? `<small>${esc(p.note)}</small>` : ""}</div></li>`).join("")}</ul>
-      </div>`;
-    }
-    cat.insertAdjacentHTML("beforeend", html);
-  }
+  render();
 
+  /* ---------- Contenido editado en Admin → Web y catálogo real ---------- */
   (async () => {
-    const get = (p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const getJ = (p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     const [cfg, set, courses, programs] = await Promise.all([
-      get("/api/config"),
-      get("/pb/api/collections/settings/records?perPage=1"),
-      get("/pb/api/collections/courses/records?perPage=50&sort=order,created&filter=" + encodeURIComponent("published = true && openAccess = true")),
-      get("/pb/api/collections/programs/records?perPage=200&sort=order,title&filter=" + encodeURIComponent("published = true")),
+      getJ("/api/config"),
+      getJ("/pb/api/collections/settings/records?perPage=1"),
+      getJ("/pb/api/collections/courses/records?perPage=50&sort=order,created&filter=" + encodeURIComponent("published = true && openAccess = true")),
+      getJ("/pb/api/collections/programs/records?perPage=200&sort=order,title&filter=" + encodeURIComponent("published = true")),
     ]);
     if(cfg && cfg.waNumber) waNum = cfg.waNumber;
     const s = set && set.items && set.items[0];
     if(s && s.landing) C = LC.merge(LC.DEFAULTS, s.landing);
-    if(s && s.heroImage) document.querySelector(".disc img").src = fileUrl(s, s.heroImage, "1200x1200");
-    apply();
-    if(courses && programs && (courses.items.length || programs.items.length)) renderCatalog(courses.items, programs.items);
+    if(s && s.heroImage) $("heroImg").src = fileUrl(s, s.heroImage);
+    render();
+    const plain = (html) => { const d = document.createElement("div"); d.innerHTML = html || ""; return d.textContent.trim(); };
+    const items = [
+      ...((courses && courses.items) || []).map((c) => ({free:true, id:c.id, title:c.title, kind:"Curso gratis", lines:[c.subtitle || plain(c.description).slice(0, 90), C.catalog.freeNote]})),
+      ...((programs && programs.items) || []).map((p) => ({title:p.title, kind:KIND[p.kind] || "Certificación", lines:[p.summary, [p.duration, p.modality].filter(Boolean).join(" · ")], note:p.note, price:p.priceLabel})),
+    ];
+    if(items.length) renderRail(items);
   })();
 })();
 </script>

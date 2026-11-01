@@ -1350,20 +1350,16 @@
      WEB: textos de la landing, editables
      ===================================================== */
   const WEB_SPEC = [
-    {key:"hero", label:"Portada", fields:[["title", "Título grande (que entre en 2 líneas)"], ["sub", "Bajada", "area"], ["cta", "Botón principal"], ["alt", "Link al reto de 25 preguntas"]]},
-    {key:"exam", label:"Pregunta de ejemplo de la portada", fields:[["q", "Pregunta", "area"], ["a", "Opción A"], ["b", "Opción B"], ["c", "Opción C"], ["correct", "Respuesta correcta", "abc"], ["ok", "Mensaje si acierta", "area"], ["no", "Mensaje si se equivoca", "area"]]},
-    {key:"intro", label:"Frase de presentación", hint:"Las tres miniaturas redondas aparecen donde escribas [1], [2] y [3].", fields:[["text", "Frase", "area"]]},
-    {key:"stages", label:"Cómo funciona", list:{fields:[["title", "Título"], ["text", "Texto", "area"]], names:["Etapa Registro", "Etapa Curso", "Etapa Examen", "Etapa Certificado"], fixed:true}},
-    {key:"cut", label:"El corte de 80", fields:[["fail", "Texto con menos de 80", "area"], ["pass", "Texto con 80 o más", "area"], ["link", "Texto del link al reto"]]},
-    {key:"band", label:"Banda del salto", fields:[["caption", "Epígrafe", "area"], ["side", "Texto a la derecha"]]},
-    {key:"catalog", label:"Catálogo", hint:"Los cursos salen de Cursos (los publicados con Inscripción libre) y las certificaciones de Certificaciones, con su precio y nota.", fields:[["title", "Título"], ["lead", "Bajada", "area"], ["freeNote", "Nota del curso gratis"], ["freeButton", "Botón del curso gratis"], ["groupFree", "Nombre del grupo de cursos gratis"], ["groupCert", "Nombre del grupo de certificaciones"], ["groupEsp", "Nombre del grupo de especializaciones"], ["groupPaq", "Nombre del grupo de paquetes"]]},
-    {key:"board", label:"Recursos (tablero)", fields:[["title", "Título"]], list:{key:"tiles", fields:[["title", "Título"], ["text", "Texto"]], names:["Video, audio y lectura", "Avance", "Corrección", "Folio", "Oportunidades", "WhatsApp", "Estudio de caso", "Perfil"], fixed:true}},
-    {key:"plans", label:"Elegí tu camino", hint:"Si dejás el link vacío, el botón abre WhatsApp con un mensaje sobre ese plan.", fields:[["title", "Título"]], list:{key:"items", fields:[["name", "Nombre"], ["fig", "Cifra grande"], ["unit", "Texto junto a la cifra"], ["text", "Descripción", "area"], ["btn", "Texto del botón"], ["link", "Link del botón (opcional)"]], names:["Plan 1", "Plan 2 (se ve primero)", "Plan 3"], fixed:true}},
-    {key:"faq", label:"Preguntas frecuentes", fields:[["title", "Título"], ["caption", "Epígrafe de la lámina", "area"]], list:{key:"items", fields:[["q", "Pregunta"], ["a", "Respuesta", "area"]], add:"+ Agregar pregunta"}},
-    {key:"cta", label:"Cierre", fields:[["word", "Palabra gigante (corta)"], ["text", "Frase", "area"]]},
+    {key:"hero", label:"Portada", fields:[["label", "Etiqueta chica"], ["title1", "Título · línea 1"], ["title2", "Título · línea 2"], ["title3", "Título · línea 3 (en degradado)"], ["sub", "Bajada", "area"], ["cta", "Botón principal"], ["alt", "Botón al reto de 25 preguntas"], ["panel", "Texto sobre el panel naranja", "area"]]},
+    {key:"stats", label:"Cifras de la portada", list:{fields:[["fig", "Cifra"], ["label", "Texto"]], names:["Cifra 1", "Cifra 2", "Cifra 3"], fixed:true}},
+    {key:"steps", label:"Cómo funciona (arco de pasos)", fields:[["title", "Título"], ["sub", "Bajada"]], list:{key:"items", fields:[["title", "Paso"], ["text", "Texto"]], names:["Paso 1", "Paso 2", "Paso 3", "Paso 4", "Paso 5"], fixed:true}},
+    {key:"resources", label:"Recursos", fields:[["title", "Título"], ["sub", "Frase junto al atleta", "area"]], list:{key:"items", fields:[["title", "Título"], ["text", "Texto", "area"]], names:["Tarjeta 1", "Tarjeta 2", "Tarjeta 3", "Tarjeta 4", "Tarjeta 5"], fixed:true}},
+    {key:"catalog", label:"Catálogo de cursos", hint:"Las tarjetas salen de Cursos (publicados con Inscripción libre) y de Certificaciones, con su precio y nota.", fields:[["title", "Título"], ["sub", "Bajada", "area"], ["centerLabel", "Texto del círculo"], ["tags", "Etiquetas (separadas por coma)", "area"], ["freeBadge", "Etiqueta de los cursos gratis"], ["freeNote", "Nota de los cursos gratis"], ["freeButton", "Botón de los cursos gratis"], ["askButton", "Botón de las certificaciones"]]},
+    {key:"cert", label:"Certificado en vivo", fields:[["title", "Título"], ["text", "Texto", "area"], ["inputLabel", "Texto sobre el campo del nombre"]]},
+    {key:"faq", label:"Preguntas frecuentes", fields:[["title", "Título"]], list:{key:"items", fields:[["q", "Pregunta"], ["a", "Respuesta", "area"]], add:"+ Agregar pregunta"}},
+    {key:"cta", label:"Cierre", fields:[["title", "Título"], ["highlight", "Título en degradado"], ["text", "Frase", "area"], ["button", "Botón principal"], ["alt", "Botón de WhatsApp"]]},
     {key:"footer", label:"Pie de página", fields:[["about", "Descripción"], ["contact", "Contacto"]]},
   ];
-
   async function renderWeb(){
     const s = await UI.settings(true);
     const LCm = window.LandingContent;
@@ -1392,8 +1388,8 @@
         <div>
           <div class="card panel spot" style="margin-bottom:14px">
             <h2 style="font-size:22px;margin-bottom:10px">Imagen de la portada</h2>
-            <div class="whero"><div class="whero-img" id="wHeroPrev" style="background-image:url('${s.heroImage ? fileUrl(s, s.heroImage, "1200x1200") : "/assets/campus/disco-boxeadores.webp"}')"></div>
-              <div><p class="hint" style="margin:0 0 10px">Va dentro del círculo naranja y gira despacio. Ideal: una imagen cuadrada.</p>
+            <div class="whero"><div class="whero-img" id="wHeroPrev" style="background-image:url('${s.heroImage ? fileUrl(s, s.heroImage) : "/assets/campus/atleta-innovafit.webp"}')"></div>
+              <div><p class="hint" style="margin:0 0 10px">Va sobre el panel naranja de la portada. Ideal: una persona recortada, PNG con fondo transparente.</p>
               <input class="input" type="file" id="wHero" accept="image/png,image/jpeg,image/webp">
               ${s.heroImage ? '<button type="button" class="btn btn-ghost btn-sm" id="wHeroRm" style="margin-top:10px">Volver a la imagen original</button>' : ""}</div></div>
           </div>
@@ -1452,7 +1448,7 @@
     $("wSave").onclick = async () => {
       const data = collect();
       if(data.faq.items.some((f) => !f.q.trim() || !f.a.trim())) return fail("Hay una pregunta frecuente sin pregunta o sin respuesta.");
-      if(!data.hero.title.trim()) return fail("La portada necesita un título.");
+      if(!(data.hero.title1 + data.hero.title2 + data.hero.title3).trim()) return fail("La portada necesita un título.");
       const btn = $("wSave");
       btn.disabled = true;
       try{
