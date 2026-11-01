@@ -123,6 +123,9 @@
     pb.authStore.clear();
     courses = progress = certs = enrollments = null;
     Object.keys(lessonsByCourse).forEach((k) => delete lessonsByCourse[k]);
+    afterProfile = "";
+    document.body.classList.remove("locked");
+    document.querySelectorAll(".tour").forEach((t) => t.remove());
     location.hash = "";
     showLogin();
   });
@@ -180,6 +183,9 @@
     tabs.querySelectorAll("a").forEach((a) => a.classList.toggle("on", a.dataset.tab === name));
     const on = tabs.querySelector("a.on"), pill = tabs.querySelector(".pill");
     if(on){ pill.style.left = on.offsetLeft + "px"; pill.style.width = on.offsetWidth + "px"; }
+    // En celular la fila de pestañas se desplaza: centramos la activa.
+    const row = $("tabsRow");
+    if(on && row.scrollWidth > row.clientWidth) row.scrollLeft = tabs.offsetLeft + on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
   }
 
   function paintAvatar(){
@@ -189,6 +195,108 @@
       : `<div class="avatar">${esc(initials(u.name || u.email))}</div>`;
     $("topAv").innerHTML = html;
     $("who").textContent = u.name || u.email;
+  }
+
+  /* ---------- Primer ingreso: perfil obligatorio + tutorial ---------- */
+  // Lo que falta para usar el campus. El admin nunca queda bloqueado.
+  const PROFILE_REQ = [
+    ["name", "Nombre y apellido", (u) => { const n = (u.name || "").trim(); return n.length >= 5 && n.includes(" "); }],
+    ["country", "Código de país", (u) => /^\d{1,4}$/.test(u.country || "")],
+    ["phone", "WhatsApp", (u) => (u.phone || "").replace(/\D/g, "").length >= 7],
+    ["docId", "Identificación (CURP / DNI)", (u) => (u.docId || "").trim().length >= 5],
+  ];
+  const profileMissing = (u) => PROFILE_REQ.filter(([, , test]) => !test(u));
+  const needsProfile = () => me().role !== "admin" && profileMissing(me()).length > 0;
+  let afterProfile = ""; // a dónde quería ir el alumno antes de completar el perfil
+
+  function lockCampus(){
+    document.body.classList.toggle("locked", needsProfile());
+  }
+  $("tabs").addEventListener("click", (e) => {
+    const a = e.target.closest("a");
+    if(!a || a.dataset.tab === "perfil" || !needsProfile()) return;
+    e.preventDefault();
+    notify({type:"error", title:"Completá tu perfil", text:"Es un minuto y se desbloquea todo el campus."});
+  });
+
+  const TOUR = [
+    {title:"¡Bienvenido al campus!", text:"Te mostramos en 30 segundos para qué sirve cada sección."},
+    {tab:"cursos", title:"Mis cursos", text:"Tus cursos y clases. Miralas en orden: tu avance se guarda solo."},
+    {tab:"certificados", title:"Mis certificados", text:"Cuando aprobás un examen, tu certificado aparece acá para descargarlo o compartirlo."},
+    {tab:"certificaciones", title:"Certificaciones", text:"Los programas profesionales de InnovaFit. Consultá por WhatsApp y, si te habilitan, rendís la evaluación desde acá."},
+    {tab:"perfil", title:"Mi perfil", text:"Tus datos y tu foto. Tu nombre es el que sale en los certificados."},
+    {title:"Así se aprueba", text:"Mirá las clases → rendí el examen (80% o más) → tu certificado se emite al instante.", last:true},
+  ];
+
+  function startTour(done){
+    window.scrollTo(0, 0);
+    const root = document.createElement("div");
+    root.className = "tour";
+    root.innerHTML = `<div class="tour-hole"></div><div class="tour-tip card" role="dialog" aria-modal="true" aria-live="polite"></div>`;
+    document.body.appendChild(root);
+    const hole = root.querySelector(".tour-hole"), tip = root.querySelector(".tour-tip");
+    let i = 0;
+
+    const place = () => {
+      const s = TOUR[i];
+      const el = s.tab && $("tabs").querySelector(`[data-tab="${s.tab}"]`);
+      root.classList.toggle("center", !el);
+      if(!el){ tip.style.left = tip.style.top = ""; return; }
+      const r = el.getBoundingClientRect(), pad = 6;
+      Object.assign(hole.style, {left: r.left - pad + "px", top: r.top - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px"});
+      const w = Math.min(340, innerWidth - 32);
+      tip.style.left = Math.max(16, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 16)) + "px";
+      tip.style.top = r.bottom + 18 + "px";
+    };
+    const paint = () => {
+      const s = TOUR[i];
+      const el = s.tab && $("tabs").querySelector(`[data-tab="${s.tab}"]`);
+      if(el) el.scrollIntoView({block:"nearest", inline:"center"});
+      tip.innerHTML = `
+        ${s.tab ? `<span class="tour-n">${i} de ${TOUR.length - 2}</span>` : `<img class="tour-logo" src="/assets/innovafit-logo.png" alt="InnovaFit">`}
+        <h3>${esc(s.title)}</h3><p>${esc(s.text)}</p>
+        <div class="tour-dots">${TOUR.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("")}</div>
+        <div class="tour-act">
+          ${s.last ? "" : `<button type="button" class="btn btn-ghost btn-sm" data-t="skip">Saltar</button>`}
+          ${i > 0 ? `<button type="button" class="btn btn-ghost btn-sm" data-t="prev">Atrás</button>` : ""}
+          <button type="button" class="btn btn-primary btn-sm" data-t="next">${s.last ? "Empezar" : i === 0 ? "Mostrame" : "Siguiente"}</button>
+        </div>`;
+      place();
+      tip.querySelector("[data-t=next]").focus({preventScroll:true});
+    };
+    const finish = async () => {
+      root.remove();
+      removeEventListener("resize", place);
+      document.removeEventListener("keydown", keys);
+      try{ await pb.collection("users").update(me().id, {onboarded: true}); }catch{}
+      if(done) done();
+    };
+    const keys = (e) => {
+      if(e.key === "Escape") finish();
+      else if(e.key === "ArrowRight") tip.querySelector("[data-t=next]").click();
+      else if(e.key === "ArrowLeft" && i > 0){ i--; paint(); }
+    };
+    tip.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-t]");
+      if(!t) return;
+      if(t.dataset.t === "skip") return finish();
+      if(t.dataset.t === "prev"){ i--; return paint(); }
+      if(TOUR[i].last) return finish();
+      i++;
+      paint();
+    });
+    addEventListener("resize", place);
+    document.addEventListener("keydown", keys);
+    paint();
+  }
+  function maybeTour(){
+    const u = me();
+    if(u.role === "admin" || u.onboarded || needsProfile() || document.querySelector(".tour")) return;
+    startTour(() => {
+      const go = afterProfile;
+      afterProfile = "";
+      if(go && go !== location.hash) location.hash = go;
+    });
   }
 
   /* =====================================================
@@ -707,9 +815,14 @@
     const totalLessons = (await Promise.all(courses.map((c) => loadLessons(c.id)))).flat();
     const doneCount = totalLessons.filter((l) => progress.has(l.id)).length;
     const avStyle = u.avatar ? `style="background-image:url('${fileUrl(u, u.avatar, "200x200")}')"` : "";
+    const gate = needsProfile();
+    const head = gate
+      ? `<div class="hello rise"><span class="eyebrow">Paso 1 de 2 · Antes de empezar</span><h1>Completá tu <span class="grad-text">perfil</span></h1><p>Necesitamos estos datos para emitir tus certificados. Al guardarlos se desbloquea todo el campus.</p></div>
+        <div class="card gate-check rise" id="gateCheck">${PROFILE_REQ.map(([k, label]) => `<span data-k="${k}"><i></i>${esc(label)}</span>`).join("")}</div>`
+      : `<div class="hello rise"><span class="eyebrow">Tu cuenta</span><h1>Mi <span class="grad-text">perfil</span></h1><p>Mantené tus datos al día: tu nombre es el que aparece en tus certificados.</p></div>`;
     view.innerHTML = `<div class="page">
-      <div class="hello rise"><span class="eyebrow">Tu cuenta</span><h1>Mi <span class="grad-text">perfil</span></h1><p>Mantené tus datos al día: tu nombre es el que aparece en tus certificados.</p></div>
-      <div class="profile rise">
+      ${head}
+      <div class="profile rise ${gate ? "gating" : ""}">
         <div class="card id-card">
           <label class="big-av" ${avStyle} title="Cambiar foto">${u.avatar ? "" : esc(initials(u.name || u.email))}<input type="file" id="avIn" accept="image/*" hidden></label>
           <h2>${esc(u.name || "Sin nombre")}</h2>
@@ -726,9 +839,10 @@
             </div>
             <label class="field"><span>Identificación (CURP / DNI)</span><input class="input" name="docId" value="${esc(u.docId || "")}"></label>
             <label class="field"><span>Correo</span><input class="input" value="${esc(u.email)}" disabled></label>
-            <button class="btn btn-primary">Guardar cambios</button>
+            <p class="error-msg" id="pErr" role="alert"></p>
+            <button class="btn btn-primary">${gate ? "Guardar y desbloquear el campus" : "Guardar cambios"}</button>
           </form>
-          <form class="card panel" id="pwForm" novalidate>
+          <form class="card panel" id="pwForm" novalidate ${gate ? "hidden" : ""}>
             <h2>Cambiar contraseña</h2>
             <label class="field"><span>Contraseña actual</span><input class="input" type="password" name="oldPassword" autocomplete="current-password" required></label>
             <div class="two">
@@ -753,18 +867,40 @@
         renderPerfil();
       }catch(err){ fail(err); }
     };
+    const formData = (f) => ({
+      name: f.name.value.trim().replace(/\s+/g, " "),
+      country: f.country.value.replace(/\D/g, ""),
+      phone: f.phone.value.replace(/\D/g, ""),
+      docId: f.docId.value.trim(),
+    });
+    // Checklist en vivo mientras completa los datos.
+    const paintCheck = () => {
+      if(!$("gateCheck")) return;
+      const miss = new Set(profileMissing(formData($("pForm"))).map(([k]) => k));
+      $("gateCheck").querySelectorAll("[data-k]").forEach((s) => s.classList.toggle("ok", !miss.has(s.dataset.k)));
+    };
+    $("pForm").addEventListener("input", paintCheck);
+    paintCheck();
     $("pForm").onsubmit = async (e) => {
       e.preventDefault();
-      const f = e.target;
-      if(f.name.value.trim().length < 2) return fail("Escribí tu nombre completo.");
+      const f = e.target, data = formData(f);
+      $("pErr").textContent = "";
+      const miss = profileMissing(data);
+      if(gate && miss.length) return void ($("pErr").textContent = "Falta completar: " + miss.map(([, label]) => label).join(", ") + ".");
+      if(data.name.length < 2) return fail("Escribí tu nombre completo.");
       try{
-        await pb.collection("users").update(u.id, {
-          name: f.name.value.trim(),
-          country: f.country.value.replace(/\D/g, ""),
-          phone: f.phone.value.replace(/\D/g, ""),
-          docId: f.docId.value.trim(),
-        });
+        await pb.collection("users").update(u.id, data);
         paintAvatar();
+        lockCampus();
+        if(gate){
+          ok("¡Perfil completo!", "Ya tenés todo el campus desbloqueado.");
+          // Sin tutorial pendiente vuelve a donde iba; si no, el tutorial arranca sobre Mis cursos.
+          const go = (me().onboarded && afterProfile) || "#/";
+          if(me().onboarded) afterProfile = "";
+          if(location.hash === go) await route(); else location.hash = go;
+          maybeTour();
+          return;
+        }
         ok("¡Guardado con éxito!", "Tus datos están actualizados.");
         renderPerfil();
       }catch(err){ fail(err); }
@@ -793,7 +929,13 @@
     const h = location.hash;
     const m = h.match(/^#\/c\/([^/]+)(?:\/([^/]+))?/);
     try{
-      if(m) await renderCourse(m[1], m[2]);
+      lockCampus();
+      // Sin perfil completo solo se puede estar en Mi perfil; guardamos a dónde iba.
+      if(needsProfile()){
+        if(!h.startsWith("#/perfil")) afterProfile = h;
+        await renderPerfil();
+      }
+      else if(m) await renderCourse(m[1], m[2]);
       else if(h.startsWith("#/certificados")) await renderCertificados();
       else if(h.startsWith("#/certificaciones")) await renderCertificaciones();
       else if(h.startsWith("#/perfil")) await renderPerfil();
@@ -826,6 +968,7 @@
     if(welcome) location.replace("#/");
     await route();
     if(welcome) ok("¡Bienvenido al campus!", "Tu cuenta ya está activa. Arrancá tu curso de regalo.");
+    maybeTour();
   }
 
   boot();

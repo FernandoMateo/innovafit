@@ -116,6 +116,8 @@ async function setupCollections() {
       { name: "country", type: "text", max: 6 },
       { name: "docId", type: "text", max: 40 },
       { name: "courses", type: "relation", collectionId: courses.id, maxSelect: 999, cascadeDelete: false },
+      // true cuando el alumno ya vio el tutorial del campus (lo marca él mismo).
+      { name: "onboarded", type: "bool" },
     ],
     listRule: "id = @request.auth.id || " + ADMIN,
     viewRule: "id = @request.auth.id || " + ADMIN,
