@@ -658,7 +658,9 @@
           <div class="meta"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${p.duration ? `<span class="badge">${esc(p.duration)}</span>` : ""}${p.modality ? `<span class="badge">${esc(p.modality)}</span>` : ""}</div>
           <h3>${esc(p.title)}</h3>
           <p>${esc(p.summary || "")}</p>
-          <button class="btn btn-primary" data-ask="${p.id}">Consultar por WhatsApp</button>
+          ${p.course && (me().courses || []).includes(p.course)
+            ? `<a class="btn btn-primary" href="#/c/${p.course}">Ir a la evaluación</a>`
+            : `<button class="btn btn-primary" data-ask="${p.id}">Consultar por WhatsApp</button>`}
         </div></article>`).join("")}</div>
     </div>`;
     const byId = new Map(items.map((p) => [p.id, p]));

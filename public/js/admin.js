@@ -590,12 +590,13 @@
   async function renderCursos(){
     const courses = await getCourses(true);
     const counts = await Promise.all(courses.map((c) => pb.collection("lessons").getList(1, 1, {filter: pb.filter("course = {:c}", {c: c.id}), fields:"id"}).then((r) => r.totalItems)));
+    const ofProgram = new Set((await pb.collection("programs").getFullList({fields:"course"})).map((p) => p.course).filter(Boolean));
     view.innerHTML = `
       <div class="head"><div><span class="eyebrow">Contenido</span><h1>Cursos</h1></div>
         <div class="actions"><a class="btn btn-primary" href="#/cursos/nuevo">+ Nuevo curso</a></div></div>
       <div class="tiles stagger">${courses.map((c, i) => `<a class="card tile spot" href="#/cursos/${c.id}">
         <div class="cv${c.cover ? "" : " ph"}" ${c.cover ? `style="background-image:url('${fileUrl(c, c.cover, "640x360")}')"` : ""}>${c.cover ? "" : `<span>${esc(initials(c.title))}</span>`}</div>
-        <div class="cb"><div class="badges">${c.published ? '<span class="badge good">Publicado</span>' : '<span class="badge">Borrador</span>'}${c.isGift ? '<span class="badge hot">🎁 Regalo</span>' : ""}${c.certEnabled ? '<span class="badge">🎓 Certifica</span>' : ""}</div>
+        <div class="cb"><div class="badges">${c.published ? '<span class="badge good">Publicado</span>' : '<span class="badge">Borrador</span>'}${c.isGift ? '<span class="badge hot">🎁 Regalo</span>' : ""}${c.certEnabled ? '<span class="badge">🎓 Certifica</span>' : ""}${ofProgram.has(c.id) ? '<span class="badge hot">Certificación</span>' : ""}</div>
           <h3>${esc(c.title)}</h3><p>${counts[i]} lecciones</p></div></a>`).join("")}
         <a class="tile add" href="#/cursos/nuevo"><span class="plus">+</span>Nuevo curso</a></div>`;
     stagger(view);
@@ -743,7 +744,7 @@
   }
 
   // Editor de preguntas de la comprobación (práctica) o del examen de acreditación (final).
-  function assessmentModal(course, lesson, a){
+  function assessmentModal(course, lesson, a, after){
     const final = lesson.kind === "exam";
     const qs = a && Array.isArray(a.questions) ? JSON.parse(JSON.stringify(a.questions)) : [];
     if(!qs.length) qs.push({q:"", options:["", "", "", ""], correct:0, explain:""});
@@ -830,7 +831,7 @@
           else await pb.collection("assessments").create(body);
           closeModal();
           ok("¡Guardado con éxito!", clean.length + " preguntas listas en el campus.");
-          renderCurso(course.id);
+          if(after) after(); else renderCurso(course.id);
         }catch(e2){ err.textContent = errMsg(e2); btn.disabled = false; }
       };
     }, true);
@@ -1080,7 +1081,7 @@
         <div class="actions"><button class="btn btn-primary" id="newProg">+ Nueva certificación</button></div></div>
       <div class="tiles stagger">${items.map((p) => `<div class="card tile spot" data-id="${p.id}" tabindex="0" role="button">
         <div class="cv${p.image ? "" : " ph"}" ${p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}>${p.image ? "" : `<span>${esc(initials(p.title))}</span>`}</div>
-        <div class="cb"><div class="badges"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${p.published ? '<span class="badge good">Visible</span>' : '<span class="badge">Oculta</span>'}</div>
+        <div class="cb"><div class="badges"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${p.published ? '<span class="badge good">Visible</span>' : '<span class="badge">Oculta</span>'}${p.course ? '<span class="badge">📝 Evaluación</span>' : ""}</div>
           <h3>${esc(p.title)}</h3><p>${esc(p.summary || "")}</p></div></div>`).join("")}
         <button class="tile add" id="newProg2"><span class="plus">+</span>Nueva certificación</button></div>`;
     stagger(view);
@@ -1114,6 +1115,7 @@
         </div>
         <label class="field"><span>Imagen (opcional)</span><input class="input" type="file" name="image" accept="image/*"></label>
         <label class="check" style="margin-bottom:14px"><input type="checkbox" name="published"${x.published ? " checked" : ""}> Visible en el campus y en la web</label>
+        ${isNew ? '<p class="hint">Guardá la certificación y después creale su evaluación.</p>' : `<div class="field"><span>Evaluación de la certificación</span><div class="card" id="pExam" style="padding:14px 16px"><span class="muted">Cargando…</span></div></div>`}
         <p class="error-msg" id="pErr" role="alert"></p>
         <div class="modal-actions">${isNew ? "" : '<button type="button" class="btn btn-danger" id="pDel" style="margin-right:auto">Eliminar</button>'}<button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="pSave">${isNew ? "Crear" : "Guardar"}</button></div>
       </form>`, (m) => {
@@ -1130,6 +1132,11 @@
         try{
           if(isNew) await pb.collection("programs").create(fd);
           else await pb.collection("programs").update(p.id, fd);
+          // El certificado usa el título del curso de la evaluación: se mantiene igual al de la certificación.
+          if(!isNew && p.course){
+            await pb.collection("courses").update(p.course, {title: form.title.value.trim(), certHours: form.duration.value.trim()}).catch(() => {});
+            await getCourses(true);
+          }
           closeModal();
           ok(isNew ? "¡Creado con éxito!" : "¡Guardado con éxito!", "El catálogo del alumno ya está actualizado.");
           renderCertificaciones();
@@ -1138,12 +1145,62 @@
           m.querySelector("#pSave").disabled = false;
         }
       };
+      if(!isNew) paintProgramExam(m.querySelector("#pExam"), p);
       m.querySelector("#pDel")?.addEventListener("click", async () => {
-        if(!(await confirmBox("Eliminar certificación", "Se quita \"" + p.title + "\" del catálogo. Los certificados ya emitidos no cambian."))) return;
+        if(!(await confirmBox("Eliminar certificación", "Se quita \"" + p.title + "\" del catálogo. Los certificados ya emitidos no cambian." + (p.course ? " Su evaluación queda guardada en Cursos." : "")))) return;
         try{ await pb.collection("programs").delete(p.id); ok("¡Eliminada!"); renderCertificaciones(); }
         catch(err){ fail(err); }
       });
     });
+  }
+
+  // Busca el curso, la lección de examen y las preguntas de una certificación (sin crear nada).
+  async function programExam(p){
+    if(!p.course) return {};
+    const course = await pb.collection("courses").getOne(p.course).catch(() => null);
+    if(!course) return {};
+    const lesson = (await pb.collection("lessons").getFullList({filter: pb.filter('course = {:c} && kind = "exam"', {c: course.id}), sort:"order"}))[0] || null;
+    const a = lesson ? (await pb.collection("assessments").getFullList({filter: pb.filter("lesson = {:l}", {l: lesson.id})}))[0] || null : null;
+    return {course, lesson, a};
+  }
+
+  // Crea lo que falte para que la certificación tenga examen: su curso (oculto del catálogo libre) y la lección.
+  async function ensureProgramExam(p){
+    let {course, lesson, a} = await programExam(p);
+    if(!course){
+      course = await pb.collection("courses").create({title: p.title, subtitle: "Evaluación de la certificación", published: true, openAccess: false, isGift: false,
+        certEnabled: true, certHours: p.duration || "", order: (await getCourses(true)).length + 1});
+      await pb.collection("programs").update(p.id, {course: course.id});
+      p.course = course.id;
+    }
+    if(!lesson){
+      const others = await pb.collection("lessons").getFullList({filter: pb.filter("course = {:c}", {c: course.id}), fields:"order"});
+      lesson = await pb.collection("lessons").create({course: course.id, title: "Examen de certificación", section: "Acreditación", kind: "exam",
+        order: Math.max(0, ...others.map((l) => l.order || 0)) + 1,
+        description: "Aprobá con el puntaje mínimo y tu certificado se emite al instante."});
+    }
+    await getCourses(true);
+    return {course, lesson, a};
+  }
+
+  async function paintProgramExam(box, p){
+    const {course, lesson, a} = await programExam(p).catch(() => ({}));
+    if(!box.isConnected) return;
+    const qn = a && Array.isArray(a.questions) ? a.questions.length : 0;
+    box.innerHTML = qn
+      ? `<b>${qn} preguntas</b><span class="muted"> · aprueba con ${a.passScore || 80}% · ${a.maxAttempts ? a.maxAttempts + " oportunidades" : "oportunidades ilimitadas"}</span>
+         <p class="hint" style="margin:8px 0 12px">Para que un alumno la rinda, habilitale «${esc(course.title)}» en Alumnos → Editar. Al aprobar queda ACREDITADO y recibe su certificado.</p>
+         <div class="row-actions"><button type="button" class="btn btn-primary btn-sm" data-exam>Editar preguntas</button><a class="btn btn-ghost btn-sm" href="#/cursos/${course.id}" data-close>Material de estudio</a></div>`
+      : `<span class="muted">${lesson ? "La evaluación está creada pero todavía no tiene preguntas." : "Esta certificación todavía no tiene evaluación."}</span>
+         <div class="row-actions" style="margin-top:10px"><button type="button" class="btn btn-primary btn-sm" data-exam>${lesson ? "Cargar preguntas" : "+ Crear evaluación"}</button></div>`;
+    box.querySelector("[data-exam]").onclick = async (e) => {
+      e.target.disabled = true;
+      try{
+        const x = await ensureProgramExam(p);
+        closeModal();
+        assessmentModal(x.course, x.lesson, x.a, renderCertificaciones);
+      }catch(err){ e.target.disabled = false; fail(err); }
+    };
   }
 
   /* =====================================================
