@@ -620,9 +620,8 @@
           <p class="hint">Texto libre: cada párrafo separado por una línea en blanco. También acepta HTML.</p>
           <div class="field"><span>Portada (16:9)</span>
             <div class="cover-prev" id="coverPrev" ${c.cover ? `style="background-image:url('${fileUrl(c, c.cover, "640x360")}')"` : ""}>${c.cover ? "" : "Sin portada"}</div>
-            <input class="input" type="file" name="cover" accept="image/*"></div>
-          <label class="field"><span>Foto para la web${c.photo ? " · ya cargada" : ""}</span><input class="input" type="file" name="photo" accept="image/png,image/webp"></label>
-          <p class="hint">PNG recortado, sin fondo: va en la tarjeta del curso en la landing (solo cursos con inscripción libre).</p>
+            <input class="input" type="file" name="cover" accept="image/png,image/jpeg,image/webp,image/gif"></div>
+          <p class="hint">La misma imagen se ve en el panel, en el campus y en la tarjeta de la web. JPG, PNG o WEBP de hasta 15 MB.</p>
           <div class="two">
             <label class="field"><span>Orden</span><input class="input" name="order" type="number" value="${esc(c.order || 0)}"></label>
             <div class="field"><span>Visibilidad</span>
@@ -670,7 +669,6 @@
       fd.set("certEnabled", form.certEnabled.checked ? "true" : "false");
       fd.set("certHours", form.certHours.value.trim());
       if(form.cover.files[0]) fd.set("cover", form.cover.files[0]);
-      if(form.photo.files[0]) fd.set("photo", form.photo.files[0]);
       btn.disabled = true;
       try{
         const rec = isNew ? await pb.collection("courses").create(fd) : await pb.collection("courses").update(c.id, fd);
@@ -1116,15 +1114,20 @@
           <label class="field"><span>Precio en la web</span><input class="input" name="priceLabel" value="${esc(x.priceLabel || "")}" placeholder="Consultá"></label>
           <label class="field"><span>Nota destacada (opcional)</span><input class="input" name="note" value="${esc(x.note || "")}" placeholder="Ej: Precio Buen Fin"></label>
         </div>
-        <label class="field"><span>Imagen (opcional)</span><input class="input" type="file" name="image" accept="image/*"></label>
-        <label class="field"><span>Foto para la web${x.photo ? " · ya cargada" : ""}</span><input class="input" type="file" name="photo" accept="image/png,image/webp"></label>
-        <p class="hint" style="margin-top:-6px">PNG recortado, sin fondo: va en la tarjeta de la landing. Si no subís nada, se usa una de nuestras fotos.</p>
+        <div class="field"><span>Imagen (16:9)</span>
+          <div class="cover-prev" id="pPrev" ${x.image ? `style="background-image:url('${fileUrl(x, x.image, "640x360")}')"` : ""}>${x.image ? "" : "Sin imagen"}</div>
+          <input class="input" type="file" name="image" accept="image/png,image/jpeg,image/webp"></div>
+        <p class="hint" style="margin-top:-6px">La misma imagen se ve en el panel, en el campus y en la tarjeta de la web. JPG, PNG o WEBP de hasta 10 MB.</p>
         <label class="check" style="margin-bottom:14px"><input type="checkbox" name="published"${x.published ? " checked" : ""}> Visible en el campus y en la web</label>
         ${isNew ? '<p class="hint">Guardá la certificación y después creale su evaluación.</p>' : `<div class="field"><span>Evaluación de la certificación</span><div class="card" id="pExam" style="padding:14px 16px"><span class="muted">Cargando…</span></div></div>`}
         <p class="error-msg" id="pErr" role="alert"></p>
         <div class="modal-actions">${isNew ? "" : '<button type="button" class="btn btn-danger" id="pDel" style="margin-right:auto">Eliminar</button>'}<button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="pSave">${isNew ? "Crear" : "Guardar"}</button></div>
       </form>`, (m) => {
       const form = m.querySelector("#pForm");
+      form.image.onchange = () => {
+        const f = form.image.files[0];
+        if(f){ const prev = m.querySelector("#pPrev"); prev.style.backgroundImage = "url('" + URL.createObjectURL(f) + "')"; prev.textContent = ""; }
+      };
       form.onsubmit = async (e) => {
         e.preventDefault();
         if(!form.title.value.trim()){ m.querySelector("#pErr").textContent = "Falta el nombre."; return; }
@@ -1133,14 +1136,18 @@
         fd.set("order", form.order.value || "0");
         fd.set("published", form.published.checked ? "true" : "false");
         if(form.image.files[0]) fd.set("image", form.image.files[0]);
-        if(form.photo.files[0]) fd.set("photo", form.photo.files[0]);
         m.querySelector("#pSave").disabled = true;
         try{
           if(isNew) await pb.collection("programs").create(fd);
           else await pb.collection("programs").update(p.id, fd);
           // El certificado usa el título del curso de la evaluación: se mantiene igual al de la certificación.
+          // Su portada en el campus es la misma imagen de la certificación.
           if(!isNew && p.course){
-            await pb.collection("courses").update(p.course, {title: form.title.value.trim(), certHours: form.duration.value.trim()}).catch(() => {});
+            const cd = new FormData();
+            cd.set("title", form.title.value.trim());
+            cd.set("certHours", form.duration.value.trim());
+            if(form.image.files[0]) cd.set("cover", form.image.files[0]);
+            await pb.collection("courses").update(p.course, cd).catch(() => {});
             await getCourses(true);
           }
           closeModal();
@@ -1174,8 +1181,15 @@
   async function ensureProgramExam(p){
     let {course, lesson, a} = await programExam(p);
     if(!course){
-      course = await pb.collection("courses").create({title: p.title, subtitle: "Evaluación de la certificación", published: true, openAccess: false, isGift: false,
-        certEnabled: true, certHours: p.duration || "", order: (await getCourses(true)).length + 1});
+      const fd = new FormData();
+      Object.entries({title: p.title, subtitle: "Evaluación de la certificación", published: true, openAccess: false, isGift: false,
+        certEnabled: true, certHours: p.duration || "", order: (await getCourses(true)).length + 1}).forEach(([k, v]) => fd.set(k, String(v)));
+      // Misma imagen que la certificación.
+      if(p.image){
+        const blob = await fetch(fileUrl(p, p.image)).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+        if(blob) fd.set("cover", new File([blob], p.image, {type: blob.type}));
+      }
+      course = await pb.collection("courses").create(fd);
       await pb.collection("programs").update(p.id, {course: course.id});
       p.course = course.id;
     }

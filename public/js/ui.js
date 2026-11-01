@@ -2,7 +2,10 @@
 (function(){
   "use strict";
 
-  const pb = new PocketBase(location.origin + "/pb");
+  // El admin guarda su sesión aparte: entrar al campus como alumno en otra pestaña
+  // no le cambia la cuenta al panel (antes compartían "pocketbase_auth").
+  const LocalAuthStore = new PocketBase(location.origin + "/pb").authStore.constructor;
+  const pb = new PocketBase(location.origin + "/pb", /^\/admin/.test(location.pathname) ? new LocalAuthStore("innovafit_admin_auth") : undefined);
   pb.autoCancellation(false);
 
   function esc(v){

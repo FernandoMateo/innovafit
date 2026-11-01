@@ -314,15 +314,19 @@
   @media (min-width:700px){.rail{grid-auto-columns:minmax(250px,calc((100% - 36px)/4))}}
   .prog{scroll-snap-align:start;display:flex;flex-direction:column;border-radius:20px;background:var(--bg-2);border:1px solid var(--line);overflow:hidden;transition:transform .4s var(--ease),border-color .3s}
   .prog:hover{transform:translateY(-6px);border-color:var(--line-2)}
-  .prog-card{position:relative;display:block;aspect-ratio:4/4.4;overflow:hidden;background:#0d0a09}
+  .prog-card{position:relative;display:block;aspect-ratio:16/9;overflow:hidden;background:#0d0a09}
+  .prog-card img.cv{left:0;top:0;width:100%;height:100%;max-width:100%;translate:none;object-fit:cover}
+  .prog-card:has(img.cv)::before{display:none}
+  .prog .body small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+  .prog .body h3{font-family:var(--display);font-weight:600;text-transform:uppercase;font-size:20px;line-height:1.02;letter-spacing:-.01em;margin:6px 0 12px}
   .prog-card::before{content:"";position:absolute;left:50%;bottom:-36%;width:130%;aspect-ratio:1;translate:-50% 0;border-radius:50%;background:radial-gradient(closest-side,rgba(255,110,30,.85),rgba(255,77,31,.2) 60%,transparent);transition:transform .5s var(--ease)}
   .prog:hover .prog-card::before{transform:scale(1.12)}
-  .prog-card img{position:absolute;left:50%;bottom:0;height:68%;width:auto;max-width:none;translate:-50% 0;transition:transform .5s var(--ease)}
+  .prog-card img{position:absolute;left:50%;bottom:0;height:92%;width:auto;max-width:none;translate:-50% 0;transition:transform .5s var(--ease)}
   .prog:hover .prog-card img{transform:scale(1.05)}
   .prog-card .top{position:absolute;z-index:2;left:16px;right:16px;top:16px}
   .prog-card .top small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
   .prog-card .top b{display:block;font-family:var(--display);font-weight:600;text-transform:uppercase;font-size:20px;line-height:1.02;letter-spacing:-.01em;margin-top:6px}
-  .prog-card .tag{position:absolute;z-index:2;left:14px;bottom:14px;padding:6px 12px;border-radius:999px;background:#fff;color:#140a04;font-size:12px;font-weight:800}
+  .prog-card .tag{position:absolute;z-index:2;right:12px;top:12px;padding:6px 12px;border-radius:999px;background:#fff;color:#140a04;font-size:12px;font-weight:800}
   .prog-card .tag.free{background:var(--grad)}
   .prog .body{display:flex;flex-direction:column;flex:1;padding:16px}
   .prog ul{list-style:none;padding:0;display:grid;gap:6px;font-size:13.5px;line-height:1.45;color:var(--soft);margin-bottom:16px}
@@ -735,7 +739,8 @@
     [/fuerza|s&c|culturismo/i, "entrenador-fuerza"], [/paquete/i, "pareja-innovafit"], [/grupal|adulto|envejec/i, "atleta-mancuerna"], [/correctiv|postura/i, "atleta-retrato"],
   ];
   const POOL = ["atleta-innovafit", "entrenadora-nutricion", "entrenador-fuerza", "pareja-innovafit", "atleta-mancuerna", "atleta-retrato", "entrenador-zancada"];
-  const photo = (p, i) => p.photo || "/assets/campus/" + ((PHOTOS.find(([re]) => re.test(p.title)) || [])[1] || POOL[i % POOL.length]) + ".webp";
+  // Sin imagen cargada en el admin, va una foto recortada de InnovaFit sobre el brillo naranja.
+  const photo = (p, i) => "/assets/campus/" + ((PHOTOS.find(([re]) => re.test(p.title)) || [])[1] || POOL[i % POOL.length]) + ".webp";
   const KIND = {certificacion:"Certificación", especializacion:"Especialización", paquete:"Paquete"};
   const STATIC = [
     {free:true, id:"", title:"Fundamentos de Biomecánica", kind:"Curso gratis", lines:["Planos de movimiento, palancas y leyes de Newton.", "Videos, audios, estudio de caso y examen."]},
@@ -749,11 +754,10 @@
     const ext = p.free ? "" : ' target="_blank" rel="noopener"';
     return `<article class="prog" data-in style="--d:${Math.min(i, 4) * .07}s">
       <a class="prog-card" href="${href}"${ext}>
-        <div class="top"><small>${esc(p.kind)}</small><b>${esc(p.title)}</b></div>
-        <img src="${esc(photo(p, i))}" alt="" loading="lazy">
+        ${p.img ? `<img class="cv" src="${esc(p.img)}" alt="${esc(p.title)}" loading="lazy">` : `<img src="${esc(photo(p, i))}" alt="" loading="lazy">`}
         <span class="tag${p.free ? " free" : ""}">${esc(p.free ? C.catalog.freeBadge : p.price || "Consultá")}</span>
       </a>
-      <div class="body"><ul>${p.lines.filter(Boolean).map((l) => `<li>${esc(l)}</li>`).join("")}${p.note ? `<li class="note">${esc(p.note)}</li>` : ""}</ul>
+      <div class="body"><small>${esc(p.kind)}</small><h3>${esc(p.title)}</h3><ul>${p.lines.filter(Boolean).map((l) => `<li>${esc(l)}</li>`).join("")}${p.note ? `<li class="note">${esc(p.note)}</li>` : ""}</ul>
       <a class="btn ${p.free ? "btn-grad" : "btn-line"}" href="${href}"${ext}>${esc(p.free ? C.catalog.freeButton : C.catalog.askButton)}</a></div>
     </article>`;
   }
@@ -809,8 +813,8 @@
     render();
     const plain = (html) => { const d = document.createElement("div"); d.innerHTML = html || ""; return d.textContent.trim(); };
     const items = [
-      ...((courses && courses.items) || []).map((c) => ({free:true, id:c.id, title:c.title, kind:"Curso gratis", photo: c.photo ? fileUrl(c, c.photo) : "", lines:[c.subtitle || plain(c.description).slice(0, 90), C.catalog.freeNote]})),
-      ...((programs && programs.items) || []).map((p) => ({title:p.title, kind:KIND[p.kind] || "Certificación", photo: p.photo ? fileUrl(p, p.photo) : "", lines:[p.summary, [p.duration, p.modality].filter(Boolean).join(" · ")], note:p.note, price:p.priceLabel})),
+      ...((courses && courses.items) || []).map((c) => ({free:true, id:c.id, title:c.title, kind:"Curso gratis", img: c.cover ? fileUrl(c, c.cover, "640x360") : "", lines:[c.subtitle || plain(c.description).slice(0, 90), C.catalog.freeNote]})),
+      ...((programs && programs.items) || []).map((p) => ({title:p.title, kind:KIND[p.kind] || "Certificación", img: p.image ? fileUrl(p, p.image, "640x360") : "", lines:[p.summary, [p.duration, p.modality].filter(Boolean).join(" · ")], note:p.note, price:p.priceLabel})),
     ];
     if(items.length) renderRail(items);
   })();
