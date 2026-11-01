@@ -1,0 +1,56 @@
+/* InnovaSale: bloque de oferta con fuego, reloj y precios. Lo usan la landing y el campus. */
+.sale-head{
+  --fire-1:#ff3d00; --fire-2:#ff7a00; --fire-3:#ffc93c;
+  position:relative;isolation:isolate;overflow:hidden;border-radius:28px;padding:clamp(26px,5vw,56px) clamp(18px,4vw,48px) clamp(30px,5vw,58px);
+  background:radial-gradient(120% 90% at 50% 120%,rgba(255,77,0,.55),rgba(255,61,0,.12) 45%,transparent 70%),#0b0606;
+  border:1px solid rgba(255,122,0,.35);box-shadow:0 0 0 1px rgba(255,61,0,.08) inset,0 30px 80px -30px rgba(255,61,0,.45);
+}
+.sale-fire{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+/* Lenguas de fuego: manchas desenfocadas que respiran en la base */
+.sale-flames{position:absolute;left:-10%;right:-10%;bottom:-30%;height:75%;z-index:-2;pointer-events:none;filter:blur(38px);opacity:.85}
+.sale-flames i{position:absolute;bottom:0;width:34%;height:100%;border-radius:50% 50% 40% 40%;background:radial-gradient(closest-side,var(--fire-3),var(--fire-2) 45%,var(--fire-1) 70%,transparent);
+  animation:saleFlame 2.6s ease-in-out infinite alternate;transform-origin:50% 100%}
+.sale-flames i:nth-child(1){left:2%;animation-duration:2.2s}
+.sale-flames i:nth-child(2){left:24%;height:120%;animation-delay:-.8s}
+.sale-flames i:nth-child(3){left:46%;animation-duration:3s;animation-delay:-1.4s}
+.sale-flames i:nth-child(4){left:68%;height:110%;animation-duration:2.4s;animation-delay:-.4s}
+@keyframes saleFlame{0%{transform:scale(.9,.75) translateX(-3%);opacity:.7}100%{transform:scale(1.08,1.05) translateX(3%);opacity:1}}
+
+.sale-in{position:relative;display:grid;gap:14px;justify-items:center;text-align:center}
+.sale-kicker{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(255,61,0,.16);border:1px solid rgba(255,122,0,.45);
+  font-family:"Space Mono",ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#ffd9a8}
+.sale-kicker::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--fire-2);box-shadow:0 0 0 0 rgba(255,122,0,.8);animation:salePulse 1.4s infinite}
+@keyframes salePulse{70%{box-shadow:0 0 0 9px rgba(255,122,0,0)}100%{box-shadow:0 0 0 0 rgba(255,122,0,0)}}
+
+.sale-word{margin:0;font-family:"Anton","Inter Tight",Impact,sans-serif;font-weight:800;text-transform:uppercase;line-height:.86;letter-spacing:-.01em;font-size:clamp(54px,12vw,150px)}
+.sale-word span{color:#fff}
+.sale-word b{font-weight:inherit;background:linear-gradient(0deg,var(--fire-1) 0%,var(--fire-2) 40%,var(--fire-3) 75%,#fff6d8 100%);background-size:100% 220%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:saleBurn 2.2s ease-in-out infinite alternate;
+  filter:drop-shadow(0 0 22px rgba(255,90,0,.55))}
+@keyframes saleBurn{to{background-position:0 100%}}
+.sale-in>p{margin:0;max-width:56ch;color:#f3dcc6;font-size:clamp(14.5px,1.6vw,17px);line-height:1.5}
+
+.sale-row{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;justify-content:center;margin-top:6px}
+.sale-clock{display:flex;gap:8px}
+.sale-clock .u{display:grid;justify-items:center;gap:6px;min-width:clamp(58px,9vw,82px);padding:12px 6px 9px;border-radius:16px;background:rgba(10,4,2,.72);border:1px solid rgba(255,122,0,.4);backdrop-filter:blur(6px)}
+.sale-clock b{font-family:"Space Mono",ui-monospace,monospace;font-weight:700;font-size:clamp(26px,4.2vw,40px);line-height:1;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(255,122,0,.6)}
+.sale-clock b.flip{animation:saleFlip .45s cubic-bezier(.2,.9,.3,1)}
+@keyframes saleFlip{from{transform:translateY(-35%);opacity:.2}}
+.sale-clock small{font-family:"Space Mono",ui-monospace,monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#ffb877}
+.sale-max{font-family:"Space Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#ffd9a8}
+.sale-max b{display:block;font-family:"Anton","Inter Tight",Impact,sans-serif;font-size:clamp(34px,5vw,52px);letter-spacing:0;line-height:1;color:var(--fire-3);text-shadow:0 0 24px rgba(255,90,0,.6)}
+
+/* Tarjetas en oferta */
+.sale-off{position:absolute;z-index:3;left:12px;top:12px;padding:7px 12px;border-radius:12px;font-family:"Anton","Inter Tight",Impact,sans-serif;font-weight:800;font-size:22px;line-height:1;color:#1a0700;
+  background:linear-gradient(135deg,#ffe08a,#ff9a1f 55%,#ff4d00);box-shadow:0 8px 24px -6px rgba(255,77,0,.8);transform:rotate(-4deg);animation:saleBob 2.4s ease-in-out infinite}
+@keyframes saleBob{50%{transform:rotate(-4deg) translateY(-3px) scale(1.04)}}
+.sale-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:2px 0 4px}
+.sale-price s{color:#9d8f80;font-size:14px}
+.sale-price b{font-family:"Anton","Inter Tight",Impact,sans-serif;font-size:26px;line-height:1;background:linear-gradient(90deg,#ff7a00,#ffc93c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sale-slots{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:#ffb35c}
+.sale-slots::before{content:"";width:8px;height:8px;border-radius:50%;background:#ff4d00;box-shadow:0 0 0 0 rgba(255,77,0,.8);animation:salePulse 1.2s infinite}
+.is-sale-card{border-color:rgba(255,122,0,.45)!important;box-shadow:0 0 0 1px rgba(255,90,0,.15),0 24px 60px -30px rgba(255,61,0,.7)}
+
+@media (prefers-reduced-motion:reduce){
+  .sale-flames i,.sale-word b,.sale-off,.sale-kicker::before,.sale-slots::before,.sale-clock b.flip{animation:none}
+}

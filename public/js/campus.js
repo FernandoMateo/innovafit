@@ -754,29 +754,51 @@
   async function renderCertificaciones(){
     $("burger").hidden = true;
     setTab("certificaciones");
-    const items = await pb.collection("programs").getFullList({sort:"order,title"});
-    const rib = await ribbon();
-    view.innerHTML = `<div class="page">
-      <div class="hello rise"><span class="eyebrow">Tu próximo nivel</span><h1>Certificaciones <span class="grad-text">disponibles</span></h1>
+    let items = await pb.collection("programs").getFullList({sort:"order,title"});
+    const sale = Sale.state(await settings());
+    const offOf = (p) => Sale.forProgram(sale, p);
+    // Con InnovaSale, las certificaciones en oferta van primero.
+    if(sale) items = [...items].sort((a, b) => !!offOf(b) - !!offOf(a));
+    const top = Math.max(0, ...items.map((p) => (offOf(p) || {pct: 0}).pct));
+    const rib = sale ? "" : await ribbon();
+    view.innerHTML = `<div class="page${sale ? " progs-sale" : ""}">
+      ${sale ? `<div class="sale-head rise">
+          <div class="sale-flames" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <canvas class="sale-fire" aria-hidden="true"></canvas>
+          <div class="sale-in">
+            <span class="sale-kicker">Ofertas exclusivas para alumnos · tiempo limitado</span>
+            <h1 class="sale-word"><span>Innova</span><b>Sale</b></h1>
+            <p>${esc(sale.text || "Descuentos en certificaciones InnovaFit solo por unos días. Cuando el reloj llega a cero, vuelven los precios normales.")}</p>
+            <div class="sale-row"><div id="saleClock"></div>${top ? `<div class="sale-max">Hasta<b>-${top}%</b></div>` : ""}</div>
+          </div></div>`
+        : `<div class="hello rise"><span class="eyebrow">Tu próximo nivel</span><h1>Certificaciones <span class="grad-text">disponibles</span></h1>
         <p>Elegí la que te interesa y consultanos por WhatsApp. Un asesor te responde con precios, fechas y condiciones para alumnos del campus.</p></div>
-      <div class="rise">${await campaignHtml()}</div>
-      <div class="progs">${items.map((p, i) => `<article class="card prog" style="animation:rise .55s ${i * 60}ms both">${rib}
-        <div class="cv" ${p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}>${p.image ? "" : `<span>${esc(initials(p.title))}</span>`}</div>
+      <div class="rise">${await campaignHtml()}</div>`}
+      <div class="progs">${items.map((p, i) => { const off = offOf(p); return `<article class="card prog${off ? " is-sale-card" : ""}" style="animation:rise .55s ${i * 60}ms both">${rib}
+        <div class="cv" ${p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}>${p.image ? "" : `<span>${esc(initials(p.title))}</span>`}${off ? `<span class="sale-off">-${off.pct}%</span>` : ""}</div>
         <div class="pb">
           <div class="meta"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${p.duration ? `<span class="badge">${esc(p.duration)}</span>` : ""}${p.modality ? `<span class="badge">${esc(p.modality)}</span>` : ""}</div>
           <h3>${esc(p.title)}</h3>
+          ${off && off.price ? `<div class="sale-price"><s>${Sale.money(off.price)}</s><b>${Sale.money(off.salePrice)}</b><span class="muted">${esc(sale.currency)}</span></div>` : ""}
+          ${off && off.slots ? `<div class="sale-slots">Quedan ${off.slots} cupos</div>` : ""}
           <p>${esc(p.summary || "")}</p>
           ${p.course && (me().courses || []).includes(p.course)
             ? `<a class="btn btn-primary" href="#/c/${p.course}">Ir a la evaluación</a>`
-            : `<button class="btn btn-primary" data-ask="${p.id}">Consultar por WhatsApp</button>`}
-        </div></article>`).join("")}</div>
+            : `<button class="btn btn-primary" data-ask="${p.id}">${off ? "🔥 Aprovechar oferta" : "Consultar por WhatsApp"}</button>`}
+        </div></article>`; }).join("")}</div>
     </div>`;
     const byId = new Map(items.map((p) => [p.id, p]));
-    view.querySelectorAll("[data-ask]").forEach((b) => b.onclick = () => askModal(byId.get(b.dataset.ask)));
+    view.querySelectorAll("[data-ask]").forEach((b) => b.onclick = () => askModal(byId.get(b.dataset.ask), offOf(byId.get(b.dataset.ask))));
+    if(sale){
+      const stopFire = Sale.fire(view.querySelector(".sale-fire"));
+      const stopClock = Sale.countdown($("saleClock"), sale.ends, () => { stopSale(); if(location.hash.startsWith("#/certificaciones")) renderCertificaciones(); });
+      stopSale = () => { stopFire(); stopClock(); stopSale = () => {}; };
+    }
   }
+  let stopSale = () => {}; // detiene el reloj y el fuego de InnovaSale al salir de la sección
 
   // Arma un mensaje personalizado con los datos del alumno y lo abre en WhatsApp.
-  function askModal(p){
+  function askModal(p, off){
     const u = me();
     const topics = ["Precio y formas de pago", "Fechas de inicio", "Modalidad y duración", "Requisitos"];
     openModal(`<span class="eyebrow">Consulta</span><h2 style="margin-top:8px">${esc(p.title)}</h2>
@@ -791,6 +813,7 @@
         m.querySelector("#askMsg").value =
           "Hola InnovaFit! 👋 Soy " + (u.name || "alumno del campus") + " (" + u.email + ").\n" +
           "Estoy en el campus y me interesa la " + p.title + "." +
+          (off ? "\n🔥 Quiero aprovechar el " + off.pct + "% de descuento de InnovaSale." : "") +
           (want.length ? "\nMe gustaría saber: " + want.join(", ") + "." : "") +
           (extra ? "\n" + extra : "") + "\n¡Gracias!";
       };
@@ -926,6 +949,7 @@
   /* ---------- Router ---------- */
   async function route(){
     closeModal();
+    stopSale();
     const h = location.hash;
     const m = h.match(/^#\/c\/([^/]+)(?:\/([^/]+))?/);
     try{

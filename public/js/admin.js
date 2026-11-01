@@ -1356,8 +1356,103 @@
   /* =====================================================
      AJUSTES: campaña comercial y sello del certificado
      ===================================================== */
+  /* ---------- InnovaSale: descuentos por tiempo limitado (dentro de la campaña) ---------- */
+  const toLocalInput = (d) => (d && !isNaN(d) ? new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
+  const leftText = (ms) => {
+    const t = Math.floor(ms / 60000), d = Math.floor(t / 1440), h = Math.floor(t / 60) % 24, m = t % 60;
+    return (d ? d + " d " : "") + (d || h ? h + " h " : "") + m + " min";
+  };
+
+  function saleAdminHtml(s, progs){
+    const mode = s.saleMode || "off";
+    return `<div class="sale-admin" id="saleBox">
+      <h3>🔥 InnovaSale · descuentos por tiempo limitado</h3>
+      <p class="hint" style="margin:0 0 14px">Con la campaña activa, el catálogo de certificaciones de la web y la sección Certificaciones del campus se convierten en InnovaSale: fuego, cuenta regresiva, precios con descuento y cupos. Al terminar el tiempo vuelve solo a la normalidad.</p>
+      <label class="field"><span>Descuentos</span><select class="input" name="saleMode">
+        <option value="off"${mode === "off" ? " selected" : ""}>Sin descuentos</option>
+        <option value="general"${mode === "general" ? " selected" : ""}>Un mismo % para todas las certificaciones</option>
+        <option value="custom"${mode === "custom" ? " selected" : ""}>Un % distinto por certificación</option></select></label>
+      <div data-sale="on">
+        <div class="two">
+          <label class="field" data-sale="general"><span>% de descuento para todas</span><input class="input" name="salePercent" type="number" min="1" max="90" value="${esc(s.salePercent || "")}" placeholder="Ej: 30"></label>
+          <label class="field"><span>Cupos por certificación</span><input class="input" name="saleSlots" type="number" min="0" value="${esc(s.saleSlots || "")}" placeholder="Ej: 15 (vacío = sin cupos)"></label>
+        </div>
+        <div class="field"><span>Duración de la oferta</span>
+          <div class="sale-dur">${[["24 h", 24], ["48 h", 48], ["72 h", 72], ["7 días", 168]].map(([l, h]) => `<button type="button" class="btn btn-ghost btn-sm" data-hours="${h}">${l}</button>`).join("")}</div>
+          <input class="input" name="saleEnds" type="datetime-local" value="${toLocalInput(s.saleEnds ? new Date(String(s.saleEnds).replace(" ", "T")) : null)}">
+          <small class="sale-left" id="saleLeft"></small></div>
+        <div class="two">
+          <label class="field"><span>Texto de la oferta</span><input class="input" name="saleText" maxlength="240" value="${esc(s.saleText || "")}" placeholder="Ofertas exclusivas en certificaciones por tiempo limitado."></label>
+          <label class="field"><span>Moneda</span><input class="input" name="saleCurrency" maxlength="6" value="${esc(s.saleCurrency || "MXN")}"></label>
+        </div>
+        <div class="field"><span>Precios por certificación</span>
+          <div class="table-wrap"><table class="sale-table"><thead><tr><th>Certificación</th><th>Precio regular</th><th data-sale="custom">% desc.</th><th>Cupos</th><th>Precio InnovaSale</th></tr></thead><tbody>
+            ${progs.map((p) => `<tr data-id="${p.id}"><td>${esc(p.title)}${p.published ? "" : ' <span class="badge">Oculta</span>'}</td>
+              <td><input class="input" data-f="price" type="number" min="0" value="${esc(p.price || "")}" placeholder="Sin precio"></td>
+              <td data-sale="custom"><input class="input" data-f="salePercent" type="number" min="0" max="90" value="${esc(p.salePercent || "")}" placeholder="0"></td>
+              <td><input class="input" data-f="saleSlots" type="number" min="0" value="${esc(p.saleSlots || "")}" placeholder="General"></td>
+              <td class="sale-final mono"></td></tr>`).join("")}
+          </tbody></table></div>
+          <p class="hint">Sin precio regular, la web muestra solo el % de descuento. Cupos vacíos usan los cupos generales. En modo "por certificación", las que queden en 0% no entran en la oferta.</p></div>
+      </div></div>`;
+  }
+
+  // Muestra/oculta según el modo, recalcula precios y devuelve lo que hay que guardar (o el error).
+  function saleAdminMount(form, s){
+    const box = form.querySelector("#saleBox");
+    const read = () => {
+      const mode = form.saleMode.value;
+      const general = Math.round(+form.salePercent.value || 0);
+      const endVal = form.saleEnds.value;
+      const ends = endVal ? new Date(endVal) : null;
+      const rows = [...box.querySelectorAll("tr[data-id]")].map((tr) => {
+        const v = (f) => Math.max(0, Math.round(+tr.querySelector(`[data-f="${f}"]`).value || 0));
+        return {tr, id: tr.dataset.id, price: v("price"), salePercent: Math.min(90, v("salePercent")), saleSlots: v("saleSlots")};
+      });
+      box.querySelectorAll('[data-sale="on"]').forEach((el) => (el.hidden = mode === "off"));
+      box.querySelectorAll('[data-sale="general"]').forEach((el) => (el.hidden = mode !== "general"));
+      box.querySelectorAll('[data-sale="custom"]').forEach((el) => (el.hidden = mode !== "custom"));
+      const cur = form.saleCurrency.value.trim() || "MXN";
+      rows.forEach((r) => {
+        const pct = mode === "general" ? general : r.salePercent;
+        r.tr.querySelector(".sale-final").innerHTML = !pct || mode === "off" ? '<span class="muted">—</span>'
+          : r.price ? `<b>$${Math.round(r.price * (100 - pct) / 100).toLocaleString("es-MX")}</b> ${esc(cur)} <span class="badge hot">-${pct}%</span>` : `<span class="badge hot">-${pct}%</span>`;
+      });
+      const left = ends ? ends - Date.now() : 0;
+      $("saleLeft").textContent = !ends ? "Elegí cuándo termina." : left > 0 ? "Termina en " + leftText(left) + "." : "Esa fecha ya pasó: la oferta no se mostrará.";
+      $("saleLeft").classList.toggle("bad", !!ends && left <= 0);
+      let error = "";
+      if(mode !== "off"){
+        if(!ends || left <= 0) error = "InnovaSale: elegí una fecha de fin futura.";
+        else if(mode === "general" && (general < 1 || general > 90)) error = "InnovaSale: el % de descuento va de 1 a 90.";
+        else if(mode === "custom" && !rows.some((r) => r.salePercent > 0)) error = "InnovaSale: poné el % de descuento de al menos una certificación.";
+      }
+      return {
+        error,
+        rows: rows.map(({tr, ...r}) => r),
+        settings: {
+          saleMode: mode,
+          salePercent: String(Math.min(90, general)),
+          saleSlots: String(Math.max(0, Math.round(+form.saleSlots.value || 0))),
+          saleEnds: ends && !isNaN(ends) ? ends.toISOString().replace("T", " ") : "",
+          saleCurrency: cur,
+          saleText: form.saleText.value.trim(),
+        },
+      };
+    };
+    box.querySelectorAll("[data-hours]").forEach((b) => b.onclick = () => {
+      form.saleEnds.value = toLocalInput(new Date(Date.now() + b.dataset.hours * 3600000));
+      read();
+    });
+    box.addEventListener("input", read);
+    box.addEventListener("change", read);
+    read();
+    return read;
+  }
+
   async function renderAjustes(){
     const s = await UI.settings(true);
+    const progs = await pb.collection("programs").getFullList({sort:"order,title"});
     const sample = {studentName:"Nombre Apellido Ejemplo", title:"Fundamentos de Biomecánica", hours:"Módulo introductorio", issueDate:todayISO(), folio:"IF-2026-0000", score:95};
     view.innerHTML = `
       <div class="head"><div><span class="eyebrow">Configuración</span><h1>Ajustes</h1></div></div>
@@ -1372,6 +1467,8 @@
             <div class="cover-prev" id="campPrev" style="aspect-ratio:3/1;background-size:contain;${s.campaignLogo ? `background-image:url('${fileUrl(s, s.campaignLogo)}')` : ""}">${s.campaignLogo ? "" : "Sin logo: se usa la insignia Buen Fin de InnovaFit"}</div>
             <input class="input" type="file" name="campaignLogo" accept="image/*"></div>
           <p class="hint">Si InnovaFit está registrada como participante de El Buen Fin, subí acá el logo oficial que te dieron.</p>
+          ${saleAdminHtml(s, progs)}
+          <p class="error-msg" id="campErr" role="alert"></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-primary">Guardar campaña</button>${s.campaignLogo ? '<button type="button" class="btn btn-ghost" id="campRm">Quitar logo</button>' : ""}</div>
         </form>
         <form class="card panel" id="sealForm" novalidate>
@@ -1395,14 +1492,28 @@
     };
     const camp = $("campForm");
     camp.campaignLogo.onchange = () => { const f = camp.campaignLogo.files[0]; if(f){ const p = $("campPrev"); p.style.backgroundImage = "url('" + URL.createObjectURL(f) + "')"; p.textContent = ""; } };
-    camp.onsubmit = (e) => {
+    const paintSale = saleAdminMount(camp, s);
+    camp.onsubmit = async (e) => {
       e.preventDefault();
+      $("campErr").textContent = "";
+      const sale = paintSale();
+      if(camp.campaignOn.checked && sale.error) return void ($("campErr").textContent = sale.error);
       const fd = new FormData();
       fd.set("campaignOn", camp.campaignOn.checked ? "true" : "false");
       fd.set("campaignTitle", camp.campaignTitle.value.trim());
       fd.set("campaignText", camp.campaignText.value.trim());
       if(camp.campaignLogo.files[0]) fd.set("campaignLogo", camp.campaignLogo.files[0]);
-      save(fd, camp.campaignOn.checked ? "La campaña ya se ve en el campus." : "La campaña quedó desactivada.");
+      Object.entries(sale.settings).forEach(([k, v]) => fd.set(k, v));
+      try{
+        // Precios, % y cupos de cada certificación: solo se guardan las filas que cambiaron.
+        const byId = new Map(progs.map((p) => [p.id, p]));
+        await Promise.all(sale.rows.filter((r) => {
+          const p = byId.get(r.id);
+          return (+p.price || 0) !== r.price || (+p.salePercent || 0) !== r.salePercent || (+p.saleSlots || 0) !== r.saleSlots;
+        }).map((r) => pb.collection("programs").update(r.id, {price: r.price, salePercent: r.salePercent, saleSlots: r.saleSlots})));
+      }catch(err){ return fail(err); }
+      const live = camp.campaignOn.checked && sale.settings.saleMode !== "off";
+      save(fd, live ? "InnovaSale ya está activo en la web y en el campus." : camp.campaignOn.checked ? "La campaña ya se ve en el campus." : "La campaña quedó desactivada.");
     };
     $("campRm")?.addEventListener("click", () => save({campaignLogo: null}, "Se usa la insignia de InnovaFit."));
     const seal = $("sealForm");

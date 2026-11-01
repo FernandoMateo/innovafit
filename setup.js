@@ -220,6 +220,10 @@ async function setupCollections() {
       { name: "image", type: "file", maxSelect: 1, maxSize: 10 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp"], thumbs: ["640x360"] },
       { name: "priceLabel", type: "text", max: 40 },
       { name: "note", type: "text", max: 120 },
+      // InnovaSale: precio regular, % propio (modo "por certificación") y cupos de la oferta.
+      { name: "price", type: "number", min: 0 },
+      { name: "salePercent", type: "number", min: 0, max: 90 },
+      { name: "saleSlots", type: "number", min: 0 },
       // Foto recortada (PNG sin fondo) para la tarjeta de la landing.
       { name: "photo", type: "file", maxSelect: 1, maxSize: 8 * 1024 * 1024, mimeTypes: ["image/png", "image/webp"] },
       // Curso propio de la certificación: tiene su examen y, si se quiere, material de estudio.
@@ -339,6 +343,13 @@ async function setupCollections() {
       { name: "campaignTitle", type: "text", max: 80 },
       { name: "campaignText", type: "text", max: 240 },
       { name: "campaignLogo", type: "file", maxSelect: 1, maxSize: 5 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] },
+      // InnovaSale: descuentos por tiempo limitado (solo con la campaña activa).
+      { name: "saleMode", type: "select", values: ["off", "general", "custom"], maxSelect: 1 },
+      { name: "salePercent", type: "number", min: 0, max: 90 },
+      { name: "saleSlots", type: "number", min: 0 },
+      { name: "saleEnds", type: "date" },
+      { name: "saleCurrency", type: "text", max: 6 },
+      { name: "saleText", type: "text", max: 240 },
       { name: "sealLogo", type: "file", maxSelect: 1, maxSize: 5 * 1024 * 1024, mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] },
       { name: "seedVersion", type: "number" },
       // Contenido editable de la landing (Admin → Web) y su imagen principal.
