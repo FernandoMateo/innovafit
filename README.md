@@ -3,7 +3,7 @@
 Landing del Reto del Entrenador, evaluación de nivel, campus de alumnos y panel de administración.
 Node (Express) + PocketBase.
 
-En producción: http://179.197.89.153
+En producción: https://campusinnovafit.tech
 
 | Ruta | Qué es |
 |---|---|
