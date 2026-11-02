@@ -120,7 +120,7 @@
     btn.textContent = "Entrando…";
     try{
       await pb.collection("users").authWithPassword($("lEmail").value.trim().toLowerCase(), $("lPass").value);
-      location.hash = takeNext() || "#/";
+      location.hash = takeNext() || "#/certificaciones";
       boot();
     }catch(err){
       $("lErr").textContent = err.status === 400 ? "Correo o contraseña incorrectos." : errMsg(err);
@@ -425,7 +425,8 @@
 
     const isDone = progress.has(l.id);
     const prev = lessons[idx - 1], next = lessons[idx + 1];
-    const waText = "Hola InnovaFit! Soy " + (me().name || me().email) + ". Terminé el curso " + course.title + " en el campus y quiero info de la Certificación Doble de Entrenador Personal.";
+    // Al terminar un curso gratis, el cierre muestra las certificaciones ISSA para dar el siguiente paso.
+    const free = course.isGift || course.openAccess;
 
     view.innerHTML = `<div class="course-view">
       <aside class="side" id="side">
@@ -447,14 +448,15 @@
           ${assessing(l) ? (isDone ? `<span class="badge good">✓ Completada</span>` : "<span></span>") : `<button class="btn btn-primary btn-complete${isDone ? " done" : ""}" id="completeBtn">${isDone ? "✓ Completada" : "Marcar como completa"}</button>`}
           ${next ? `<a class="btn btn-ghost" href="#/c/${courseId}/${next.id}">Siguiente →</a>` : "<span></span>"}
         </div>
-        ${finished && l.kind !== "exam" ? `<div class="finale">
+        ${finished && (free || l.kind !== "exam") ? `<div class="finale">
           <span class="eyebrow">🏁 ${hasExam ? "Curso acreditado" : "Curso completo"}</span>
           <h2>Esto fue el <span class="grad-text">calentamiento.</span></h2>
-          <p>${hasExam ? "Acreditaste" : "Terminaste"} ${esc(course.title)}. La Certificación Doble de Entrenador Personal InnovaFit te lleva de la teoría a tu primer cliente pago, con respaldo nacional e internacional.</p>
+          <p>${hasExam ? "Acreditaste" : "Terminaste"} ${esc(course.title)}.${free ? " Ahora llevá tu carrera al siguiente nivel con una certificación internacional ISSA: elegí la tuya, mirá el programa completo e inscribite." : ""}</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            ${course.certEnabled ? `<button class="btn btn-primary" id="certBtn">${myCert ? "🎓 Ver mi certificado" : "🎓 Obtener mi certificado"}</button>` : ""}
-            <a class="btn btn-ghost" target="_blank" rel="noopener" href="${wa(waText)}">Quiero mi certificación →</a>
+            ${course.certEnabled ? `<button class="btn ${free ? "btn-ghost" : "btn-primary"}" id="certBtn">${myCert ? "🎓 Ver mi certificado" : "🎓 Obtener mi certificado"}</button>` : ""}
+            ${free ? `<a class="btn btn-primary" href="#/certificaciones">Ver todas las certificaciones →</a>` : ""}
           </div>
+          ${free ? `<div class="showcase" id="showcase"></div>` : ""}
         </div>` : ""}
       </section>
     </div>`;
@@ -476,6 +478,25 @@
     $("completeBtn")?.addEventListener("click", () => toggleDone(l, course));
     $("certBtn")?.addEventListener("click", () => (myCert ? certModal(myCert) : claimCertificate(course)));
     if(assessing(l)) renderAssessment(l, course, lessons);
+    if($("showcase")) fillShowcase($("showcase"));
+  }
+
+  // Todas las certificaciones disponibles, con precio (y oferta), para invitar a comprar al terminar un curso gratis.
+  async function fillShowcase(box){
+    try{
+      const [items] = await Promise.all([pb.collection("programs").getFullList({sort:"order,title"}), loadInscriptions()]);
+      const s = await settings();
+      const sale = Sale.state(s), cur = currencyOf(s);
+      if(!box.isConnected || !items.length) return;
+      box.innerHTML = items.map((p, i) => {
+        const off = Sale.forProgram(sale, p), ins = activeIns(p.id);
+        return `<a class="card show-card${off ? " is-sale-card" : ""}" href="#/certificaciones/${p.id}" style="animation:rise .5s ${i * 60}ms both">
+          <div class="show-cv" ${p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}>${off ? `<span class="sale-off">-${off.pct}%</span>` : ""}</div>
+          <div class="show-b"><small>${esc(KIND_PROGRAM[p.kind] || "Certificación")} · ISSA</small><b>${esc(p.title)}</b>
+            ${priceBlock(p, off, cur)}
+            <span class="show-go">${ins ? "Ver mi inscripción" : off ? "🔥 Aprovechar oferta →" : "Ver programa e inscribirme →"}</span></div></a>`;
+      }).join("");
+    }catch{}
   }
 
   /* =====================================================
@@ -701,6 +722,7 @@
       <div class="modal-actions" style="justify-content:center;margin-top:18px">
         <button class="btn btn-primary" data-dl="pdf">Descargar PDF</button>
         <button class="btn btn-ghost" data-dl="png">Descargar imagen</button>
+        ${celebrate ? `<a class="btn btn-ghost" href="#/certificaciones" data-close>Ver certificaciones ISSA →</a>` : ""}
         <button class="btn btn-ghost" data-close>Cerrar</button>
       </div>`, (m) => {
       Cert.mount(m.querySelector("#cPrev"), cert);
@@ -1584,6 +1606,8 @@
     await loadBase();
     const welcome = /bienvenida/.test(location.hash);
     if(welcome) location.replace("#/");
+    // Al entrar al campus sin un destino, el alumno empieza en Certificaciones.
+    else if(!location.hash || location.hash === "#" || location.hash === "#/") location.replace(takeNext() || "#/certificaciones");
     await route();
     if(welcome) ok("¡Bienvenido al campus!", "Tu cuenta ya está activa. Arrancá tu curso de regalo.");
     maybeTour();
