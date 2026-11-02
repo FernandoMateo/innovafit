@@ -1,5 +1,5 @@
 // Campus del alumno: login, mis cursos, reproductor con progreso, certificados,
-// catálogo de certificaciones (consulta por WhatsApp) y perfil editable.
+// certificaciones ISSA (ficha, inscripción y comprobante de pago), soporte y perfil editable.
 (function(){
   "use strict";
   const {pb, esc, notify, api, errMsg, fileUrl, embedUrl, settings, KIND_LABEL, KIND_ICON} = UI;
@@ -20,7 +20,17 @@
   let progress = null; // Map lessonId → registro de progreso
   let certs = null;
   let enrollments = null; // Map courseId → inscripción (estado de acreditación)
+  let inscriptions = null; // inscripciones a certificaciones ISSA
   const lessonsByCourse = {};
+
+  // Limpieza al cambiar de pantalla (observadores, scroll, temporizadores).
+  const leaving = [];
+  const onLeave = (fn) => leaving.push(fn);
+  const leave = () => leaving.splice(0).forEach((fn) => { try{ fn(); }catch{} });
+
+  // A dónde quería ir antes de entrar (ej. la ficha de una certificación desde la web).
+  const NEXT_KEY = "innovafit_next";
+  const takeNext = () => { try{ const n = sessionStorage.getItem(NEXT_KEY); sessionStorage.removeItem(NEXT_KEY); return n || ""; }catch{ return ""; } };
 
   /* ---------- Campaña comercial (Buen Fin) ---------- */
   async function campaignHtml(){
@@ -55,6 +65,7 @@
     $("loginView").hidden = false;
     const m = location.hash.match(/email=([^&]+)/);
     if(m) $("lEmail").value = decodeURIComponent(m[1]);
+    if(/^#\/(certificaciones|inscripciones|soporte)/.test(location.hash)){ try{ sessionStorage.setItem(NEXT_KEY, location.hash); }catch{} }
     authMode(m ? "login" : "register");
     $("gateCampaign").innerHTML = await campaignHtml();
     try{
@@ -89,7 +100,7 @@
     try{
       const r = await api("/api/register", {name, email: f.email.value.trim(), country: f.country.value, phone: f.phone.value, password: f.password.value, course: pickedCourse && pickedCourse.id});
       pb.authStore.save(r.auth.token, r.auth.record);
-      location.hash = r.course ? "#/c/" + r.course.id : "#/";
+      location.hash = takeNext() || (r.course ? "#/c/" + r.course.id : "#/");
       await boot();
       ok("¡Registro exitoso!", r.course ? "Ya estás inscripto en " + r.course.title + ". ¡A darle!" : "Tu cuenta está lista.");
     }catch(e2){
@@ -109,7 +120,7 @@
     btn.textContent = "Entrando…";
     try{
       await pb.collection("users").authWithPassword($("lEmail").value.trim().toLowerCase(), $("lPass").value);
-      location.hash = "#/";
+      location.hash = takeNext() || "#/";
       boot();
     }catch(err){
       $("lErr").textContent = err.status === 400 ? "Correo o contraseña incorrectos." : errMsg(err);
@@ -121,7 +132,8 @@
 
   $("logout").addEventListener("click", () => {
     pb.authStore.clear();
-    courses = progress = certs = enrollments = null;
+    leave();
+    courses = progress = certs = enrollments = inscriptions = null;
     Object.keys(lessonsByCourse).forEach((k) => delete lessonsByCourse[k]);
     afterProfile = "";
     document.body.classList.remove("locked");
@@ -206,7 +218,8 @@
     ["docId", "Identificación (CURP / DNI)", (u) => (u.docId || "").trim().length >= 5],
   ];
   const profileMissing = (u) => PROFILE_REQ.filter(([, , test]) => !test(u));
-  const needsProfile = () => me().role !== "admin" && profileMissing(me()).length > 0;
+  const isTeam = () => me().role === "admin" || me().role === "agent";
+  const needsProfile = () => !isTeam() && profileMissing(me()).length > 0;
   let afterProfile = ""; // a dónde quería ir el alumno antes de completar el perfil
 
   function lockCampus(){
@@ -223,7 +236,9 @@
     {title:"¡Bienvenido al campus!", text:"Te mostramos en 30 segundos para qué sirve cada sección."},
     {tab:"cursos", title:"Mis cursos", text:"Tus cursos y clases. Miralas en orden: tu avance se guarda solo."},
     {tab:"certificados", title:"Mis certificados", text:"Cuando aprobás un examen, tu certificado aparece acá para descargarlo o compartirlo."},
-    {tab:"certificaciones", title:"Certificaciones", text:"Los programas profesionales de InnovaFit. Consultá por WhatsApp y, si te habilitan, rendís la evaluación desde acá."},
+    {tab:"certificaciones", title:"Certificaciones", text:"Las certificaciones internacionales ISSA: programa módulo a módulo, precio y a quién va dirigida cada una. Te inscribís desde acá."},
+    {tab:"inscripciones", title:"Mis inscripciones", text:"El estado de tu compra. Cuando pagues, subís el comprobante y el correo donde querés recibir el acceso."},
+    {tab:"soporte", title:"Soporte", text:"¿Una duda o algo no funciona? Escribinos y el equipo te responde acá mismo."},
     {tab:"perfil", title:"Mi perfil", text:"Tus datos y tu foto. Tu nombre es el que sale en los certificados."},
     {title:"Así se aprueba", text:"Mirá las clases → rendí el examen (80% o más) → tu certificado se emite al instante.", last:true},
   ];
@@ -291,7 +306,7 @@
   }
   function maybeTour(){
     const u = me();
-    if(u.role === "admin" || u.onboarded || needsProfile() || document.querySelector(".tour")) return;
+    if(isTeam() || u.onboarded || needsProfile() || document.querySelector(".tour")) return;
     startTour(() => {
       const go = afterProfile;
       afterProfile = "";
@@ -747,15 +762,44 @@
   }
 
   /* =====================================================
-     CERTIFICACIONES DISPONIBLES
+     CERTIFICACIONES ISSA: catálogo, ficha del programa e inscripción
      ===================================================== */
   const KIND_PROGRAM = {certificacion:"Certificación", especializacion:"Especialización", paquete:"Paquete"};
+  const OPEN_INS = ["nuevo", "contactado", "por_validar", "pagado", "acceso", "rechazado"];
+  const INS_STATUS = {
+    nuevo:["Inscripción enviada", "hot"], contactado:["En contacto con tu asesor", "hot"], por_validar:["Comprobante en revisión", ""],
+    pagado:["Pago validado", "good"], acceso:["Acceso enviado", "good"], rechazado:["Comprobante rechazado", "bad"], cancelado:["Cancelada", ""],
+  };
+  const lines = (t) => String(t || "").split(/\n+/).map((x) => x.trim()).filter(Boolean);
+  const currencyOf = (s) => (s.saleCurrency || "USD").trim();
+  const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fmtDay = (s) => s ? new Date(String(s).replace(" ", "T")).toLocaleDateString("es-MX", {day:"numeric", month:"short", year:"numeric"}) : "";
+
+  async function loadInscriptions(force){
+    if(!inscriptions || force) inscriptions = await pb.collection("inscriptions").getFullList({filter: pb.filter("user = {:u}", {u: me().id}), sort:"-created"});
+    return inscriptions;
+  }
+  const activeIns = (pid) => (inscriptions || []).find((i) => i.program === pid && OPEN_INS.includes(i.status));
+
+  // Precio de la tarjeta y de la ficha: con oferta, tachado + precio InnovaSale.
+  function priceBlock(p, off, cur){
+    const price = +p.price || 0;
+    const note = p.priceNote ? `<small class="pp-note">${esc(p.priceNote)}</small>` : "";
+    if(off && price) return `<div class="pp"><s>${Sale.money(price)}</s><b>${Sale.money(off.salePrice)}</b><em>${esc(cur)}</em><span class="pp-off">-${off.pct}%</span></div>${note}`;
+    if(off) return `<div class="pp"><span class="pp-off">-${off.pct}%</span><em>sobre el precio regular</em></div>`;
+    if(price) return `<div class="pp">${+p.priceBefore > price ? `<s>${Sale.money(p.priceBefore)}</s>` : ""}<b>${Sale.money(price)}</b><em>${esc(cur)}</em></div>${note}`;
+    return `<div class="pp"><b class="pp-ask">${esc(p.priceLabel || "Precio a consultar")}</b></div>`;
+  }
+  const slotsLine = (sale, p, off) => off && off.slots ? `<div class="sale-slots">Quedan ${off.slots} ${off.slots === 1 ? "cupo" : "cupos"} con descuento</div>`
+    : Sale.soldOut(sale, p) ? `<div class="sold-out">Cupos de oferta agotados · precio regular</div>` : "";
 
   async function renderCertificaciones(){
     $("burger").hidden = true;
     setTab("certificaciones");
-    let items = await pb.collection("programs").getFullList({sort:"order,title"});
-    const sale = Sale.state(await settings());
+    let [items] = await Promise.all([pb.collection("programs").getFullList({sort:"order,title"}), loadInscriptions()]);
+    const s = await settings();
+    const sale = Sale.state(s);
+    const cur = currencyOf(s);
     const offOf = (p) => Sale.forProgram(sale, p);
     // Con InnovaSale, las certificaciones en oferta van primero.
     if(sale) items = [...items].sort((a, b) => !!offOf(b) - !!offOf(a));
@@ -768,63 +812,605 @@
           <div class="sale-in">
             <span class="sale-kicker">Ofertas exclusivas para alumnos · tiempo limitado</span>
             <h1 class="sale-word"><span>Innova</span><b>Sale</b></h1>
-            <p>${esc(sale.text || "Descuentos en certificaciones InnovaFit solo por unos días. Cuando el reloj llega a cero, vuelven los precios normales.")}</p>
+            <p>${esc(sale.text || "Descuentos en certificaciones ISSA solo por unos días. Cuando el reloj llega a cero, vuelven los precios normales.")}</p>
             <div class="sale-row"><div id="saleClock"></div>${top ? `<div class="sale-max">Hasta<b>-${top}%</b></div>` : ""}</div>
           </div></div>`
-        : `<div class="hello rise"><span class="eyebrow">Tu próximo nivel</span><h1>Certificaciones <span class="grad-text">disponibles</span></h1>
-        <p>Elegí la que te interesa y consultanos por WhatsApp. Un asesor te responde con precios, fechas y condiciones para alumnos del campus.</p></div>
+        : `<div class="hello rise"><span class="eyebrow">Tu próximo nivel</span><h1>Certificaciones <span class="grad-text">internacionales</span></h1>
+        <p>Mirá el programa completo, el precio y a quién va dirigida cada una. Inscribite y un asesor de InnovaFit te acompaña hasta tener tu acceso.</p></div>
       <div class="rise">${await campaignHtml()}</div>`}
-      <div class="progs">${items.map((p, i) => { const off = offOf(p); return `<article class="card prog${off ? " is-sale-card" : ""}" style="animation:rise .55s ${i * 60}ms both">${rib}
-        <div class="cv" ${p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}>${p.image ? "" : `<span>${esc(initials(p.title))}</span>`}${off ? `<span class="sale-off">-${off.pct}%</span>` : ""}</div>
+      <div class="issa-note rise"><span class="issa-mark">ISSA</span><p><b>Certificaciones emitidas y aprobadas por ISSA</b> (International Sports Sciences Association). InnovaFit las comercializa y te acompaña en la inscripción, el pago y el acceso.</p></div>
+      <div class="progs">${items.map((p, i) => {
+        const off = offOf(p), ins = activeIns(p.id), st = ins && INS_STATUS[ins.status];
+        return `<article class="card prog${off ? " is-sale-card" : ""}" style="animation:rise .55s ${i * 60}ms both">${rib}
+        <a class="cv" href="#/certificaciones/${p.id}" aria-label="Ver ${esc(p.title)}" ${p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}>${p.image ? "" : `<span>${esc(initials(p.title))}</span>`}${off ? `<span class="sale-off">-${off.pct}%</span>` : ""}</a>
         <div class="pb">
-          <div class="meta"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${p.duration ? `<span class="badge">${esc(p.duration)}</span>` : ""}${p.modality ? `<span class="badge">${esc(p.modality)}</span>` : ""}</div>
-          <h3>${esc(p.title)}</h3>
-          ${off && off.price ? `<div class="sale-price"><s>${Sale.money(off.price)}</s><b>${Sale.money(off.salePrice)}</b><span class="muted">${esc(sale.currency)}</span></div>` : ""}
-          ${off && off.slots ? `<div class="sale-slots">Quedan ${off.slots} cupos</div>` : ""}
+          <div class="meta"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${lines(p.highlights).slice(0, 2).map((h) => `<span class="badge">${esc(h)}</span>`).join("")}</div>
+          <h3><a href="#/certificaciones/${p.id}">${esc(p.title)}</a></h3>
+          ${priceBlock(p, off, cur)}
+          ${slotsLine(sale, p, off)}
           <p>${esc(p.summary || "")}</p>
-          ${p.course && (me().courses || []).includes(p.course)
-            ? `<a class="btn btn-primary" href="#/c/${p.course}">Ir a la evaluación</a>`
-            : `<button class="btn btn-primary" data-ask="${p.id}">${off ? "🔥 Aprovechar oferta" : "Consultar por WhatsApp"}</button>`}
+          ${st ? `<a class="ins-chip ${st[1]}" href="#/inscripciones"><i></i>${esc(st[0])}</a>` : ""}
+          <div class="prog-actions">
+            <a class="btn btn-primary" href="#/certificaciones/${p.id}">${off ? "🔥 Ver oferta" : "Ver programa"}</a>
+            ${p.course && (me().courses || []).includes(p.course) ? `<a class="btn btn-ghost" href="#/c/${p.course}">Evaluación</a>` : ""}
+          </div>
         </div></article>`; }).join("")}</div>
     </div>`;
-    const byId = new Map(items.map((p) => [p.id, p]));
-    view.querySelectorAll("[data-ask]").forEach((b) => b.onclick = () => askModal(byId.get(b.dataset.ask), offOf(byId.get(b.dataset.ask))));
     if(sale){
       const stopFire = Sale.fire(view.querySelector(".sale-fire"));
-      const stopClock = Sale.countdown($("saleClock"), sale.ends, () => { stopSale(); if(location.hash.startsWith("#/certificaciones")) renderCertificaciones(); });
+      const stopClock = Sale.countdown($("saleClock"), sale.ends, () => { stopSale(); if(location.hash.startsWith("#/certificaciones")) route(); });
       stopSale = () => { stopFire(); stopClock(); stopSale = () => {}; };
     }
   }
   let stopSale = () => {}; // detiene el reloj y el fuego de InnovaSale al salir de la sección
 
-  // Arma un mensaje personalizado con los datos del alumno y lo abre en WhatsApp.
-  function askModal(p, off){
+  // Íconos de línea para las tarjetas de la ficha.
+  const ICONS = [
+    '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>',
+    '<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/>',
+    '<path d="M12 21s-8-4.5-8-11a5 5 0 019-3 5 5 0 019 3c0 6.5-8 11-8 11z" transform="translate(-1 0)"/>',
+    '<path d="M3 12h4l3 8 4-16 3 8h4"/>',
+    '<path d="M4 19V5a2 2 0 012-2h12v18H6a2 2 0 01-2-2zM8 7h6"/>',
+    '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M10 9l5 2-5 2z"/>',
+  ];
+  const icon = (i) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[i % ICONS.length]}</svg>`;
+
+  const PROCESS = [
+    ["Te inscribís", "Completás el formulario y te guardamos el lugar con el precio de hoy."],
+    ["Hablás con tu asesor", "Un asesor de InnovaFit te escribe por WhatsApp: dudas, forma de pago y fechas."],
+    ["Subís el comprobante", "Desde Mis inscripciones, con el correo donde querés recibir el acceso."],
+    ["Recibís tu acceso ISSA", "Validamos el pago y te llega el acceso a la plataforma de ISSA para estudiar y certificarte."],
+  ];
+
+  async function renderPrograma(id){
+    $("burger").hidden = true;
+    setTab("certificaciones");
+    const [p] = await Promise.all([pb.collection("programs").getOne(id), loadInscriptions()]);
+    const s = await settings();
+    const sale = Sale.state(s), off = Sale.forProgram(sale, p), cur = currencyOf(s);
+    const ins = activeIns(p.id);
+    const mods = (Array.isArray(p.modules) ? p.modules : []).filter((m) => m && (m.title || m.topics));
+    const aud = lines(p.audience), res = lines(p.resources), hi = lines(p.highlights);
+    const img = p.image ? fileUrl(p, p.image) : "";
+    const words = (t) => esc(t).split(/\s+/).map((w, i) => `<span class="w" style="--i:${i}">${w}</span>`).join(" ");
+    // Número del nodo: el del título ("Módulos 2 y 3" → 2–3) o el orden si el título no lo trae.
+    const nodeLabel = (m, i) => {
+      const n = String(m.title || "").match(/\d+[A-Z]?/g);
+      return n ? (n.length > 1 ? n[0] + "–" + n[n.length - 1] : n[0]) : String(i + 1).padStart(2, "0");
+    };
+    const cta = ins
+      ? `<a class="ins-chip ${INS_STATUS[ins.status][1]}" href="#/inscripciones"><i></i>${esc(INS_STATUS[ins.status][0])}</a><a class="btn btn-primary" href="#/inscripciones">Ver mi inscripción</a>`
+      : `<button class="btn btn-primary btn-lg" data-enroll>${off ? "🔥 Inscribirme con -" + off.pct + "%" : "Inscribirme"}</button>`;
+    const brochure = p.brochure ? `<a class="btn btn-ghost" href="${fileUrl(p, p.brochure)}" target="_blank" rel="noopener" download>Descargar temario (PDF)</a>` : "";
+    const sections = [
+      p.objective && ["prog", "El programa"], aud.length && ["aud", "A quién va dirigido"], mods.length && ["mod", "Módulo a módulo"],
+      res.length && ["res", "Recursos"], p.profile && ["perfil", "Perfil de egreso"], ["proc", "Cómo es la compra"],
+    ].filter(Boolean);
+
+    view.innerHTML = `<div class="ph">
+      <section class="ph-hero">
+        <div class="ph-bg" ${img ? `style="background-image:url('${img}')"` : ""}></div>
+        <div class="page ph-in">
+          <a class="ph-back" href="#/certificaciones">← Certificaciones</a>
+          <div class="ph-badges"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span><span class="issa-chip"><b>ISSA</b> Certificación internacional · la comercializa InnovaFit</span></div>
+          <h1 class="ph-title">${words(p.title)}</h1>
+          ${p.summary ? `<p class="ph-sum">${esc(p.summary)}</p>` : ""}
+          ${hi.length ? `<div class="ph-chips">${hi.map((h, i) => `<span style="--i:${i}">${esc(h)}</span>`).join("")}</div>` : ""}
+          <div class="card ph-buy${off ? " on-sale" : ""}" id="phBuy">
+            <div class="ph-buy-l">
+              <span class="eyebrow">${off ? "🔥 Precio InnovaSale" : "Inversión"}</span>
+              ${priceBlock(p, off, cur)}
+              ${slotsLine(sale, p, off)}
+              ${off && off.slots ? `<div class="slot-meter"><i style="--p:${Math.min(100, Math.round(off.slots / Math.max(1, Sale.slotsOf(sale, p).total) * 100))}%"></i></div>` : ""}
+              ${off ? `<div class="ph-clock"><small>La oferta termina en</small><div id="phClock"></div></div>` : ""}
+            </div>
+            <div class="ph-buy-r">${cta}${brochure}<span class="muted ph-safe">Sin pagar nada todavía: un asesor te contacta para cerrar la compra.</span></div>
+          </div>
+        </div>
+      </section>
+      <nav class="ph-nav" id="phNav" aria-label="Secciones del programa"><div>${sections.map(([k, label]) => `<a href="#sec-${k}" data-sec="${k}">${label}</a>`).join("")}</div></nav>
+      <div class="page ph-body">
+        ${p.objective ? `<section class="ph-sec" id="sec-prog"><span class="eyebrow rv">El programa</span><h2 class="rv">Lo que vas a lograr</h2><p class="ph-lead rv">${esc(p.objective)}</p></section>` : ""}
+        ${aud.length ? `<section class="ph-sec" id="sec-aud"><span class="eyebrow rv">Para quién es</span><h2 class="rv">A quién va dirigido</h2>
+          <div class="aud-grid">${aud.map((a, i) => `<div class="card aud rv" style="--d:${i * 90}ms"><span class="aud-ic">${icon(i)}</span><p>${esc(a)}</p></div>`).join("")}</div></section>` : ""}
+        ${mods.length ? `<section class="ph-sec" id="sec-mod">
+          <div class="mod-head"><div><span class="eyebrow rv">Plan de estudios</span><h2 class="rv">Módulo a módulo</h2><p class="muted rv">Tocá cada módulo para ver lo que vas a aprender.</p></div>
+            <div class="explore rv" aria-live="polite"><svg viewBox="0 0 44 44"><circle class="t" cx="22" cy="22" r="18"/><circle class="f" id="exRing" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="113.1"/></svg>
+              <div><b><span id="exN">0</span>/${mods.length}</b><small>explorados</small></div></div></div>
+          <div class="tl" id="tl"><div class="tl-line"><i id="tlFill"></i></div>
+            ${mods.map((m, i) => { const t = lines(m.topics); return `<article class="tl-item rv" data-i="${i}">
+              <span class="tl-node${nodeLabel(m, i).length > 3 ? " sm" : ""}">${nodeLabel(m, i)}</span>
+              <div class="tl-card card">
+                <button class="tl-head" type="button" aria-expanded="false" aria-controls="tlb${i}"><h3>${esc(m.title || "Módulo " + (i + 1))}</h3><span class="tl-count">${t.length} ${t.length === 1 ? "tema" : "temas"}</span><span class="tl-plus" aria-hidden="true"></span></button>
+                <div class="tl-body" id="tlb${i}"><div><ul>${t.map((x, k) => `<li style="--k:${k}">${esc(x)}</li>`).join("")}</ul></div></div>
+              </div></article>`; }).join("")}
+          </div>
+          <div class="tl-foot"><button class="btn btn-ghost btn-sm" id="tlAll" type="button">Abrir todos los módulos</button></div>
+          <div class="ex-done" id="exDone" hidden><b>¡Recorriste todo el programa!</b><span>Ya sabés lo que vas a aprender. ${ins ? "Seguí tu inscripción desde Mis inscripciones." : "¿Te inscribís?"}</span>${ins ? "" : `<button class="btn btn-primary btn-sm" data-enroll>Inscribirme</button>`}</div>
+        </section>` : ""}
+        ${res.length ? `<section class="ph-sec" id="sec-res"><span class="eyebrow rv">Incluye</span><h2 class="rv">Recursos y metodología</h2>
+          <div class="res-grid">${res.map((r, i) => `<div class="res rv" style="--d:${i * 80}ms"><span class="res-ic">${icon(i + 4)}</span><p>${esc(r)}</p></div>`).join("")}</div></section>` : ""}
+        ${p.profile ? `<section class="ph-sec" id="sec-perfil"><span class="eyebrow rv">Al terminar</span><h2 class="rv">Perfil de egreso</h2>
+          <blockquote class="perfil" id="perfilQ">${esc(p.profile).split(/\s+/).map((w, i) => `<span style="--i:${i}">${w}</span>`).join(" ")}</blockquote></section>` : ""}
+        <section class="ph-sec" id="sec-proc"><span class="eyebrow rv">Paso a paso</span><h2 class="rv">Cómo es la compra</h2>
+          <ol class="proc" id="proc">${PROCESS.map(([t, d], i) => `<li class="rv" style="--d:${i * 140}ms"><span class="proc-n">${i + 1}</span><b>${t}</b><p>${d}</p></li>`).join("")}</ol>
+          <p class="muted proc-note">La certificación la emite ISSA. El acceso llega al correo que indiques al subir tu comprobante.</p></section>
+        <section class="ph-final rv"><h2>${off ? "La oferta no espera" : "Tu próximo nivel empieza acá"}</h2><p>${esc(p.title)}</p><div class="ph-final-a">${cta}${brochure}</div></section>
+      </div>
+      <div class="ph-sticky" id="phSticky"><div><b>${esc(p.title)}</b>${priceBlock(p, off, cur)}</div>${ins ? `<a class="btn btn-primary btn-sm" href="#/inscripciones">Mi inscripción</a>` : `<button class="btn btn-primary btn-sm" data-enroll>Inscribirme</button>`}</div>
+    </div>`;
+
+    view.querySelectorAll("[data-enroll]").forEach((b) => b.onclick = () => enrollModal(p, off, cur));
+    mountPrograma(mods.length);
+    if(off){
+      const stopClock = Sale.countdown($("phClock"), sale.ends, () => { stopSale(); route(); });
+      stopSale = () => { stopClock(); stopSale = () => {}; };
+    }
+  }
+
+  // Animaciones de la ficha: aparición al hacer scroll, línea de tiempo que se llena, módulos explorados.
+  function mountPrograma(total){
+    const still = reduceMotion();
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } }), {threshold:.12, rootMargin:"0px 0px -6% 0px"});
+    view.querySelectorAll(".rv, .perfil, .proc").forEach((el) => (still ? el.classList.add("in") : io.observe(el)));
+    onLeave(() => io.disconnect());
+
+    // Sección activa en la barra de navegación (queda fija debajo de las pestañas del campus).
+    const nav = $("phNav");
+    nav.style.top = 64 + $("tabsRow").offsetHeight + "px";
+    const spy = new IntersectionObserver((es) => es.forEach((e) => {
+      if(!e.isIntersecting) return;
+      const k = e.target.id.replace("sec-", "");
+      nav.querySelectorAll("a").forEach((a) => a.classList.toggle("on", a.dataset.sec === k));
+      nav.querySelector("a.on")?.scrollIntoView({block:"nearest", inline:"center", behavior: still ? "auto" : "smooth"});
+    }), {rootMargin:"-40% 0px -55% 0px"});
+    view.querySelectorAll(".ph-sec").forEach((sec) => spy.observe(sec));
+    onLeave(() => spy.disconnect());
+    nav.querySelectorAll("a").forEach((a) => a.onclick = (e) => {
+      e.preventDefault();
+      const t = $("sec-" + a.dataset.sec);
+      if(t) scrollTo({top: t.getBoundingClientRect().top + scrollY - 120, behavior: still ? "auto" : "smooth"});
+    });
+
+    // Barra fija de compra cuando el bloque de precio sale de pantalla.
+    const sticky = $("phSticky");
+    const buyIo = new IntersectionObserver(([e]) => sticky.classList.toggle("on", !e.isIntersecting && e.boundingClientRect.top < 0));
+    buyIo.observe($("phBuy"));
+    onLeave(() => buyIo.disconnect());
+
+    const tl = $("tl");
+    if(!tl) return;
+    const fill = $("tlFill");
+    const onScroll = () => {
+      const r = tl.getBoundingClientRect();
+      fill.style.transform = "scaleY(" + Math.min(1, Math.max(0, (innerHeight * .62 - r.top) / r.height)) + ")";
+      tl.querySelectorAll(".tl-item").forEach((it) => it.classList.toggle("lit", it.getBoundingClientRect().top < innerHeight * .62));
+    };
+    addEventListener("scroll", onScroll, {passive:true});
+    onLeave(() => removeEventListener("scroll", onScroll));
+    onScroll();
+
+    const seen = new Set();
+    const C = 113.1;
+    const mark = (i) => {
+      if(seen.has(i)) return;
+      seen.add(i);
+      $("exN").textContent = seen.size;
+      $("exRing").style.strokeDashoffset = C - (seen.size / total) * C;
+      if(seen.size === total){
+        $("exDone").hidden = false;
+        $("exDone").querySelector("[data-enroll]")?.addEventListener("click", () => view.querySelector(".ph-buy [data-enroll]")?.click());
+        confetti();
+      }
+    };
+    const toggle = (item, open) => {
+      const btn = item.querySelector(".tl-head");
+      const on = open ?? btn.getAttribute("aria-expanded") !== "true";
+      btn.setAttribute("aria-expanded", on);
+      item.classList.toggle("open", on);
+      if(on) mark(+item.dataset.i);
+    };
+    tl.querySelectorAll(".tl-item").forEach((item) => {
+      item.querySelector(".tl-head").onclick = () => toggle(item);
+      item.querySelector(".tl-node").onclick = () => toggle(item, true);
+      // Inclinación 3D suave siguiendo el cursor.
+      if(still || matchMedia("(pointer: coarse)").matches) return;
+      const card = item.querySelector(".tl-card");
+      card.addEventListener("pointermove", (e) => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty("--rx", ((e.clientY - r.top) / r.height - .5) * -4 + "deg");
+        card.style.setProperty("--ry", ((e.clientX - r.left) / r.width - .5) * 5 + "deg");
+        card.style.setProperty("--mx", e.clientX - r.left + "px");
+        card.style.setProperty("--my", e.clientY - r.top + "px");
+      });
+      card.addEventListener("pointerleave", () => { card.style.setProperty("--rx", "0deg"); card.style.setProperty("--ry", "0deg"); });
+    });
+    $("tlAll").onclick = () => {
+      const all = [...tl.querySelectorAll(".tl-item")];
+      const open = all.some((it) => !it.classList.contains("open"));
+      all.forEach((it, k) => setTimeout(() => toggle(it, open), still ? 0 : k * 70));
+      $("tlAll").textContent = open ? "Cerrar todos los módulos" : "Abrir todos los módulos";
+    };
+  }
+
+  /* ---------- Formulario de inscripción (2 pasos) ---------- */
+  const EXPERIENCE = ["Estoy empezando en el fitness", "Entreno personas sin certificación", "Ya tengo otra certificación", "Soy profesional de la salud"];
+  const PAY_PLAN = ["Pago único", "Meses sin intereses", "Quiero que me asesoren"];
+  const CONTACT_TIME = ["Mañana", "Tarde", "Noche"];
+
+  function enrollModal(p, off, cur){
     const u = me();
-    const topics = ["Precio y formas de pago", "Fechas de inicio", "Modalidad y duración", "Requisitos"];
-    openModal(`<span class="eyebrow">Consulta</span><h2 style="margin-top:8px">${esc(p.title)}</h2>
-      <p class="muted" style="margin:0 0 16px">Elegí qué querés saber y revisá el mensaje antes de enviarlo.</p>
-      <div class="field"><span>Me interesa saber</span><div style="display:flex;flex-wrap:wrap;gap:10px">${topics.map((t, i) => `<label class="check"><input type="checkbox" value="${esc(t)}"${i < 2 ? " checked" : ""}> ${esc(t)}</label>`).join("")}</div></div>
-      <label class="field"><span>Algo más que quieras contarnos (opcional)</span><input class="input" id="askExtra" placeholder="Ej: trabajo en un gimnasio y quiero certificarme este año"></label>
-      <label class="field"><span>Mensaje</span><textarea class="input" id="askMsg" rows="6"></textarea></label>
-      <div class="modal-actions"><button class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="askSend">Enviar por WhatsApp</button></div>`, (m) => {
-      const build = () => {
-        const want = [...m.querySelectorAll("input[type=checkbox]:checked")].map((c) => c.value.toLowerCase());
-        const extra = m.querySelector("#askExtra").value.trim();
-        m.querySelector("#askMsg").value =
-          "Hola InnovaFit! 👋 Soy " + (u.name || "alumno del campus") + " (" + u.email + ").\n" +
-          "Estoy en el campus y me interesa la " + p.title + "." +
-          (off ? "\n🔥 Quiero aprovechar el " + off.pct + "% de descuento de InnovaSale." : "") +
-          (want.length ? "\nMe gustaría saber: " + want.join(", ") + "." : "") +
-          (extra ? "\n" + extra : "") + "\n¡Gracias!";
+    const countries = $("regForm").country.innerHTML;
+    const price = +p.price || 0;
+    const final = off && price ? off.salePrice : price;
+    const chips = (name, list, sel) => `<div class="chips" role="radiogroup">${list.map((v) => `<label class="chip"><input type="radio" name="${name}" value="${esc(v)}"${v === sel ? " checked" : ""}><span>${esc(v)}</span></label>`).join("")}</div>`;
+    openModal(`<div class="enroll">
+      <div class="enroll-top"><span class="eyebrow">Inscripción</span><h2>${esc(p.title)}</h2>
+        <div class="enroll-sum">${final ? `<b>${Sale.money(final)} ${esc(cur)}</b>` : ""}${off ? `<span class="pp-off">-${off.pct}% InnovaSale</span>` : ""}<span class="muted">Hoy no pagás nada: un asesor te contacta para cerrar la compra.</span></div>
+        <div class="enroll-steps"><span class="on">1 · Tus datos</span><span>2 · Tu perfil</span></div><div class="enroll-bar"><i></i></div></div>
+      <form id="enForm" novalidate>
+        <div class="enroll-step" data-step="1">
+          <label class="field"><span>Nombre y apellido completos</span><input class="input" name="name" autocomplete="name" value="${esc(u.name || "")}"></label>
+          <label class="field"><span>Correo de contacto</span><input class="input" name="email" type="email" autocomplete="email" value="${esc(u.email || "")}"></label>
+          <div class="phone-row">
+            <label class="field"><span>País</span><select class="input" name="country">${countries}</select></label>
+            <label class="field"><span>WhatsApp</span><input class="input" name="phone" inputmode="numeric" autocomplete="tel-national" value="${esc(u.phone || "")}"></label>
+          </div>
+          <div class="two">
+            <label class="field"><span>Ciudad</span><input class="input" name="city" autocomplete="address-level2" placeholder="Ej: Guadalajara"></label>
+            <label class="field"><span>Identificación (CURP / DNI)</span><input class="input" name="docId" value="${esc(u.docId || "")}"></label>
+          </div>
+        </div>
+        <div class="enroll-step" data-step="2" hidden>
+          <div class="field"><span>¿Dónde estás hoy?</span>${chips("experience", EXPERIENCE, EXPERIENCE[0])}</div>
+          <div class="field"><span>¿Cómo te gustaría pagar?</span>${chips("payPlan", PAY_PLAN, PAY_PLAN[2])}</div>
+          <div class="field"><span>¿Cuándo te contactamos?</span>${chips("contactTime", CONTACT_TIME, CONTACT_TIME[1])}</div>
+          <label class="field"><span>¿Algo que tu asesor deba saber? (opcional)</span><textarea class="input" name="message" rows="3" maxlength="1000" placeholder="Ej: quiero empezar este mes"></textarea></label>
+          <label class="check consent"><input type="checkbox" name="consent"> Entiendo que la certificación la emite ISSA y que InnovaFit me contacta para cerrar la compra.</label>
+        </div>
+        <p class="error-msg" id="enErr" role="alert"></p>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" data-back>Cancelar</button><button class="btn btn-primary" id="enNext">Siguiente →</button></div>
+      </form></div>`, (m) => {
+      const f = m.querySelector("#enForm"), err = m.querySelector("#enErr"), next = m.querySelector("#enNext"), back = m.querySelector("[data-back]");
+      f.country.value = u.country && [...f.country.options].some((o) => o.value === u.country) ? u.country : "52";
+      let step = 1;
+      const show = (n) => {
+        step = n;
+        m.querySelectorAll(".enroll-step").forEach((s) => (s.hidden = +s.dataset.step !== n));
+        m.querySelectorAll(".enroll-steps span").forEach((s, i) => s.classList.toggle("on", i < n));
+        m.querySelector(".enroll-bar i").style.width = n * 50 + "%";
+        next.textContent = n === 1 ? "Siguiente →" : "Enviar inscripción";
+        back.textContent = n === 1 ? "Cancelar" : "← Atrás";
+        err.textContent = "";
+        m.querySelector(`[data-step="${n}"] input, [data-step="${n}"] textarea`)?.focus({preventScroll:true});
       };
-      m.querySelectorAll("input").forEach((i) => i.addEventListener("input", build));
-      build();
-      m.querySelector("#askSend").onclick = () => {
-        window.open(wa(m.querySelector("#askMsg").value), "_blank", "noopener");
-        closeModal();
-        ok("¡Consulta lista!", "Se abrió WhatsApp con tu mensaje. Solo tocá enviar.");
+      back.onclick = () => (step === 1 ? closeModal() : show(1));
+      f.onsubmit = async (e) => {
+        e.preventDefault();
+        const d = Object.fromEntries(new FormData(f));
+        if(step === 1){
+          const name = (d.name || "").trim().replace(/\s+/g, " ");
+          if(name.length < 5 || !name.includes(" ")) return void (err.textContent = "Escribí tu nombre y apellido completos.");
+          if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((d.email || "").trim())) return void (err.textContent = "Revisá tu correo.");
+          if((d.phone || "").replace(/\D/g, "").length < 7) return void (err.textContent = "Revisá tu WhatsApp.");
+          if((d.city || "").trim().length < 2) return void (err.textContent = "Contanos en qué ciudad estás.");
+          return show(2);
+        }
+        if(!f.consent.checked) return void (err.textContent = "Confirmá que entendés cómo es la compra.");
+        next.disabled = true;
+        next.textContent = "Enviando…";
+        try{
+          const r = await api("/api/inscriptions", {...d, program: p.id});
+          inscriptions = null;
+          enrollDone(p, r);
+        }catch(e2){
+          err.textContent = e2.message;
+          next.disabled = false;
+          next.textContent = "Enviar inscripción";
+          if(e2.status === 409) setTimeout(() => { closeModal(); location.hash = "#/inscripciones"; }, 1600);
+        }
       };
     });
+  }
+
+  function enrollDone(p, r){
+    const when = r.contactTime ? " por la " + r.contactTime.toLowerCase() : "";
+    const msg = "Hola InnovaFit! 👋 Soy " + r.name + ". Me inscribí en " + p.title + " desde el campus (folio " + r.code + ")." +
+      (r.saleApplied ? " Tengo el " + r.discount + "% de InnovaSale." : "") + " Quiero cerrar mi compra.";
+    openModal(`<div class="enroll-ok">
+      <div class="ok-badge"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="23"/><path d="M14 27l8 8 17-18"/></svg></div>
+      <span class="eyebrow">Folio ${esc(r.code)}</span>
+      <h2>¡Listo, ${esc((r.name || "").split(" ")[0])}!</h2>
+      <p>Te reservamos el lugar en <b>${esc(p.title)}</b>${r.price ? " a <b>" + Sale.money(r.price) + " " + esc(r.currency) + "</b>" : ""}. Un asesor de InnovaFit te va a escribir por WhatsApp${esc(when)}.</p>
+      <ol class="ok-next"><li>Hablás con tu asesor y pagás.</li><li>Subís el comprobante en <b>Mis inscripciones</b>.</li><li>Te llega el acceso de ISSA a tu correo.</li></ol>
+      <div class="modal-actions" style="justify-content:center"><a class="btn btn-ghost" target="_blank" rel="noopener" href="${wa(msg)}">Escribir ahora por WhatsApp</a><a class="btn btn-primary" href="#/inscripciones" data-close>Ver mis inscripciones</a></div>
+    </div>`, () => confetti(), "celebrate-sm");
+    if(location.hash.startsWith("#/certificaciones/")) renderPrograma(p.id);
+  }
+
+  /* =====================================================
+     MIS INSCRIPCIONES: estado de la compra y comprobante de pago
+     ===================================================== */
+  const STEPS = ["Inscripción", "Asesor", "Comprobante", "Acceso"];
+  const stepOf = (st) => ({nuevo:0, contactado:1, rechazado:1, por_validar:2, pagado:3, acceso:4}[st] ?? 0);
+
+  async function protectedUrl(rec, name){
+    const token = await pb.files.getToken();
+    return pb.files.getURL(rec, name, {token});
+  }
+
+  async function renderInscripciones(){
+    $("burger").hidden = true;
+    setTab("inscripciones");
+    const [list, progs] = await Promise.all([loadInscriptions(true), pb.collection("programs").getFullList({fields:"id,collectionId,image,title"})]);
+    const progById = new Map(progs.map((p) => [p.id, p]));
+    view.innerHTML = `<div class="page">
+      <div class="hello rise"><span class="eyebrow">Tus compras</span><h1>Mis <span class="grad-text">inscripciones</span></h1>
+        <p>Seguí cada certificación: hablás con tu asesor, subís el comprobante y te avisamos cuando el acceso de ISSA está en tu correo.</p></div>
+      ${list.length ? `<div class="ins-list">${list.map((i, k) => {
+        const p = progById.get(i.program), st = INS_STATUS[i.status] || ["", ""], at = stepOf(i.status), off = i.status === "cancelado";
+        const canUpload = ["nuevo", "contactado", "rechazado"].includes(i.status);
+        const waMsg = "Hola InnovaFit! Soy " + i.name + ". Te escribo por mi inscripción en " + i.programTitle + " (folio " + i.code + ").";
+        return `<article class="card ins${off ? " off" : ""}" data-id="${i.id}" style="animation:rise .55s ${k * 70}ms both">
+          <div class="ins-top">
+            <div class="ins-cv" ${p && p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}></div>
+            <div class="ins-h"><span class="ins-chip ${st[1]}"><i></i>${esc(st[0])}</span><h3>${esc(i.programTitle)}</h3>
+              <small class="muted">Folio <b class="mono">${esc(i.code)}</b> · ${fmtDay(i.created)}${i.price ? " · " + Sale.money(i.price) + " " + esc(i.currency) : ""}${i.saleApplied ? ` <span class="pp-off">-${i.discount}%</span>` : ""}</small></div>
+          </div>
+          ${off ? "" : `<ol class="ins-steps" style="--at:${at}">${STEPS.map((s, n) => `<li class="${n < at ? "done" : n === at ? "cur" : ""}${n === 2 && i.status === "rechazado" ? " bad" : ""}"><i></i><span>${s}</span></li>`).join("")}</ol>`}
+          <div class="ins-msg">${insMessage(i)}</div>
+          <div class="ins-act">
+            ${canUpload ? `<button class="btn btn-primary btn-sm" data-up>${i.status === "rechazado" ? "Subir otro comprobante" : "Subir comprobante de pago"}</button>` : ""}
+            ${i.status === "por_validar" ? `<button class="btn btn-ghost btn-sm" data-see>Ver mi comprobante</button><button class="btn btn-ghost btn-sm" data-up>Reemplazarlo</button>` : ""}
+            ${off ? "" : `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${wa(waMsg)}">WhatsApp con mi asesor</a>`}
+            ${p ? `<a class="btn btn-ghost btn-sm" href="#/certificaciones/${p.id}">Ver programa</a>` : ""}
+            ${canUpload ? `<button class="btn btn-ghost btn-sm ins-cancel" data-cancel>Cancelar</button>` : ""}
+          </div>
+        </article>`; }).join("")}</div>`
+      : `<div class="card empty rise"><h2>Todavía no te inscribiste en ninguna certificación</h2><p>Mirá los programas ISSA, elegí el tuyo y un asesor te acompaña en la compra.</p><a class="btn btn-primary" href="#/certificaciones">Ver certificaciones</a></div>`}
+    </div>`;
+    const byId = new Map(list.map((i) => [i.id, i]));
+    view.querySelectorAll(".ins[data-id]").forEach((card) => {
+      const i = byId.get(card.dataset.id);
+      card.querySelectorAll("[data-up]").forEach((b) => b.onclick = () => receiptModal(i));
+      card.querySelector("[data-see]")?.addEventListener("click", async () => {
+        try{ window.open(await protectedUrl(i, i.receipt), "_blank", "noopener"); }catch(err){ fail(err); }
+      });
+      card.querySelector("[data-cancel]")?.addEventListener("click", () => openModal(`<h2>Cancelar inscripción</h2><p class="muted" style="margin:0 0 20px">Se cancela tu inscripción en ${esc(i.programTitle)}${i.usedSlot ? " y liberás tu cupo con descuento" : ""}. Podés volver a inscribirte cuando quieras.</p>
+        <div class="modal-actions"><button class="btn btn-ghost" data-close>Volver</button><button class="btn btn-danger" id="cOk">Cancelar inscripción</button></div>`, (m) => {
+        m.querySelector("#cOk").onclick = async () => {
+          try{ await api("/api/inscriptions/" + i.id + "/cancel", {}); closeModal(); ok("Inscripción cancelada", "Cuando quieras, te inscribís de nuevo."); renderInscripciones(); }
+          catch(err){ fail(err.message); }
+        };
+      }));
+    });
+  }
+
+  function insMessage(i){
+    const box = (cls, title, text) => `<div class="ins-note ${cls}"><b>${title}</b><span>${text}</span></div>`;
+    switch(i.status){
+      case "nuevo": return box("", "Un asesor te va a escribir por WhatsApp", "Te contactamos" + (i.contactTime ? " por la " + esc(i.contactTime.toLowerCase()) : "") + " para resolver dudas y la forma de pago. Cuando pagues, subí acá tu comprobante.");
+      case "contactado": return box("", "Ya estás en contacto con tu asesor", "Cuando pagues, subí el comprobante y el correo donde querés recibir el acceso de ISSA.");
+      case "rechazado": return box("bad", "Revisamos tu comprobante y no pudimos validarlo", esc(i.rejectReason || "Escribile a tu asesor para revisarlo juntos.") + " Podés subir otro.");
+      case "por_validar": return box("", "Estamos revisando tu comprobante", "El acceso va a llegar a <b>" + esc(i.accessEmail) + "</b>. Te avisamos acá cuando esté validado.");
+      case "pagado": return box("good", "¡Pago validado!", "Estamos gestionando tu acceso con ISSA. Va a llegar a <b>" + esc(i.accessEmail) + "</b>.");
+      case "acceso": return box("good", "¡Tu acceso está en camino a tu correo!", "Lo enviamos a <b>" + esc(i.accessEmail) + "</b>" + (i.accessSentAt ? " el " + fmtDay(i.accessSentAt) : "") + ". Revisá también la carpeta de spam. ¿No te llegó? Escribinos desde Soporte.");
+      default: return box("", "Inscripción cancelada", "Si fue un error, inscribite de nuevo desde Certificaciones.");
+    }
+  }
+
+  function receiptModal(i){
+    const MAX = 10 * 1024 * 1024;
+    const TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
+    let file = null;
+    openModal(`<span class="eyebrow">Folio ${esc(i.code)}</span><h2 style="margin:8px 0 6px">Comprobante de pago</h2>
+      <p class="muted" style="margin:0 0 16px">${esc(i.programTitle)}. Subí la foto o el PDF del pago: el equipo lo valida y te envía el acceso de ISSA.</p>
+      <form id="rcForm" novalidate>
+        <label class="drop" id="rcDrop"><input type="file" name="file" accept="image/png,image/jpeg,image/webp,application/pdf" hidden>
+          <div class="drop-in" id="rcPrev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+            <b>Tocá para elegir el archivo</b><span>o arrastralo acá · JPG, PNG, WEBP o PDF · hasta 10 MB</span></div></label>
+        <label class="field"><span>Correo donde querés recibir el acceso a la certificación</span><input class="input" name="accessEmail" type="email" value="${esc(i.accessEmail || me().email)}"></label>
+        <div class="two">
+          <label class="field"><span>Monto pagado</span><input class="input" name="amount" type="number" min="0" step="0.01" value="${esc(i.price || "")}"></label>
+          <label class="field"><span>Referencia u operación (opcional)</span><input class="input" name="ref" maxlength="200" placeholder="Banco, folio, últimos dígitos…"></label>
+        </div>
+        <div class="upbar" id="rcBar" hidden><i></i></div>
+        <p class="error-msg" id="rcErr" role="alert"></p>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="rcSend">Enviar comprobante</button></div>
+      </form>`, (m) => {
+      const f = m.querySelector("#rcForm"), drop = m.querySelector("#rcDrop"), err = m.querySelector("#rcErr");
+      const pick = (x) => {
+        err.textContent = "";
+        if(!x) return;
+        if(!TYPES.includes(x.type)) return void (err.textContent = "Ese archivo no sirve: subí una imagen o un PDF.");
+        if(x.size > MAX) return void (err.textContent = "El archivo pesa más de 10 MB.");
+        file = x;
+        m.querySelector("#rcPrev").innerHTML = x.type.startsWith("image/")
+          ? `<img src="${URL.createObjectURL(x)}" alt="Vista previa del comprobante"><span>${esc(x.name)} · tocá para cambiarlo</span>`
+          : `<span class="pdf-ic">PDF</span><b>${esc(x.name)}</b><span>${(x.size / 1048576).toFixed(1)} MB · tocá para cambiarlo</span>`;
+        drop.classList.add("has");
+      };
+      f.file.onchange = () => pick(f.file.files[0]);
+      ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+      ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+      drop.addEventListener("drop", (e) => pick(e.dataTransfer.files[0]));
+      f.onsubmit = (e) => {
+        e.preventDefault();
+        err.textContent = "";
+        const email = f.accessEmail.value.trim();
+        if(!file) return void (err.textContent = "Elegí el archivo del comprobante.");
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return void (err.textContent = "Revisá el correo donde querés recibir el acceso.");
+        const send = m.querySelector("#rcSend"), bar = m.querySelector("#rcBar");
+        send.disabled = true; send.textContent = "Subiendo…"; bar.hidden = false;
+        const qs = new URLSearchParams({accessEmail: email, amount: f.amount.value || "0", ref: f.ref.value.trim()});
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/inscriptions/" + i.id + "/receipt?" + qs);
+        xhr.setRequestHeader("content-type", file.type);
+        xhr.setRequestHeader("Authorization", pb.authStore.token || "");
+        xhr.upload.onprogress = (ev) => { if(ev.lengthComputable) bar.firstElementChild.style.width = (ev.loaded / ev.total) * 100 + "%"; };
+        xhr.onload = () => {
+          let data = {};
+          try{ data = JSON.parse(xhr.responseText); }catch{}
+          if(xhr.status >= 200 && xhr.status < 300){
+            closeModal();
+            ok("¡Comprobante enviado!", "Te avisamos acá cuando esté validado.");
+            inscriptions = null;
+            renderInscripciones();
+            return;
+          }
+          err.textContent = data.message || "No se pudo subir. Probá de nuevo.";
+          send.disabled = false; send.textContent = "Enviar comprobante"; bar.hidden = true;
+        };
+        xhr.onerror = () => { err.textContent = "Se cortó la conexión. Probá de nuevo."; send.disabled = false; send.textContent = "Enviar comprobante"; bar.hidden = true; };
+        xhr.send(file);
+      };
+    });
+  }
+
+  /* =====================================================
+     SOPORTE: tickets con conversación
+     ===================================================== */
+  const TICKET_CATS = ["Acceso y cuenta", "Cursos y exámenes", "Certificados", "Inscripciones y pagos", "Otro"];
+  const TICKET_STATUS = {abierto:["Abierto · esperando al equipo", "hot"], respondido:["Respondido", "good"], cerrado:["Resuelto", ""]};
+  const ago = (s) => {
+    const m = Math.round((Date.now() - new Date(String(s).replace(" ", "T"))) / 60000);
+    if(m < 1) return "recién";
+    if(m < 60) return "hace " + m + " min";
+    if(m < 1440) return "hace " + Math.round(m / 60) + " h";
+    return fmtDay(s);
+  };
+
+  async function refreshSupportDot(){
+    try{
+      const r = await pb.collection("tickets").getList(1, 1, {filter: pb.filter("user = {:u} && unreadUser = true", {u: me().id}), fields:"id"});
+      $("supDot").hidden = !r.totalItems;
+    }catch{}
+  }
+
+  async function renderSoporte(){
+    $("burger").hidden = true;
+    setTab("soporte");
+    const list = await pb.collection("tickets").getFullList({filter: pb.filter("user = {:u}", {u: me().id}), sort:"-lastAt,-created"});
+    view.innerHTML = `<div class="page">
+      <div class="hello rise"><span class="eyebrow">Estamos para ayudarte</span><h1>Soporte <span class="grad-text">InnovaFit</span></h1>
+        <p>Contanos qué pasa y el equipo te responde acá mismo. Cada consulta queda como un ticket con toda la conversación.</p></div>
+      <div class="sup-top rise"><button class="btn btn-primary" id="tNew">+ Nueva consulta</button></div>
+      ${list.length ? `<div class="tk-list">${list.map((t, k) => { const st = TICKET_STATUS[t.status] || TICKET_STATUS.abierto; return `<a class="card tk${t.unreadUser ? " unread" : ""}" href="#/soporte/${t.id}" style="animation:rise .5s ${k * 50}ms both">
+          <span class="tk-dot" aria-hidden="true"></span>
+          <div><b>${esc(t.subject)}</b><small class="muted">${esc(t.category || "Consulta")} · #${esc(t.id.slice(0, 6).toUpperCase())} · ${ago(t.lastAt || t.created)}</small></div>
+          <span class="badge ${st[1]}">${t.unreadUser ? "Nueva respuesta" : esc(st[0])}</span></a>`; }).join("")}</div>`
+      : `<div class="card empty rise"><h2>No tenés consultas abiertas</h2><p>¿Algo no funciona o tenés una duda sobre un curso, tu certificado o un pago? Escribinos.</p><button class="btn btn-primary" id="tNew2">Escribir al equipo</button></div>`}
+    </div>`;
+    $("tNew").onclick = () => newTicketModal();
+    $("tNew2")?.addEventListener("click", () => newTicketModal());
+    refreshSupportDot();
+  }
+
+  // Sube el archivo opcional junto al mensaje (FormData) y devuelve el mensaje creado.
+  function sendMessage(ticketId, body, file){
+    const fd = new FormData();
+    fd.set("ticket", ticketId);
+    fd.set("author", me().id);
+    fd.set("authorName", me().name || me().email);
+    fd.set("body", body);
+    if(file) fd.set("file", file);
+    return pb.collection("ticket_messages").create(fd);
+  }
+
+  function newTicketModal(pre){
+    openModal(`<span class="eyebrow">Nueva consulta</span><h2 style="margin:8px 0 14px">¿En qué te ayudamos?</h2>
+      <form id="tkForm" novalidate>
+        <div class="field"><span>Tema</span><div class="chips">${TICKET_CATS.map((c, i) => `<label class="chip"><input type="radio" name="category" value="${esc(c)}"${(pre ? c === pre.category : i === 0) ? " checked" : ""}><span>${esc(c)}</span></label>`).join("")}</div></div>
+        <label class="field"><span>Asunto</span><input class="input" name="subject" maxlength="160" placeholder="Ej: no puedo ver el video de la lección 3" value="${esc(pre ? pre.subject : "")}"></label>
+        <label class="field"><span>Contanos con detalle</span><textarea class="input" name="body" rows="5" maxlength="5000"></textarea></label>
+        <label class="field"><span>Adjuntar captura o PDF (opcional, hasta 10 MB)</span><input class="input" type="file" name="file" accept="image/png,image/jpeg,image/webp,application/pdf"></label>
+        <p class="error-msg" id="tkErr" role="alert"></p>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="tkSend">Enviar consulta</button></div>
+      </form>`, (m) => {
+      const f = m.querySelector("#tkForm"), err = m.querySelector("#tkErr");
+      f.onsubmit = async (e) => {
+        e.preventDefault();
+        const subject = f.subject.value.trim(), body = f.body.value.trim(), file = f.file.files[0];
+        if(subject.length < 4) return void (err.textContent = "Escribí un asunto corto.");
+        if(body.length < 5) return void (err.textContent = "Contanos un poco más.");
+        if(file && file.size > 10 * 1024 * 1024) return void (err.textContent = "El archivo pesa más de 10 MB.");
+        const btn = m.querySelector("#tkSend");
+        btn.disabled = true;
+        try{
+          const now = new Date().toISOString().replace("T", " ");
+          const t = await pb.collection("tickets").create({user: me().id, subject, category: f.category.value, status:"abierto", unreadTeam:true, unreadUser:false, lastAt: now});
+          await sendMessage(t.id, body, file);
+          closeModal();
+          ok("¡Consulta enviada!", "El equipo te responde acá. Te avisamos con un punto en Soporte.");
+          location.hash = "#/soporte/" + t.id;
+        }catch(err2){ err.textContent = errMsg(err2); btn.disabled = false; }
+      };
+    });
+  }
+
+  async function renderTicket(id){
+    $("burger").hidden = true;
+    setTab("soporte");
+    let t = await pb.collection("tickets").getOne(id);
+    const paint = async () => {
+      const msgs = await pb.collection("ticket_messages").getFullList({filter: pb.filter("ticket = {:t}", {t: id}), sort:"created"});
+      const token = msgs.some((x) => x.file) ? await pb.files.getToken() : "";
+      const st = TICKET_STATUS[t.status] || TICKET_STATUS.abierto;
+      const box = $("thread");
+      if(!box) return;
+      const wasBottom = box.dataset.n !== String(msgs.length);
+      box.dataset.n = msgs.length;
+      box.innerHTML = msgs.map((x) => `<div class="msg ${x.fromTeam ? "team" : "me"}">
+        <div class="msg-h">${x.fromTeam ? `<b>${esc(x.authorName || "Equipo")}</b><span class="badge hot">Equipo InnovaFit</span>` : "<b>Vos</b>"}<small>${ago(x.created)}</small></div>
+        <div class="msg-b">${esc(x.body).replace(/\n/g, "<br>")}</div>
+        ${x.file ? `<a class="msg-file" target="_blank" rel="noopener" href="${pb.files.getURL(x, x.file, {token})}">📎 ${esc(x.file.replace(/_[a-z0-9]{10}(\.\w+)$/i, "$1"))}</a>` : ""}
+      </div>`).join("");
+      $("tkState").innerHTML = `<span class="badge ${st[1]}">${esc(st[0])}</span>`;
+      $("tkClose").textContent = t.status === "cerrado" ? "Reabrir consulta" : "Marcar como resuelta";
+      if(wasBottom) box.lastElementChild?.scrollIntoView({block:"nearest"});
+    };
+    view.innerHTML = `<div class="page tk-page">
+      <a class="ph-back" href="#/soporte">← Soporte</a>
+      <div class="tk-head rise"><div><span class="eyebrow">${esc(t.category || "Consulta")} · #${esc(t.id.slice(0, 6).toUpperCase())}</span><h1>${esc(t.subject)}</h1></div><div id="tkState"></div></div>
+      <div class="card thread rise" id="thread"></div>
+      <form class="card reply rise" id="rpForm" novalidate>
+        <textarea class="input" name="body" rows="3" maxlength="5000" placeholder="Escribí tu mensaje…"></textarea>
+        <div class="reply-a"><label class="btn btn-ghost btn-sm attach">📎 Adjuntar<input type="file" name="file" accept="image/png,image/jpeg,image/webp,application/pdf" hidden></label><span class="muted" id="rpFile"></span>
+          <button type="button" class="btn btn-ghost btn-sm" id="tkClose"></button><button class="btn btn-primary btn-sm" id="rpSend">Enviar</button></div>
+      </form></div>`;
+    const f = $("rpForm");
+    f.file.onchange = () => { $("rpFile").textContent = f.file.files[0] ? f.file.files[0].name : ""; };
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const body = f.body.value.trim(), file = f.file.files[0];
+      if(!body) return;
+      if(file && file.size > 10 * 1024 * 1024) return fail("El archivo pesa más de 10 MB.");
+      $("rpSend").disabled = true;
+      try{
+        await sendMessage(id, body, file);
+        t = await pb.collection("tickets").update(id, {status:"abierto", unreadTeam:true, lastAt: new Date().toISOString().replace("T", " ")});
+        f.reset(); $("rpFile").textContent = "";
+        await paint();
+      }catch(err){ fail(err); }
+      finally{ $("rpSend").disabled = false; }
+    };
+    $("tkClose").onclick = async () => {
+      try{
+        t = await pb.collection("tickets").update(id, {status: t.status === "cerrado" ? "abierto" : "cerrado", unreadTeam: t.status === "cerrado"});
+        ok(t.status === "cerrado" ? "¡Consulta resuelta!" : "Consulta reabierta", t.status === "cerrado" ? "Gracias por avisarnos." : "El equipo la vuelve a ver.");
+        paint();
+      }catch(err){ fail(err); }
+    };
+    await paint();
+    if(t.unreadUser){ t = await pb.collection("tickets").update(id, {unreadUser:false}).catch(() => t); refreshSupportDot(); }
+    // Revisa respuestas nuevas mientras la conversación está abierta.
+    const timer = setInterval(async () => {
+      try{
+        const fresh = await pb.collection("tickets").getOne(id);
+        if(fresh.updated !== t.updated){ t = fresh; await paint(); if(t.unreadUser){ t = await pb.collection("tickets").update(id, {unreadUser:false}); } }
+      }catch{}
+    }, 15000);
+    onLeave(() => clearInterval(timer));
   }
 
   /* =====================================================
@@ -950,8 +1536,11 @@
   async function route(){
     closeModal();
     stopSale();
+    leave();
     const h = location.hash;
     const m = h.match(/^#\/c\/([^/]+)(?:\/([^/]+))?/);
+    const prog = h.match(/^#\/certificaciones\/([^/?]+)/);
+    const ticket = h.match(/^#\/soporte\/([^/?]+)/);
     try{
       lockCampus();
       // Sin perfil completo solo se puede estar en Mi perfil; guardamos a dónde iba.
@@ -961,7 +1550,11 @@
       }
       else if(m) await renderCourse(m[1], m[2]);
       else if(h.startsWith("#/certificados")) await renderCertificados();
+      else if(prog) await renderPrograma(prog[1]);
       else if(h.startsWith("#/certificaciones")) await renderCertificaciones();
+      else if(h.startsWith("#/inscripciones")) await renderInscripciones();
+      else if(ticket) await renderTicket(ticket[1]);
+      else if(h.startsWith("#/soporte")) await renderSoporte();
       else if(h.startsWith("#/perfil")) await renderPerfil();
       else await renderHome();
       window.scrollTo(0, 0);
@@ -985,7 +1578,8 @@
     $("loginView").hidden = true;
     $("appView").hidden = false;
     paintAvatar();
-    $("adminLink").hidden = me().role !== "admin";
+    $("adminLink").hidden = !isTeam();
+    refreshSupportDot();
     view.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
     await loadBase();
     const welcome = /bienvenida/.test(location.hash);

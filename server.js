@@ -532,6 +532,151 @@ app.post("/api/exam", express.json({ limit: "32kb" }), rateLimit, async (req, re
   }
 });
 
+/* ---------- Inscripciones a certificaciones ISSA ---------- */
+// InnovaFit comercializa la certificación: el alumno se inscribe, un asesor cierra la venta,
+// el alumno sube el comprobante y el equipo lo valida.
+const Sale = require("./public/js/sale.js");
+const isTeam = (u) => u && (u.role === "admin" || u.role === "agent");
+const OPEN_STATUS = ["nuevo", "contactado", "por_validar", "pagado", "acceso", "rechazado"];
+const clean = (v, max) => String(v || "").trim().replace(/\s+/g, " ").slice(0, max);
+
+function inscriptionCode() {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return "IN-" + Array.from(crypto.randomBytes(6), (b) => abc[b % abc.length]).join("");
+}
+
+app.post("/api/inscriptions", express.json({ limit: "8kb" }), async (req, res) => {
+  try {
+    const user = await authUser(req);
+    if (!user) return res.status(401).json({ message: "Iniciá sesión de nuevo." });
+    const b = req.body || {};
+    let program;
+    try {
+      program = await pb("/api/collections/programs/records/" + encodeURIComponent(String(b.program || "")));
+    } catch {
+      return res.status(404).json({ message: "No encontramos esa certificación." });
+    }
+    if (!program.published) return res.status(404).json({ message: "Esa certificación no está disponible." });
+
+    const data = {
+      name: clean(b.name, 120),
+      email: clean(b.email, 160).toLowerCase(),
+      country: String(b.country || "").replace(/\D/g, "").slice(0, 4),
+      phone: String(b.phone || "").replace(/\D/g, "").slice(0, 15),
+      docId: clean(b.docId, 40),
+      city: clean(b.city, 80),
+      experience: clean(b.experience, 80),
+      payPlan: clean(b.payPlan, 80),
+      contactTime: clean(b.contactTime, 40),
+      message: String(b.message || "").trim().slice(0, 1000),
+    };
+    if (data.name.length < 5 || !data.name.includes(" ")) return res.status(400).json({ message: "Escribí tu nombre y apellido completos." });
+    if (!EMAIL_RE.test(data.email)) return res.status(400).json({ message: "Revisá tu correo." });
+    if (data.phone.length < 7) return res.status(400).json({ message: "Revisá tu número de WhatsApp." });
+    if (data.city.length < 2) return res.status(400).json({ message: "Contanos en qué ciudad estás." });
+
+    // Una inscripción activa por certificación.
+    const prev = (await pb("/api/collections/inscriptions/records?perPage=1&sort=-created&filter=" + encodeURIComponent(
+      "user = " + q(user.id) + " && program = " + q(program.id) + " && (" + OPEN_STATUS.map((s) => "status = " + q(s)).join(" || ") + ")"))).items[0];
+    if (prev) return res.status(409).json({ message: "Ya estás inscripto en esta certificación (folio " + prev.code + ").", inscription: prev });
+
+    // Precio del momento: con InnovaSale vigente y cupos disponibles se aplica el descuento.
+    const settings = (await pb("/api/collections/settings/records?perPage=1")).items[0] || {};
+    const sale = Sale.state(settings);
+    const off = Sale.forProgram(sale, program);
+    const listPrice = +program.price || 0;
+    const usedSlot = !!(off && Sale.slotsOf(sale, program).total);
+    const rec = await pb("/api/collections/inscriptions/records", {
+      method: "POST",
+      body: {
+        ...data,
+        user: user.id,
+        program: program.id,
+        programTitle: program.title,
+        code: inscriptionCode(),
+        status: "nuevo",
+        listPrice,
+        discount: off ? off.pct : 0,
+        price: off && listPrice ? off.salePrice : listPrice,
+        currency: (settings.saleCurrency || "USD").trim(),
+        saleApplied: !!off,
+        usedSlot,
+        accessEmail: data.email,
+      },
+    });
+    // Se descuenta un cupo de la oferta (operación atómica de PocketBase).
+    if (usedSlot) await pb("/api/collections/programs/records/" + program.id, { method: "PATCH", body: { "slotsTaken+": 1 } });
+    res.json(rec);
+  } catch (err) {
+    sendError(res, err, "inscription");
+  }
+});
+
+// Comprobante de pago: llega como archivo crudo (el tipo en content-type) y los datos en la query.
+const RECEIPT_TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "application/pdf": "pdf" };
+app.post("/api/inscriptions/:id/receipt", express.raw({ type: () => true, limit: "10mb" }), async (req, res) => {
+  try {
+    const user = await authUser(req);
+    if (!user) return res.status(401).json({ message: "Iniciá sesión de nuevo." });
+    let ins;
+    try {
+      ins = await pb("/api/collections/inscriptions/records/" + encodeURIComponent(req.params.id));
+    } catch {
+      return res.status(404).json({ message: "No encontramos esa inscripción." });
+    }
+    if (ins.user !== user.id) return res.status(403).json({ message: "Esa inscripción no es tuya." });
+    if (!["nuevo", "contactado", "rechazado", "por_validar"].includes(ins.status)) {
+      return res.status(400).json({ message: "Esta inscripción ya no admite comprobantes." });
+    }
+    const type = String(req.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (!RECEIPT_TYPES[type]) return res.status(400).json({ message: "Subí una imagen (JPG, PNG, WEBP) o un PDF." });
+    if (!Buffer.isBuffer(req.body) || req.body.length < 200) return res.status(400).json({ message: "El archivo llegó vacío. Probá de nuevo." });
+    const accessEmail = clean(req.query.accessEmail, 160).toLowerCase();
+    if (!EMAIL_RE.test(accessEmail)) return res.status(400).json({ message: "Escribí el correo donde querés recibir el acceso." });
+    const amount = Math.max(0, Math.round((parseFloat(req.query.amount) || 0) * 100) / 100);
+
+    const f = new FormData();
+    f.set("receipt", new Blob([req.body], { type }), "comprobante-" + ins.code + "." + RECEIPT_TYPES[type]);
+    f.set("accessEmail", accessEmail);
+    f.set("declaredAmount", String(amount));
+    f.set("payRef", clean(req.query.ref, 200));
+    f.set("receiptAt", new Date().toISOString().replace("T", " "));
+    f.set("status", "por_validar");
+    f.set("rejectReason", "");
+    res.json(await pb("/api/collections/inscriptions/records/" + ins.id, { method: "PATCH", form: f }));
+  } catch (err) {
+    sendError(res, err, "receipt");
+  }
+});
+
+// Cancelar: el alumno mientras no pagó; el equipo, siempre. Si había tomado un cupo de oferta, lo devuelve.
+app.post("/api/inscriptions/:id/cancel", express.json({ limit: "4kb" }), async (req, res) => {
+  try {
+    const user = await authUser(req);
+    if (!user) return res.status(401).json({ message: "Iniciá sesión de nuevo." });
+    let ins;
+    try {
+      ins = await pb("/api/collections/inscriptions/records/" + encodeURIComponent(req.params.id));
+    } catch {
+      return res.status(404).json({ message: "No encontramos esa inscripción." });
+    }
+    const team = isTeam(user);
+    if (!team && ins.user !== user.id) return res.status(403).json({ message: "Esa inscripción no es tuya." });
+    if (ins.status === "cancelado") return res.json(ins);
+    if (!team && !["nuevo", "contactado", "rechazado"].includes(ins.status)) {
+      return res.status(400).json({ message: "Tu pago ya está en revisión. Escribinos por Soporte para cancelarla." });
+    }
+    const out = await pb("/api/collections/inscriptions/records/" + ins.id, { method: "PATCH", body: { status: "cancelado", usedSlot: false } });
+    if (ins.usedSlot && ins.program) {
+      const p = await pb("/api/collections/programs/records/" + ins.program).catch(() => null);
+      if (p && (p.slotsTaken || 0) > 0) await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", body: { "slotsTaken-": 1 } });
+    }
+    res.json(out);
+  } catch (err) {
+    sendError(res, err, "cancel");
+  }
+});
+
 /* ---------- Páginas ---------- */
 app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, "public", "index.html")));

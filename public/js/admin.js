@@ -119,9 +119,9 @@
     btn.disabled = true;
     try{
       const res = await pb.collection("users").authWithPassword($("lEmail").value.trim().toLowerCase(), $("lPass").value);
-      if(res.record.role !== "admin"){
+      if(res.record.role !== "admin" && res.record.role !== "agent"){
         pb.authStore.clear();
-        $("lErr").textContent = "Esta cuenta no tiene permisos de administrador.";
+        $("lErr").textContent = "Esta cuenta no es del equipo InnovaFit.";
         return;
       }
       boot();
@@ -210,7 +210,7 @@
   async function renderResumen(){
     const [attempts, students, courses, certs, recent, accredited] = await Promise.all([
       pb.collection("attempts").getFullList({fields:"created,score,passed,sections", batch:1000}),
-      pb.collection("users").getList(1, 1, {filter:'role != "admin"', fields:"id"}),
+      pb.collection("users").getList(1, 1, {filter:'role != "admin" && role != "agent"', fields:"id"}),
       getCourses(true),
       pb.collection("certificates").getList(1, 1, {fields:"id"}),
       pb.collection("attempts").getList(1, 6, {sort:"-created"}),
@@ -464,7 +464,7 @@
         <tbody class="stagger">${res.items.map((u) => `<tr data-id="${u.id}">
           <td><div class="who-cell">${avatarHtml(u)}<div><b>${esc(u.name || "—")}</b><span class="sub">${esc(u.email)}</span></div></div></td>
           <td>${(u.courses || []).length ? (u.courses || []).map((id) => `<span class="badge" style="margin:2px">${esc(names.get(id) || "Curso eliminado")}</span>`).join("") : '<span class="muted">Sin cursos</span>'}</td>
-          <td>${u.role === "admin" ? '<span class="badge hot">Admin</span>' : '<span class="badge">Alumno</span>'}</td>
+          <td>${u.role === "admin" ? '<span class="badge hot">Admin</span>' : u.role === "agent" ? '<span class="badge good">Asesor</span>' : '<span class="badge">Alumno</span>'}</td>
           <td><span class="sub" style="color:var(--fg)">${fmtDate(u.created)}</span></td>
           <td><div class="row-actions"><button class="btn btn-ghost btn-sm" data-cert>Certificar</button><button class="btn btn-ghost btn-sm" data-edit>Editar</button>${u.id === pb.authStore.record.id ? "" : '<button class="btn btn-danger btn-sm" data-del>Eliminar</button>'}</div></td>
         </tr>`).join("")}</tbody></table></div>` : `<div class="table-wrap"><div class="empty-row">No hay alumnos${userState.q ? " con esa búsqueda" : ""}.</div></div>`}
@@ -515,8 +515,10 @@
         <div class="field"><span>Cursos habilitados</span>
           <div class="checks">${courses.length ? courses.map((c) => `<label class="check"><input type="checkbox" name="courses" value="${c.id}"${selected.has(c.id) ? " checked" : ""}> ${esc(c.title)} ${c.isGift ? '<span class="badge hot">Regalo</span>' : ""}${c.published ? "" : ' <span class="badge">Borrador</span>'}</label>`).join("") : '<span class="muted">Todavía no hay cursos.</span>'}</div></div>
         <label class="field"><span>Rol</span><select class="input" name="role">
-          <option value="student"${!u || u.role !== "admin" ? " selected" : ""}>Alumno</option>
+          <option value="student"${!u || !["admin", "agent"].includes(u.role) ? " selected" : ""}>Alumno</option>
+          <option value="agent"${u && u.role === "agent" ? " selected" : ""}>Asesor del equipo (ventas, soporte y manual)</option>
           <option value="admin"${u && u.role === "admin" ? " selected" : ""}>Administrador</option></select></label>
+        <p class="hint">Los asesores entran a /admin con su usuario: atienden inscripciones y tickets, y ven el manual del equipo.</p>
         <p class="error-msg" id="uErr" role="alert"></p>
         <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="uSave">${isNew ? "Crear acceso" : "Guardar cambios"}</button></div>
       </form>`, (m) => {
@@ -556,6 +558,7 @@
           }
           if(isNew || pw) credentialsModal(rec, pw);
           else closeModal();
+          teamCache = null;
           route(true);
         }catch(err){
           m.querySelector("#uErr").textContent = errMsg(err);
@@ -1078,12 +1081,12 @@
   async function renderCertificaciones(){
     const items = await pb.collection("programs").getFullList({sort:"order,title"});
     view.innerHTML = `
-      <div class="head"><div><span class="eyebrow">Lo que ve el alumno en su panel</span><h1>Certificaciones</h1></div>
+      <div class="head"><div><span class="eyebrow">Certificaciones ISSA que ve el alumno: ficha, temario y precio</span><h1>Certificaciones</h1></div>
         <div class="actions"><button class="btn btn-primary" id="newProg">+ Nueva certificación</button></div></div>
       <div class="tiles stagger">${items.map((p) => `<div class="card tile spot" data-id="${p.id}" tabindex="0" role="button">
         <div class="cv${p.image ? "" : " ph"}" ${p.image ? `style="background-image:url('${fileUrl(p, p.image, "640x360")}')"` : ""}>${p.image ? "" : `<span>${esc(initials(p.title))}</span>`}</div>
-        <div class="cb"><div class="badges"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${p.published ? '<span class="badge good">Visible</span>' : '<span class="badge">Oculta</span>'}${p.course ? '<span class="badge">📝 Evaluación</span>' : ""}</div>
-          <h3>${esc(p.title)}</h3><p>${esc(p.summary || "")}</p></div></div>`).join("")}
+        <div class="cb"><div class="badges"><span class="badge hot">${esc(KIND_PROGRAM[p.kind] || "Certificación")}</span>${p.published ? '<span class="badge good">Visible</span>' : '<span class="badge">Oculta</span>'}${p.course ? '<span class="badge">📝 Evaluación</span>' : ""}${(p.modules || []).length ? `<span class="badge">${p.modules.length} módulos</span>` : '<span class="badge bad">Sin temario</span>'}</div>
+          <h3>${esc(p.title)}</h3><p>${p.price ? "<b style='color:var(--fg)'>$" + (+p.price).toLocaleString("es-MX") + "</b> · " : ""}${esc(p.summary || "")}</p></div></div>`).join("")}
         <button class="tile add" id="newProg2"><span class="plus">+</span>Nueva certificación</button></div>`;
     stagger(view);
     $("newProg").onclick = $("newProg2").onclick = () => programModal(null, items.length + 1);
@@ -1098,32 +1101,71 @@
   function programModal(p, nextOrder){
     const isNew = !p;
     const x = p || {title:"", kind:"certificacion", summary:"", duration:"", modality:"Online + práctica", published:true, order: nextOrder};
-    openModal(`<span class="eyebrow">Catálogo</span><h2 style="margin-top:8px">${isNew ? "Nueva certificación" : "Editar certificación"}</h2>
+    const mods = Array.isArray(x.modules) ? x.modules : [];
+    openModal(`<span class="eyebrow">Catálogo · certificación ISSA</span><h2 style="margin-top:8px">${isNew ? "Nueva certificación" : "Editar certificación"}</h2>
       <form id="pForm" novalidate>
+        <div class="prog-ed">
+        <div>
+        <h3 class="ed-h">Datos y precio</h3>
         <label class="field"><span>Nombre</span><input class="input" name="title" required value="${esc(x.title)}"></label>
         <div class="two">
           <label class="field"><span>Tipo</span><select class="input" name="kind">${Object.entries(KIND_PROGRAM).map(([k, v]) => `<option value="${k}"${x.kind === k ? " selected" : ""}>${v}</option>`).join("")}</select></label>
           <label class="field"><span>Orden</span><input class="input" name="order" type="number" value="${esc(x.order || 0)}"></label>
         </div>
-        <label class="field"><span>Descripción breve</span><textarea class="input" name="summary" rows="3">${esc(x.summary || "")}</textarea></label>
+        <label class="field"><span>Descripción breve (tarjeta)</span><textarea class="input" name="summary" rows="2">${esc(x.summary || "")}</textarea></label>
         <div class="two">
           <label class="field"><span>Duración</span><input class="input" name="duration" value="${esc(x.duration || "")}" placeholder="Ej: 4 meses"></label>
           <label class="field"><span>Modalidad</span><input class="input" name="modality" value="${esc(x.modality || "")}"></label>
         </div>
         <div class="two">
-          <label class="field"><span>Precio en la web</span><input class="input" name="priceLabel" value="${esc(x.priceLabel || "")}" placeholder="Consultá"></label>
-          <label class="field"><span>Nota destacada (opcional)</span><input class="input" name="note" value="${esc(x.note || "")}" placeholder="Ej: Precio Buen Fin"></label>
+          <label class="field"><span>Precio (moneda de Ajustes)</span><input class="input" name="price" type="number" min="0" step="0.01" value="${esc(x.price || "")}" placeholder="Ej: 851.09"></label>
+          <label class="field"><span>Precio anterior (tachado, opcional)</span><input class="input" name="priceBefore" type="number" min="0" step="0.01" value="${esc(x.priceBefore || "")}"></label>
         </div>
+        <div class="two">
+          <label class="field"><span>Nota del precio (opcional)</span><input class="input" name="priceNote" maxlength="120" value="${esc(x.priceNote || "")}" placeholder="o $10,230 MXN a 6 meses sin intereses"></label>
+          <label class="field"><span>Texto si no hay precio</span><input class="input" name="priceLabel" value="${esc(x.priceLabel || "")}" placeholder="Precio a consultar"></label>
+        </div>
+        <label class="field"><span>Nota destacada en la web (opcional)</span><input class="input" name="note" value="${esc(x.note || "")}" placeholder="Ej: Precio Buen Fin"></label>
         <div class="field"><span>Imagen (16:9)</span>
           <div class="cover-prev" id="pPrev" ${x.image ? `style="background-image:url('${fileUrl(x, x.image, "640x360")}')"` : ""}>${x.image ? "" : "Sin imagen"}</div>
           <input class="input" type="file" name="image" accept="image/png,image/jpeg,image/webp"></div>
         <p class="hint" style="margin-top:-6px">La misma imagen se ve en el panel, en el campus y en la tarjeta de la web. JPG, PNG o WEBP de hasta 10 MB.</p>
         <label class="check" style="margin-bottom:14px"><input type="checkbox" name="published"${x.published ? " checked" : ""}> Visible en el campus y en la web</label>
+        </div>
+        <div>
+        <h3 class="ed-h">Ficha del programa (lo que ve el alumno)</h3>
+        <label class="field"><span>Destacados · uno por línea</span><textarea class="input" name="highlights" rows="3" placeholder="10 módulos&#10;Certificación ISSA&#10;Incluye RCP/DEA">${esc(x.highlights || "")}</textarea></label>
+        <label class="field"><span>El programa · qué va a lograr</span><textarea class="input" name="objective" rows="4">${esc(x.objective || "")}</textarea></label>
+        <label class="field"><span>A quién va dirigido · un perfil por línea</span><textarea class="input" name="audience" rows="3">${esc(x.audience || "")}</textarea></label>
+        <label class="field"><span>Recursos y metodología · uno por línea</span><textarea class="input" name="resources" rows="3">${esc(x.resources || "")}</textarea></label>
+        <label class="field"><span>Perfil de egreso</span><textarea class="input" name="profile" rows="3">${esc(x.profile || "")}</textarea></label>
+        <div class="field"><span>Temario en PDF (opcional)</span>
+          ${x.brochure ? `<div class="brochure-row"><a class="btn btn-ghost btn-sm" href="${fileUrl(x, x.brochure)}" target="_blank" rel="noopener">Ver PDF actual ↗</a><label class="check"><input type="checkbox" name="brochureRm"> Quitarlo</label></div>` : ""}
+          <input class="input" type="file" name="brochure" accept="application/pdf"></div>
+        </div>
+        </div>
+        <div class="field"><span>Módulos · el alumno los abre uno por uno</span>
+          <div class="mods" id="pMods"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="pAddMod">+ Agregar módulo</button></div>
         ${isNew ? '<p class="hint">Guardá la certificación y después creale su evaluación.</p>' : `<div class="field"><span>Evaluación de la certificación</span><div class="card" id="pExam" style="padding:14px 16px"><span class="muted">Cargando…</span></div></div>`}
         <p class="error-msg" id="pErr" role="alert"></p>
         <div class="modal-actions">${isNew ? "" : '<button type="button" class="btn btn-danger" id="pDel" style="margin-right:auto">Eliminar</button>'}<button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="pSave">${isNew ? "Crear" : "Guardar"}</button></div>
       </form>`, (m) => {
       const form = m.querySelector("#pForm");
+      // Editor de módulos: título + temas (uno por línea), con orden.
+      const modBox = m.querySelector("#pMods");
+      const readMods = () => [...modBox.querySelectorAll(".mod-ed")].map((r) => ({title: r.querySelector("[data-t]").value.trim(), topics: r.querySelector("[data-k]").value.trim()})).filter((r) => r.title || r.topics);
+      const paintMods = (list) => {
+        modBox.innerHTML = list.map((md, i) => `<div class="mod-ed"><div class="mod-ed-h"><b>${i + 1}</b><input class="input" data-t placeholder="Ej: Módulo 1: Fundamentos" value="${esc(md.title)}">
+          <button type="button" class="btn btn-ghost btn-sm" data-up="${i}"${i ? "" : " disabled"} aria-label="Subir">↑</button><button type="button" class="btn btn-ghost btn-sm" data-dn="${i}"${i < list.length - 1 ? "" : " disabled"} aria-label="Bajar">↓</button><button type="button" class="btn btn-danger btn-sm" data-rm="${i}">Quitar</button></div>
+          <textarea class="input" data-k rows="3" placeholder="Temas, uno por línea">${esc(md.topics)}</textarea></div>`).join("") || '<p class="muted" style="margin:0 0 10px">Sin módulos todavía.</p>';
+        modBox.querySelectorAll("[data-rm]").forEach((b) => b.onclick = () => { const l = readAll(); l.splice(+b.dataset.rm, 1); paintMods(l); });
+        modBox.querySelectorAll("[data-up]").forEach((b) => b.onclick = () => { const l = readAll(), k = +b.dataset.up; [l[k - 1], l[k]] = [l[k], l[k - 1]]; paintMods(l); });
+        modBox.querySelectorAll("[data-dn]").forEach((b) => b.onclick = () => { const l = readAll(), k = +b.dataset.dn; [l[k + 1], l[k]] = [l[k], l[k + 1]]; paintMods(l); });
+      };
+      const readAll = () => [...modBox.querySelectorAll(".mod-ed")].map((r) => ({title: r.querySelector("[data-t]").value, topics: r.querySelector("[data-k]").value}));
+      paintMods(mods.map((md) => ({title: md.title || "", topics: md.topics || ""})));
+      m.querySelector("#pAddMod").onclick = () => { const l = readAll(); l.push({title:"", topics:""}); paintMods(l); modBox.lastElementChild.querySelector("[data-t]").focus(); };
       form.image.onchange = () => {
         const f = form.image.files[0];
         if(f){ const prev = m.querySelector("#pPrev"); prev.style.backgroundImage = "url('" + URL.createObjectURL(f) + "')"; prev.textContent = ""; }
@@ -1132,10 +1174,16 @@
         e.preventDefault();
         if(!form.title.value.trim()){ m.querySelector("#pErr").textContent = "Falta el nombre."; return; }
         const fd = new FormData();
-        ["title", "kind", "summary", "duration", "modality", "priceLabel", "note"].forEach((k) => fd.set(k, form[k].value.trim()));
+        ["title", "kind", "summary", "duration", "modality", "priceLabel", "note", "priceNote", "highlights", "objective", "audience", "resources", "profile"].forEach((k) => fd.set(k, form[k].value.trim()));
+        const num = (v) => String(Math.max(0, Math.round((parseFloat(v) || 0) * 100) / 100));
+        fd.set("price", num(form.price.value));
+        fd.set("priceBefore", num(form.priceBefore.value));
+        fd.set("modules", JSON.stringify(readMods()));
         fd.set("order", form.order.value || "0");
         fd.set("published", form.published.checked ? "true" : "false");
         if(form.image.files[0]) fd.set("image", form.image.files[0]);
+        if(form.brochure.files[0]) fd.set("brochure", form.brochure.files[0]);
+        else if(form.brochureRm && form.brochureRm.checked) fd.set("brochure", "");
         m.querySelector("#pSave").disabled = true;
         try{
           if(isNew) await pb.collection("programs").create(fd);
@@ -1164,7 +1212,7 @@
         try{ await pb.collection("programs").delete(p.id); ok("¡Eliminada!"); renderCertificaciones(); }
         catch(err){ fail(err); }
       });
-    });
+    }, true);
   }
 
   // Busca el curso, la lección de examen y las preguntas de una certificación (sin crear nada).
@@ -1231,7 +1279,7 @@
 
   async function loadTracking(){
     const [students, courses, lessons, progress, assess, results, certs] = await Promise.all([
-      pb.collection("users").getFullList({filter:'role != "admin"', fields:"id,courses", batch:1000}),
+      pb.collection("users").getFullList({filter:'role != "admin" && role != "agent"', fields:"id,courses", batch:1000}),
       getCourses(true),
       pb.collection("lessons").getFullList({fields:"id,course,kind", batch:1000}),
       pb.collection("progress").getFullList({fields:"user,course", batch:2000}),
@@ -1383,17 +1431,18 @@
           <small class="sale-left" id="saleLeft"></small></div>
         <div class="two">
           <label class="field"><span>Texto de la oferta</span><input class="input" name="saleText" maxlength="240" value="${esc(s.saleText || "")}" placeholder="Ofertas exclusivas en certificaciones por tiempo limitado."></label>
-          <label class="field"><span>Moneda</span><input class="input" name="saleCurrency" maxlength="6" value="${esc(s.saleCurrency || "MXN")}"></label>
+          <label class="field"><span>Moneda de los precios</span><input class="input" name="saleCurrency" maxlength="6" value="${esc(s.saleCurrency || "USD")}"></label>
         </div>
         <div class="field"><span>Precios por certificación</span>
-          <div class="table-wrap"><table class="sale-table"><thead><tr><th>Certificación</th><th>Precio regular</th><th data-sale="custom">% desc.</th><th>Cupos</th><th>Precio InnovaSale</th></tr></thead><tbody>
+          <div class="table-wrap"><table class="sale-table"><thead><tr><th>Certificación</th><th>Precio regular</th><th data-sale="custom">% desc.</th><th>Cupos</th><th>Ocupados</th><th>Precio InnovaSale</th></tr></thead><tbody>
             ${progs.map((p) => `<tr data-id="${p.id}"><td>${esc(p.title)}${p.published ? "" : ' <span class="badge">Oculta</span>'}</td>
-              <td><input class="input" data-f="price" type="number" min="0" value="${esc(p.price || "")}" placeholder="Sin precio"></td>
+              <td><input class="input" data-f="price" type="number" min="0" step="0.01" value="${esc(p.price || "")}" placeholder="Sin precio"></td>
               <td data-sale="custom"><input class="input" data-f="salePercent" type="number" min="0" max="90" value="${esc(p.salePercent || "")}" placeholder="0"></td>
               <td><input class="input" data-f="saleSlots" type="number" min="0" value="${esc(p.saleSlots || "")}" placeholder="General"></td>
+              <td><input class="input" data-f="slotsTaken" type="number" min="0" value="${esc(p.slotsTaken || 0)}" title="Cada inscripción con descuento suma uno. Ponelo en 0 para reiniciar los cupos."></td>
               <td class="sale-final mono"></td></tr>`).join("")}
           </tbody></table></div>
-          <p class="hint">Sin precio regular, la web muestra solo el % de descuento. Cupos vacíos usan los cupos generales. En modo "por certificación", las que queden en 0% no entran en la oferta.</p></div>
+          <p class="hint">Sin precio regular, la web muestra solo el % de descuento. Cupos vacíos usan los cupos generales. En modo "por certificación", las que queden en 0% no entran en la oferta. Cada inscripción con descuento ocupa un cupo; al agotarse, esa certificación vuelve a su precio regular. Para una oferta nueva, poné "Ocupados" en 0.</p></div>
       </div></div>`;
   }
 
@@ -1407,16 +1456,17 @@
       const ends = endVal ? new Date(endVal) : null;
       const rows = [...box.querySelectorAll("tr[data-id]")].map((tr) => {
         const v = (f) => Math.max(0, Math.round(+tr.querySelector(`[data-f="${f}"]`).value || 0));
-        return {tr, id: tr.dataset.id, price: v("price"), salePercent: Math.min(90, v("salePercent")), saleSlots: v("saleSlots")};
+        const price = Math.max(0, Math.round((+tr.querySelector('[data-f="price"]').value || 0) * 100) / 100);
+        return {tr, id: tr.dataset.id, price, salePercent: Math.min(90, v("salePercent")), saleSlots: v("saleSlots"), slotsTaken: v("slotsTaken")};
       });
       box.querySelectorAll('[data-sale="on"]').forEach((el) => (el.hidden = mode === "off"));
       box.querySelectorAll('[data-sale="general"]').forEach((el) => (el.hidden = mode !== "general"));
       box.querySelectorAll('[data-sale="custom"]').forEach((el) => (el.hidden = mode !== "custom"));
-      const cur = form.saleCurrency.value.trim() || "MXN";
+      const cur = form.saleCurrency.value.trim() || "USD";
       rows.forEach((r) => {
         const pct = mode === "general" ? general : r.salePercent;
         r.tr.querySelector(".sale-final").innerHTML = !pct || mode === "off" ? '<span class="muted">—</span>'
-          : r.price ? `<b>$${Math.round(r.price * (100 - pct) / 100).toLocaleString("es-MX")}</b> ${esc(cur)} <span class="badge hot">-${pct}%</span>` : `<span class="badge hot">-${pct}%</span>`;
+          : r.price ? `<b>${money(Math.round(r.price * (100 - pct)) / 100)}</b> ${esc(cur)} <span class="badge hot">-${pct}%</span>` : `<span class="badge hot">-${pct}%</span>`;
       });
       const left = ends ? ends - Date.now() : 0;
       $("saleLeft").textContent = !ends ? "Elegí cuándo termina." : left > 0 ? "Termina en " + leftText(left) + "." : "Esa fecha ya pasó: la oferta no se mostrará.";
@@ -1509,8 +1559,8 @@
         const byId = new Map(progs.map((p) => [p.id, p]));
         await Promise.all(sale.rows.filter((r) => {
           const p = byId.get(r.id);
-          return (+p.price || 0) !== r.price || (+p.salePercent || 0) !== r.salePercent || (+p.saleSlots || 0) !== r.saleSlots;
-        }).map((r) => pb.collection("programs").update(r.id, {price: r.price, salePercent: r.salePercent, saleSlots: r.saleSlots})));
+          return (+p.price || 0) !== r.price || (+p.salePercent || 0) !== r.salePercent || (+p.saleSlots || 0) !== r.saleSlots || (+p.slotsTaken || 0) !== r.slotsTaken;
+        }).map((r) => pb.collection("programs").update(r.id, {price: r.price, salePercent: r.salePercent, saleSlots: r.saleSlots, slotsTaken: r.slotsTaken})));
       }catch(err){ return fail(err); }
       const live = camp.campaignOn.checked && sale.settings.saleMode !== "off";
       save(fd, live ? "InnovaSale ya está activo en la web y en el campus." : camp.campaignOn.checked ? "La campaña ya se ve en el campus." : "La campaña quedó desactivada.");
@@ -1665,13 +1715,602 @@
     };
   }
 
+  /* =====================================================
+     VENTAS: inscripciones a certificaciones ISSA
+     ===================================================== */
+  const INS = {
+    nuevo:["Nueva", "hot"], contactado:["En contacto", ""], por_validar:["Comprobante por validar", "hot"], pagado:["Pagada · falta acceso", "good"],
+    acceso:["Acceso enviado", "good"], rechazado:["Comprobante rechazado", "bad"], cancelado:["Cancelada", ""],
+  };
+  const PAID = ["pagado", "acceso"];
+  const money = (n, cur) => "$" + (+n || 0).toLocaleString("es-MX", {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2}) + (cur ? " " + cur : "");
+  const nowPb = () => new Date().toISOString().replace("T", " ");
+  const isAdmin = () => pb.authStore.record && pb.authStore.record.role === "admin";
+  const csvCell = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  function downloadCsv(name, head, rows){
+    const csv = [head.join(",")].concat(rows.map((r) => r.map(csvCell).join(","))).join("\n");
+    const url = URL.createObjectURL(new Blob(["﻿" + csv], {type:"text/csv;charset=utf-8"}));
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.click();
+    URL.revokeObjectURL(url);
+    ok("¡CSV exportado!", rows.length + " filas descargadas.");
+  }
+
+  let teamCache = null;
+  async function getTeam(force){
+    if(!teamCache || force) teamCache = await pb.collection("users").getFullList({filter:'role = "admin" || role = "agent"', sort:"name", fields:"id,name,email,role,avatar,collectionId"});
+    return teamCache;
+  }
+  const teamName = (id) => { const u = (teamCache || []).find((x) => x.id === id); return u ? (u.name || u.email) : ""; };
+
+  const salesState = {page:1, q:"", status:"open", program:"", mine:false};
+  const SALES_SEGS = [["open", "Activas"], ["nuevo", "Nuevas"], ["por_validar", "Por validar"], ["pagado", "Falta acceso"], ["acceso", "Completadas"], ["closed", "Canceladas"], ["all", "Todas"]];
+
+  function salesFilter(){
+    const parts = [];
+    const st = salesState.status;
+    if(st === "open") parts.push('(status = "nuevo" || status = "contactado" || status = "por_validar" || status = "rechazado" || status = "pagado")');
+    else if(st === "closed") parts.push('status = "cancelado"');
+    else if(st !== "all") parts.push(pb.filter("status = {:s}", {s: st}));
+    if(salesState.program) parts.push(pb.filter("program = {:p}", {p: salesState.program}));
+    if(salesState.mine) parts.push(pb.filter("agent = {:u}", {u: pb.authStore.record.id}));
+    if(salesState.q) parts.push(pb.filter("(name ~ {:q} || email ~ {:q} || code ~ {:q} || phone ~ {:q})", {q: salesState.q}));
+    return parts.join(" && ");
+  }
+
+  async function renderVentas(){
+    await getTeam();
+    const [res, progs, counts] = await Promise.all([
+      pb.collection("inscriptions").getList(salesState.page, 30, {sort:"-created", filter: salesFilter()}),
+      pb.collection("programs").getFullList({sort:"order,title", fields:"id,title"}),
+      Promise.all(["nuevo", "por_validar", "pagado"].map((s) => pb.collection("inscriptions").getList(1, 1, {filter: pb.filter("status = {:s}", {s}), fields:"id"}).then((r) => r.totalItems))),
+    ]);
+    view.innerHTML = `
+      <div class="head"><div><span class="eyebrow">Inscripciones a certificaciones ISSA</span><h1>Ventas</h1></div>
+        <div class="actions"><button class="btn btn-ghost" id="sCsv">Exportar CSV</button></div></div>
+      <div class="kpis stagger sales-kpis">
+        ${kpi("Nuevas", counts[0], "🆕", "esperan que un asesor las contacte")}
+        ${kpi("Por validar", counts[1], "🧾", "comprobantes para revisar")}
+        ${kpi("Falta acceso", counts[2], "📨", "pagadas sin acceso enviado")}
+      </div>
+      <div class="toolbar">
+        <div class="seg" id="sSeg">${SALES_SEGS.map(([k, l]) => `<button data-f="${k}" class="${salesState.status === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      </div>
+      <div class="toolbar">
+        <input class="input" id="sQ" type="search" placeholder="Buscar por nombre, correo, folio o teléfono" value="${esc(salesState.q)}">
+        <select class="input mini-sel" id="sProg"><option value="">Todas las certificaciones</option>${progs.map((p) => `<option value="${p.id}"${salesState.program === p.id ? " selected" : ""}>${esc(p.title)}</option>`).join("")}</select>
+        <label class="check"><input type="checkbox" id="sMine"${salesState.mine ? " checked" : ""}> Solo las mías</label>
+      </div>
+      ${res.items.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Alumno</th><th>Certificación</th><th>Precio</th><th>Estado</th><th>Asesor</th><th>Fecha</th><th></th></tr></thead>
+        <tbody class="stagger">${res.items.map((i) => { const st = INS[i.status] || ["", ""]; return `<tr data-id="${i.id}" class="click-row">
+          <td><b>${esc(i.name)}</b><span class="sub">${esc(i.email)} · <span class="mono">${esc(i.code)}</span></span></td>
+          <td>${esc(i.programTitle)}</td>
+          <td class="num">${i.price ? money(i.price, i.currency) : "—"}${i.saleApplied ? ` <span class="badge hot">-${i.discount}%</span>` : ""}</td>
+          <td><span class="badge ${st[1]}">${esc(st[0])}</span></td>
+          <td>${i.agent ? esc(teamName(i.agent)) : '<span class="muted">Sin asignar</span>'}</td>
+          <td><span class="sub" style="color:var(--fg)">${fmtDateTime(i.created)}</span></td>
+          <td><div class="row-actions"><button class="btn btn-ghost btn-sm" data-open>Abrir</button></div></td></tr>`; }).join("")}</tbody></table></div>`
+        : `<div class="table-wrap"><div class="empty-row">No hay inscripciones${salesState.q || salesState.program ? " con ese filtro" : " en este estado"}.</div></div>`}
+      ${pager(res)}`;
+    stagger(view);
+    view.querySelectorAll("[data-count]").forEach((el) => countUp(el, +el.dataset.count));
+    segPill($("sSeg"));
+    $("sSeg").onclick = (e) => {
+      const f = e.target.dataset.f;
+      if(!f) return;
+      salesState.status = f; salesState.page = 1;
+      $("sSeg").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === e.target));
+      segPill($("sSeg"));
+      setTimeout(renderVentas, 220);
+    };
+    searchInput("sQ", (v) => { salesState.q = v; salesState.page = 1; return renderVentas(); });
+    $("sProg").onchange = (e) => { salesState.program = e.target.value; salesState.page = 1; renderVentas(); };
+    $("sMine").onchange = (e) => { salesState.mine = e.target.checked; salesState.page = 1; renderVentas(); };
+    bindPager(salesState, renderVentas);
+    const byId = new Map(res.items.map((i) => [i.id, i]));
+    view.querySelectorAll("tr[data-id]").forEach((tr) => tr.onclick = () => inscriptionModal(byId.get(tr.dataset.id)));
+    $("sCsv").onclick = async () => {
+      const rows = await pb.collection("inscriptions").getFullList({sort:"-created", filter: salesFilter(), batch:500});
+      downloadCsv("inscripciones-innovafit.csv",
+        ["fecha", "folio", "estado", "certificacion", "nombre", "correo", "codigo_pais", "telefono", "ciudad", "identificacion", "experiencia", "forma_pago", "horario", "precio_lista", "descuento", "precio", "moneda", "pagado", "correo_acceso", "asesor", "notas"],
+        rows.map((i) => [i.created, i.code, (INS[i.status] || [i.status])[0], i.programTitle, i.name, i.email, i.country, i.phone, i.city, i.docId, i.experience, i.payPlan, i.contactTime, i.listPrice, i.discount, i.price, i.currency, i.paidAmount, i.accessEmail, teamName(i.agent), i.notes]));
+    };
+  }
+
+  async function inscriptionModal(i){
+    const team = await getTeam();
+    const st = INS[i.status] || ["", ""];
+    const me = pb.authStore.record;
+    const receiptUrl = i.receipt ? pb.files.getURL(i, i.receipt, {token: await pb.files.getToken()}) : "";
+    const isPdf = /\.pdf$/i.test(i.receipt || "");
+    const wa = waLink(i.country, i.phone, "Hola " + (i.name || "").split(" ")[0] + "! Soy " + (me.name || "del equipo") + " de InnovaFit 👋 Te escribo por tu inscripción en " + i.programTitle + " (folio " + i.code + ").");
+    const row = (k, v) => v ? `<div><span>${k}</span><b>${v}</b></div>` : "";
+    const steps = [["Inscripción", i.created], ["Comprobante", i.receiptAt], ["Validación", i.reviewedAt], ["Acceso enviado", i.accessSentAt]];
+    openModal(`<span class="eyebrow">Folio ${esc(i.code)} · ${fmtDateTime(i.created)}</span>
+      <div class="ins-head"><h2>${esc(i.name)}</h2><span class="badge ${st[1]}">${esc(st[0])}</span></div>
+      <div class="ins-grid">
+        <div>
+          <div class="cred ins-data">
+            ${row("Certificación", esc(i.programTitle))}
+            ${row("Precio", (i.price ? esc(money(i.price, i.currency)) : "Sin precio") + (i.saleApplied ? ` · InnovaSale -${i.discount}% (lista ${esc(money(i.listPrice))})` : "") + (i.usedSlot ? " · usó cupo" : ""))}
+            ${row("Correo", esc(i.email))}
+            ${row("WhatsApp", "+" + esc(i.country) + " " + esc(i.phone))}
+            ${row("Ciudad", esc(i.city))}
+            ${row("Identificación", esc(i.docId))}
+            ${row("Perfil", esc(i.experience))}
+            ${row("Forma de pago", esc(i.payPlan))}
+            ${row("Contactar", esc(i.contactTime))}
+            ${row("Mensaje", esc(i.message))}
+          </div>
+          <ol class="ins-tl">${steps.map(([l, d]) => `<li class="${d ? "done" : ""}"><b>${l}</b><span>${d ? fmtDateTime(d) : "—"}</span></li>`).join("")}</ol>
+        </div>
+        <div>
+          <div class="card receipt-box">
+            <h3>Comprobante</h3>
+            ${i.receipt ? `${isPdf ? `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${receiptUrl}">Abrir PDF del comprobante ↗</a>` : `<a target="_blank" rel="noopener" href="${receiptUrl}"><img src="${receiptUrl}" alt="Comprobante de pago"></a>`}
+              <div class="cred ins-data">${row("Enviado", fmtDateTime(i.receiptAt))}${row("Monto declarado", esc(money(i.declaredAmount, i.currency)))}${row("Referencia", esc(i.payRef))}${row("Correo para el acceso", esc(i.accessEmail))}</div>`
+              : `<p class="muted" style="margin:0">El alumno todavía no subió el comprobante.${i.accessEmail ? " Correo para el acceso: <b>" + esc(i.accessEmail) + "</b>" : ""}</p>`}
+            ${i.rejectReason && i.status === "rechazado" ? `<p class="error-msg" style="margin-top:10px">Motivo del rechazo: ${esc(i.rejectReason)}</p>` : ""}
+            ${PAID.includes(i.status) ? `<p class="hint" style="margin:10px 0 0">Validó ${esc(teamName(i.reviewedBy) || "—")} · cobrado ${esc(money(i.paidAmount, i.currency))}</p>` : ""}
+          </div>
+          <label class="field" style="margin-top:14px"><span>Asesor a cargo</span><select class="input" id="iAgent"><option value="">Sin asignar</option>${team.map((u) => `<option value="${u.id}"${i.agent === u.id ? " selected" : ""}>${esc(u.name || u.email)}${u.id === me.id ? " (yo)" : ""}</option>`).join("")}</select></label>
+          <label class="field"><span>Notas internas del equipo</span><textarea class="input" id="iNotes" rows="3" maxlength="3000">${esc(i.notes || "")}</textarea></label>
+        </div>
+      </div>
+      <div class="ins-actions">
+        <a class="btn btn-ghost" target="_blank" rel="noopener" href="${wa}">WhatsApp</a>
+        ${i.status === "nuevo" ? `<button class="btn btn-ghost" data-act="contactado">Marcar en contacto</button>` : ""}
+        ${i.status === "por_validar" ? `<button class="btn btn-danger" data-act="rechazar">Rechazar comprobante</button><button class="btn btn-primary" data-act="validar">Validar pago</button>` : ""}
+        ${["nuevo", "contactado", "rechazado"].includes(i.status) ? `<button class="btn btn-ghost" data-act="validar">Registrar pago sin comprobante</button>` : ""}
+        ${i.status === "pagado" ? `<button class="btn btn-primary" data-act="acceso">Marcar acceso enviado</button>` : ""}
+        ${i.status !== "cancelado" && i.status !== "acceso" ? `<button class="btn btn-ghost ins-cancel" data-act="cancelar">Cancelar inscripción</button>` : ""}
+        <button class="btn btn-primary" id="iSave">Guardar</button>
+      </div>`, (m) => {
+      const save = async (patch, msg) => {
+        try{
+          await pb.collection("inscriptions").update(i.id, {agent: m.querySelector("#iAgent").value, notes: m.querySelector("#iNotes").value.trim(), ...patch});
+          closeModal();
+          ok("¡Guardado con éxito!", msg);
+          refreshBadges();
+          route(true);
+        }catch(err){ fail(err); }
+      };
+      m.querySelector("#iSave").onclick = () => save({}, "La inscripción quedó actualizada.");
+      m.querySelectorAll("[data-act]").forEach((b) => b.onclick = async () => {
+        const a = b.dataset.act;
+        const mine = m.querySelector("#iAgent").value || me.id;
+        if(a === "contactado") return save({status:"contactado", agent: mine}, "Quedó en contacto contigo como asesor.");
+        if(a === "acceso") return save({status:"acceso", accessSentAt: nowPb()}, "El alumno ve en su panel que el acceso fue enviado a " + (i.accessEmail || i.email) + ".");
+        if(a === "cancelar"){
+          if(!(await confirmBox("Cancelar inscripción", "Se cancela la inscripción de " + i.name + (i.usedSlot ? " y se devuelve su cupo de oferta" : "") + ".", "Cancelar inscripción"))) return;
+          try{ await api("/api/inscriptions/" + i.id + "/cancel", {}); ok("Inscripción cancelada"); refreshBadges(); route(true); }catch(err){ fail(err.message); }
+          return;
+        }
+        if(a === "rechazar"){
+          const why = await promptBox("Rechazar comprobante", "El alumno ve este motivo y puede subir otro comprobante.", "Ej: el monto no coincide con el precio acordado", "Rechazar");
+          if(why === null) return;
+          return save({status:"rechazado", rejectReason: why || "No pudimos validar el comprobante.", reviewedBy: me.id, reviewedAt: nowPb()}, "El alumno ya ve el motivo en su panel.");
+        }
+        if(a === "validar"){
+          const def = i.declaredAmount || i.price || "";
+          const amount = await promptBox("Validar pago", "Monto cobrado (" + (i.currency || "") + "). Queda registrado en Finanzas.", "Monto", "Validar pago", String(def), "number");
+          if(amount === null) return;
+          return save({status:"pagado", paidAmount: Math.round((parseFloat(amount) || 0) * 100) / 100, reviewedBy: me.id, reviewedAt: nowPb(), agent: mine, rejectReason:""}, "Pago validado. Falta enviar el acceso a " + (i.accessEmail || i.email) + ".");
+        }
+      });
+    }, true);
+  }
+
+  // Pregunta un texto (o número). Devuelve null si cancela.
+  function promptBox(title, text, placeholder, okLabel, value, type){
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (v) => { if(!done){ done = true; resolve(v); } };
+      openModal(`<h2>${esc(title)}</h2><p class="muted" style="margin:0 0 14px">${esc(text)}</p>
+        <input class="input" id="pbIn" type="${type || "text"}" ${type === "number" ? 'step="0.01" min="0"' : 'maxlength="400"'} placeholder="${esc(placeholder || "")}" value="${esc(value || "")}">
+        <div class="modal-actions" style="margin-top:16px"><button class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary" id="pbOk">${esc(okLabel || "Aceptar")}</button></div>`, (m) => {
+        const inp = m.querySelector("#pbIn");
+        m.querySelector("#pbOk").onclick = () => { const v = inp.value.trim(); closeModal(); finish(v); };
+        inp.onkeydown = (e) => { if(e.key === "Enter") m.querySelector("#pbOk").click(); };
+        m.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => finish(null)));
+        document.addEventListener("keydown", function esc2(e){ if(e.key === "Escape"){ document.removeEventListener("keydown", esc2); finish(null); } });
+      });
+    });
+  }
+
+  /* =====================================================
+     FINANZAS: prospectos, inscripciones, ventas e ingresos
+     ===================================================== */
+  const finState = {range:"30"};
+  const RANGES = [["7", "7 días"], ["30", "30 días"], ["90", "90 días"], ["365", "12 meses"], ["all", "Todo"]];
+
+  async function renderFinanzas(){
+    const [all, progs, s, students] = await Promise.all([
+      pb.collection("inscriptions").getFullList({sort:"created", batch:1000, fields:"id,created,status,program,programTitle,price,listPrice,discount,saleApplied,paidAmount,reviewedAt,agent,reviewedBy,payPlan,country,name,email,phone,code,currency"}),
+      pb.collection("programs").getFullList({sort:"order,title", fields:"id,title,price,saleSlots,slotsTaken"}),
+      UI.settings(true),
+      pb.collection("users").getFullList({filter:'role != "admin" && role != "agent"', fields:"id,created", batch:1000}),
+      getTeam(),
+    ]);
+    const cur = (s.saleCurrency || "USD").trim();
+    const days = finState.range === "all" ? Infinity : +finState.range;
+    const since = days === Infinity ? 0 : Date.now() - days * 86400000;
+    const inRange = (d) => d && toDate(d).getTime() >= since;
+    const paidAt = (i) => i.reviewedAt || i.created;
+    const ins = all.filter((i) => inRange(i.created));
+    const sales = all.filter((i) => PAID.includes(i.status) && inRange(paidAt(i)));
+    const revenue = sales.reduce((a, i) => a + (+i.paidAmount || +i.price || 0), 0);
+    const avg = sales.length ? revenue / sales.length : 0;
+    const conv = ins.length ? Math.round((ins.filter((i) => PAID.includes(i.status)).length / ins.length) * 100) : 0;
+    const open = all.filter((i) => ["nuevo", "contactado", "rechazado"].includes(i.status));
+    const toValidate = all.filter((i) => i.status === "por_validar").length;
+    const discountGiven = sales.reduce((a, i) => a + Math.max(0, (+i.listPrice || 0) - (+i.price || 0)), 0);
+    const newStudents = students.filter((u) => inRange(u.created)).length;
+
+    // Ingresos por período: días (≤30), semanas (90) o meses.
+    const unit = days <= 30 ? "day" : days <= 90 ? "week" : "month";
+    const keyOf = (d) => {
+      const x = toDate(d);
+      if(unit === "day") return dayKey(x);
+      if(unit === "week"){ const m = new Date(x); m.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return dayKey(m); }
+      return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0");
+    };
+    const buckets = [];
+    const first = days === Infinity ? (sales[0] ? toDate(paidAt(sales[0])) : new Date()) : new Date(since);
+    const cursor = new Date(first); cursor.setHours(0, 0, 0, 0);
+    if(unit === "week") cursor.setDate(cursor.getDate() - ((cursor.getDay() + 6) % 7));
+    if(unit === "month") cursor.setDate(1);
+    for(let guard = 0; cursor <= new Date() && guard < 400; guard++){
+      buckets.push({key: keyOf(cursor), d: new Date(cursor), v: 0, n: 0});
+      if(unit === "day") cursor.setDate(cursor.getDate() + 1);
+      else if(unit === "week") cursor.setDate(cursor.getDate() + 7);
+      else cursor.setMonth(cursor.getMonth() + 1);
+    }
+    const bMap = new Map(buckets.map((b) => [b.key, b]));
+    sales.forEach((i) => { const b = bMap.get(keyOf(paidAt(i))); if(b){ b.v += +i.paidAmount || +i.price || 0; b.n++; } });
+    const label = (d) => unit === "month" ? d.toLocaleDateString("es-MX", {month:"short", year:"2-digit"}) : String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+    const revData = buckets.map((b) => ({label: label(b.d), value: Math.round(b.v), tip: money(b.v, cur), tipSub: (unit === "week" ? "Semana del " : "") + b.d.toLocaleDateString("es-MX", {day: unit === "month" ? undefined : "numeric", month:"long", year: unit === "month" ? "numeric" : undefined}) + " · " + b.n + (b.n === 1 ? " venta" : " ventas")}));
+
+    // Por certificación
+    const byProg = new Map();
+    sales.forEach((i) => { const k = i.programTitle || "—"; const v = byProg.get(k) || {n:0, v:0}; v.n++; v.v += +i.paidAmount || +i.price || 0; byProg.set(k, v); });
+    const progRows = [...byProg.entries()].sort((a, b) => b[1].n - a[1].n || b[1].v - a[1].v);
+    const maxN = Math.max(1, ...progRows.map(([, v]) => v.n));
+    const leadsByProg = new Map();
+    ins.forEach((i) => leadsByProg.set(i.programTitle, (leadsByProg.get(i.programTitle) || 0) + 1));
+    const topLead = [...leadsByProg.entries()].sort((a, b) => b[1] - a[1])[0];
+
+    // Embudo
+    const reached = (i, lvl) => ({nuevo:0, contactado:1, rechazado:2, por_validar:2, pagado:3, acceso:4, cancelado:-1}[i.status] ?? 0) >= lvl;
+    const funnel = [["Inscripciones", ins.length], ["Contactadas", ins.filter((i) => reached(i, 1)).length], ["Con comprobante", ins.filter((i) => reached(i, 2)).length], ["Pagadas", ins.filter((i) => reached(i, 3)).length], ["Acceso enviado", ins.filter((i) => reached(i, 4)).length]];
+
+    const countBy = (list, f) => { const m = new Map(); list.forEach((x) => { const k = f(x) || "—"; m.set(k, (m.get(k) || 0) + 1); }); return [...m.entries()].sort((a, b) => b[1] - a[1]); };
+    const byAgent = countBy(sales, (i) => teamName(i.reviewedBy || i.agent) || "Sin asesor");
+    const byPlan = countBy(ins, (i) => i.payPlan);
+    const byCountry = countBy(ins, (i) => i.country ? "+" + i.country : "");
+    const saleN = sales.filter((i) => i.saleApplied).length;
+
+    const hbars = (rows, fmt, max) => rows.length ? `<div class="hbars">${rows.map(([name, v], k) => `<div class="hbar"><div class="top"><span>${esc(name)}</span><span>${fmt(v)}</span></div><div class="track"><i style="width:${Math.max(2, ((typeof v === "number" ? v : v.n) / (max || Math.max(1, ...rows.map(([, x]) => (typeof x === "number" ? x : x.n))))) * 100)}%;animation-delay:${k * 70}ms"></i></div></div>`).join("")}</div>` : '<p class="muted">Sin datos en este período.</p>';
+    const stale = open.filter((i) => Date.now() - toDate(i.created).getTime() > 48 * 3600000 && i.status === "nuevo");
+
+    view.innerHTML = `
+      <div class="head"><div><span class="eyebrow">Información comercial</span><h1>Finanzas</h1></div>
+        <div class="actions"><button class="btn btn-ghost" id="fCsv">Exportar ventas CSV</button></div></div>
+      <div class="toolbar"><div class="seg" id="fSeg">${RANGES.map(([k, l]) => `<button data-r="${k}" class="${finState.range === k ? "on" : ""}">${l}</button>`).join("")}</div>
+        <span class="muted" style="font-size:13px">Montos en ${esc(cur)} · ventas = pagos validados</span></div>
+      <div class="kpis stagger">
+        <div class="card kpi spot kpi-money"><div class="k-top"><span class="l">Ingresos</span><span class="ico">💰</span></div><b>${esc(money(Math.round(revenue)))}</b><small>${sales.length} ${sales.length === 1 ? "venta" : "ventas"} validadas</small></div>
+        ${kpi("Ventas", sales.length, "🧾", saleN ? saleN + " con InnovaSale" : "pagos validados")}
+        <div class="card kpi spot kpi-money"><div class="k-top"><span class="l">Ticket promedio</span><span class="ico">🎯</span></div><b>${esc(money(Math.round(avg)))}</b><small>por venta</small></div>
+        ${kpi("Conversión", conv, "📈", "inscripciones que pagaron", "%")}
+        ${kpi("Inscripciones", ins.length, "📝", "en el período")}
+        ${kpi("Prospectos activos", open.length, "🔥", stale.length ? `<span style="color:var(--bad);font-weight:700">${stale.length} sin contactar hace +48 h</span>` : "esperando pago")}
+        ${kpi("Por validar", toValidate, "⏳", "comprobantes pendientes")}
+        ${kpi("Alumnos nuevos", newStudents, "👥", "registrados en el campus")}
+      </div>
+      <div class="charts">
+        <div class="card chart-card spot"><h3>Ingresos por ${unit === "day" ? "día" : unit === "week" ? "semana" : "mes"}</h3><p class="sub">Pagos validados · pasá el cursor por cada barra</p><div id="chRev"></div></div>
+        <div class="card chart-card spot"><h3>Más vendida</h3><p class="sub">Ventas por certificación en el período</p>
+          ${progRows.length ? `<div class="top-sale"><span class="eyebrow">🏆 N.º 1</span><b>${esc(progRows[0][0])}</b><small>${progRows[0][1].n} ${progRows[0][1].n === 1 ? "venta" : "ventas"} · ${esc(money(Math.round(progRows[0][1].v), cur))}</small></div>` : ""}
+          ${hbars(progRows, (v) => v.n + " · " + money(Math.round(v.v)), maxN)}
+          ${topLead ? `<p class="hint" style="margin:14px 0 0">Más pedida (inscripciones): <b style="color:var(--fg)">${esc(topLead[0])}</b> con ${topLead[1]}.</p>` : ""}
+        </div>
+      </div>
+      <div class="charts b">
+        <div class="card chart-card spot"><h3>Embudo de venta</h3><p class="sub">Inscripciones del período y hasta dónde llegaron</p>
+          ${hbars(funnel.map(([n, v]) => [n, v]), (v) => v + (funnel[0][1] ? " · " + Math.round((v / funnel[0][1]) * 100) + "%" : ""), Math.max(1, funnel[0][1]))}</div>
+        <div class="card chart-card spot"><h3>Ventas por asesor</h3><p class="sub">Quién validó cada venta</p>${hbars(byAgent, (v) => v)}</div>
+      </div>
+      <div class="charts b">
+        <div class="card chart-card spot"><h3>Forma de pago preferida</h3><p class="sub">Lo que eligieron al inscribirse</p>${hbars(byPlan, (v) => v)}</div>
+        <div class="card chart-card spot"><h3>Países</h3><p class="sub">Código de país del WhatsApp</p>${hbars(byCountry.slice(0, 8), (v) => v)}</div>
+      </div>
+      ${progs.some((p) => p.slotsTaken) ? `<div class="card chart-card spot" style="margin-bottom:16px"><h3>Cupos de InnovaSale</h3><p class="sub">Cupos con descuento ocupados por certificación</p>
+        ${hbars(progs.filter((p) => p.slotsTaken).map((p) => [p.title, p.slotsTaken]), (v) => v + " ocupados")}</div>` : ""}
+      <div class="head" style="margin:26px 0 12px"><h2 style="font-size:28px">Prospectos para seguir</h2><a class="btn btn-ghost btn-sm" href="#/ventas">Ir a Ventas →</a></div>
+      ${open.length ? `<div class="table-wrap"><table><thead><tr><th>Prospecto</th><th>Certificación</th><th>Estado</th><th>Inscripción</th><th></th></tr></thead><tbody>
+        ${open.slice().reverse().slice(0, 12).map((i) => `<tr><td><b>${esc(i.name)}</b><span class="sub">${esc(i.email)}</span></td><td>${esc(i.programTitle)}</td><td><span class="badge ${(INS[i.status] || ["", ""])[1]}">${esc((INS[i.status] || [i.status])[0])}</span></td><td><span class="sub" style="color:var(--fg)">${fmtDateTime(i.created)}</span></td>
+          <td><div class="row-actions"><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${waLink(i.country, i.phone, "Hola " + (i.name || "").split(" ")[0] + "! Te escribo de InnovaFit por tu inscripción en " + i.programTitle + " (folio " + i.code + ").")}">WhatsApp</a></div></td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="table-wrap"><div class="empty-row">No hay prospectos activos.</div></div>`}`;
+    stagger(view);
+    view.querySelectorAll("[data-count]").forEach((el) => countUp(el, +el.dataset.count));
+    barChart($("chRev"), revData, {label:"Ingresos por período"});
+    segPill($("fSeg"));
+    $("fSeg").onclick = (e) => {
+      const r = e.target.dataset.r;
+      if(!r) return;
+      finState.range = r;
+      $("fSeg").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === e.target));
+      segPill($("fSeg"));
+      setTimeout(renderFinanzas, 220);
+    };
+    $("fCsv").onclick = () => downloadCsv("ventas-innovafit.csv",
+      ["fecha_pago", "folio", "certificacion", "nombre", "correo", "precio_lista", "descuento", "precio", "cobrado", "moneda", "asesor"],
+      sales.map((i) => [paidAt(i), i.code, i.programTitle, i.name, i.email, i.listPrice, i.discount, i.price, i.paidAmount, i.currency, teamName(i.reviewedBy || i.agent)]));
+  }
+
+  /* =====================================================
+     SOPORTE: tickets de los alumnos
+     ===================================================== */
+  const supState = {filter:"pending", q:""};
+  const TK = {abierto:["Abierto", "hot"], respondido:["Respondido", "good"], cerrado:["Cerrado", ""]};
+
+  async function renderSoporteAdmin(){
+    await getTeam();
+    const parts = [];
+    if(supState.filter === "pending") parts.push('(status = "abierto" || unreadTeam = true)');
+    if(supState.filter === "respondido") parts.push('status = "respondido"');
+    if(supState.filter === "cerrado") parts.push('status = "cerrado"');
+    if(supState.filter === "mine") parts.push(pb.filter("assignee = {:u}", {u: pb.authStore.record.id}));
+    if(supState.q) parts.push(pb.filter("(subject ~ {:q} || user.name ~ {:q} || user.email ~ {:q})", {q: supState.q}));
+    const list = await pb.collection("tickets").getList(1, 60, {sort:"-unreadTeam,-lastAt", filter: parts.join(" && "), expand:"user"});
+    view.innerHTML = `
+      <div class="head"><div><span class="eyebrow">Consultas de los alumnos</span><h1>Soporte</h1></div></div>
+      <div class="toolbar">
+        <div class="seg" id="tSeg">${[["pending", "Pendientes"], ["mine", "Asignados a mí"], ["respondido", "Respondidos"], ["cerrado", "Cerrados"], ["all", "Todos"]].map(([k, l]) => `<button data-f="${k}" class="${supState.filter === k ? "on" : ""}">${l}</button>`).join("")}</div>
+        <input class="input" id="tQ" type="search" placeholder="Buscar por asunto o alumno" value="${esc(supState.q)}">
+      </div>
+      ${list.items.length ? `<div class="table-wrap"><table><thead><tr><th></th><th>Consulta</th><th>Alumno</th><th>Estado</th><th>Asignado</th><th>Última actividad</th></tr></thead>
+        <tbody class="stagger">${list.items.map((t) => { const u = t.expand && t.expand.user; const st = TK[t.status] || TK.abierto; return `<tr class="click-row" data-id="${t.id}">
+          <td style="width:20px">${t.unreadTeam ? '<span class="tk-new" title="Mensaje sin atender"></span>' : ""}</td>
+          <td><b>${esc(t.subject)}</b><span class="sub">${esc(t.category || "Consulta")} · #${esc(t.id.slice(0, 6).toUpperCase())}</span></td>
+          <td>${u ? `<div class="who-cell">${avatarHtml(u)}<div><b>${esc(u.name || "—")}</b><span class="sub">${esc(u.email)}</span></div></div>` : "—"}</td>
+          <td><span class="badge ${st[1]}">${st[0]}</span></td>
+          <td>${t.assignee ? esc(teamName(t.assignee)) : '<span class="muted">—</span>'}</td>
+          <td><span class="sub" style="color:var(--fg)">${fmtDateTime(t.lastAt || t.created)}</span></td></tr>`; }).join("")}</tbody></table></div>`
+        : `<div class="table-wrap"><div class="empty-row">No hay consultas ${supState.filter === "pending" ? "pendientes 🎉" : "en esta vista"}.</div></div>`}`;
+    stagger(view);
+    segPill($("tSeg"));
+    $("tSeg").onclick = (e) => {
+      const f = e.target.dataset.f;
+      if(!f) return;
+      supState.filter = f;
+      $("tSeg").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === e.target));
+      segPill($("tSeg"));
+      setTimeout(renderSoporteAdmin, 220);
+    };
+    searchInput("tQ", (v) => { supState.q = v; return renderSoporteAdmin(); });
+    view.querySelectorAll("tr[data-id]").forEach((tr) => tr.onclick = () => { location.hash = "#/soporte/" + tr.dataset.id; });
+  }
+
+  let ticketTimer = 0;
+  async function renderTicketAdmin(id){
+    await getTeam();
+    const me = pb.authStore.record;
+    let t = await pb.collection("tickets").getOne(id, {expand:"user"});
+    const u = t.expand && t.expand.user;
+    const paint = async () => {
+      const msgs = await pb.collection("ticket_messages").getFullList({filter: pb.filter("ticket = {:t}", {t: id}), sort:"created"});
+      const token = msgs.some((x) => x.file) ? await pb.files.getToken() : "";
+      const box = $("thread");
+      if(!box) return;
+      const grew = box.dataset.n !== String(msgs.length);
+      box.dataset.n = msgs.length;
+      box.innerHTML = msgs.map((x) => `<div class="msg ${x.fromTeam ? "me" : "team"}">
+        <div class="msg-h"><b>${esc(x.fromTeam ? x.authorName || "Equipo" : (u && u.name) || "Alumno")}</b>${x.fromTeam ? '<span class="badge hot">Equipo</span>' : ""}<small>${fmtDateTime(x.created)}</small></div>
+        <div class="msg-b">${esc(x.body).replace(/\n/g, "<br>")}</div>
+        ${x.file ? `<a class="msg-file" target="_blank" rel="noopener" href="${pb.files.getURL(x, x.file, {token})}">📎 Ver adjunto</a>` : ""}</div>`).join("");
+      $("tkState").innerHTML = `<span class="badge ${(TK[t.status] || TK.abierto)[1]}">${(TK[t.status] || TK.abierto)[0]}</span>`;
+      $("tkClose").textContent = t.status === "cerrado" ? "Reabrir" : "Cerrar consulta";
+      if(grew) box.lastElementChild?.scrollIntoView({block:"nearest"});
+    };
+    view.innerHTML = `
+      <a class="eyebrow" href="#/soporte" style="text-decoration:none">← Soporte</a>
+      <div class="head" style="margin-top:8px"><div><span class="eyebrow">${esc(t.category || "Consulta")} · #${esc(t.id.slice(0, 6).toUpperCase())} · abierta ${fmtDateTime(t.created)}</span><h1 style="font-size:clamp(28px,4vw,44px)">${esc(t.subject)}</h1></div><div id="tkState"></div></div>
+      <div class="tk-admin">
+        <div>
+          <div class="card thread" id="thread"></div>
+          <form class="card reply" id="rpForm" novalidate>
+            <textarea class="input" name="body" rows="4" maxlength="5000" placeholder="Respondé como ${esc(me.name || me.email)}…"></textarea>
+            <div class="reply-a"><label class="btn btn-ghost btn-sm attach">📎 Adjuntar<input type="file" name="file" accept="image/png,image/jpeg,image/webp,application/pdf" hidden></label><span class="muted" id="rpFile"></span>
+              <button class="btn btn-primary btn-sm" id="rpSend">Enviar respuesta</button></div>
+          </form>
+        </div>
+        <aside class="card panel tk-side">
+          ${u ? `<div class="who-cell" style="margin-bottom:14px">${avatarHtml(u)}<div><b>${esc(u.name || "—")}</b><span class="sub">${esc(u.email)}</span></div></div>
+            ${u.phone ? `<a class="btn btn-ghost btn-sm" style="width:100%;margin-bottom:10px" target="_blank" rel="noopener" href="${waLink(u.country, u.phone, "Hola " + (u.name || "").split(" ")[0] + "! Te escribo de InnovaFit por tu consulta: " + t.subject)}">WhatsApp</a>` : ""}` : ""}
+          <label class="field"><span>Asignado a</span><select class="input" id="tkAs"><option value="">Sin asignar</option>${teamCache.map((x) => `<option value="${x.id}"${t.assignee === x.id ? " selected" : ""}>${esc(x.name || x.email)}${x.id === me.id ? " (yo)" : ""}</option>`).join("")}</select></label>
+          <button class="btn btn-ghost btn-sm" id="tkClose" style="width:100%"></button>
+        </aside>
+      </div>`;
+    const f = $("rpForm");
+    f.file.onchange = () => { $("rpFile").textContent = f.file.files[0] ? f.file.files[0].name : ""; };
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const body = f.body.value.trim(), file = f.file.files[0];
+      if(!body) return;
+      if(file && file.size > 10 * 1024 * 1024) return fail("El archivo pesa más de 10 MB.");
+      $("rpSend").disabled = true;
+      try{
+        const fd = new FormData();
+        fd.set("ticket", id); fd.set("author", me.id); fd.set("authorName", me.name || me.email); fd.set("fromTeam", "true"); fd.set("body", body);
+        if(file) fd.set("file", file);
+        await pb.collection("ticket_messages").create(fd);
+        t = await pb.collection("tickets").update(id, {status:"respondido", unreadUser:true, unreadTeam:false, lastAt: nowPb(), assignee: $("tkAs").value || me.id}, {expand:"user"});
+        $("tkAs").value = t.assignee;
+        f.reset(); $("rpFile").textContent = "";
+        ok("¡Respuesta enviada!", "El alumno la ve en Soporte con un aviso.");
+        refreshBadges();
+        await paint();
+      }catch(err){ fail(err); }
+      finally{ $("rpSend").disabled = false; }
+    };
+    $("tkAs").onchange = async (e) => { try{ t = await pb.collection("tickets").update(id, {assignee: e.target.value}); ok("¡Asignado!", e.target.value ? teamName(e.target.value) + " sigue esta consulta." : "La consulta quedó sin asignar."); }catch(err){ fail(err); } };
+    $("tkClose").onclick = async () => {
+      try{ t = await pb.collection("tickets").update(id, {status: t.status === "cerrado" ? "abierto" : "cerrado", unreadTeam:false}); refreshBadges(); paint(); }
+      catch(err){ fail(err); }
+    };
+    await paint();
+    if(t.unreadTeam){ t = await pb.collection("tickets").update(id, {unreadTeam:false}).catch(() => t); refreshBadges(); }
+    clearInterval(ticketTimer);
+    ticketTimer = setInterval(async () => {
+      if(!location.hash.startsWith("#/soporte/" + id)) return clearInterval(ticketTimer);
+      try{ const fresh = await pb.collection("tickets").getOne(id); if(fresh.updated !== t.updated){ t = fresh; await paint(); } }catch{}
+    }, 15000);
+  }
+
+  // Avisos en el menú: comprobantes por validar, inscripciones nuevas y consultas sin atender.
+  async function refreshBadges(){
+    try{
+      const [nuevas, validar, tickets] = await Promise.all([
+        pb.collection("inscriptions").getList(1, 1, {filter:'status = "nuevo"', fields:"id"}),
+        pb.collection("inscriptions").getList(1, 1, {filter:'status = "por_validar"', fields:"id"}),
+        pb.collection("tickets").getList(1, 1, {filter:"unreadTeam = true", fields:"id"}),
+      ]);
+      const set = (nav, n) => {
+        const a = document.querySelector(`.rail a[data-nav="${nav}"]`);
+        if(!a) return;
+        let b = a.querySelector(".rail-badge");
+        if(!n){ b?.remove(); return; }
+        if(!b){ b = document.createElement("b"); b.className = "rail-badge"; a.appendChild(b); }
+        b.textContent = n > 99 ? "99+" : n;
+      };
+      set("ventas", nuevas.totalItems + validar.totalItems);
+      set("soporte", tickets.totalItems);
+    }catch{}
+  }
+
+  /* =====================================================
+     MANUAL DEL EQUIPO (solo admin y asesores)
+     ===================================================== */
+  let manualQ = "";
+  async function renderManual(id){
+    const list = await pb.collection("manuals").getFullList({sort:"order,created"});
+    const q = manualQ.toLowerCase();
+    const text = (m) => (m.title + " " + m.section + " " + m.summary + " " + (m.body || "").replace(/<[^>]+>/g, " ")).toLowerCase();
+    const shown = q ? list.filter((m) => text(m).includes(q)) : list;
+    const cur = list.find((m) => m.id === id) || shown[0] || null;
+    const groups = [];
+    shown.forEach((m) => { const g = groups.find((x) => x.name === (m.section || "General")); g ? g.items.push(m) : groups.push({name: m.section || "General", items:[m]}); });
+    view.innerHTML = `
+      <div class="head"><div><span class="eyebrow">Solo para el equipo InnovaFit</span><h1>Manual del campus</h1></div>
+        <div class="actions">${isAdmin() ? '<button class="btn btn-ghost" id="mNew">+ Nuevo capítulo</button>' : ""}<button class="btn btn-primary" id="mAll">Descargar manual completo (PDF)</button></div></div>
+      <div class="manual">
+        <aside class="card manual-toc">
+          <input class="input" id="mQ" type="search" placeholder="Buscar en el manual" value="${esc(manualQ)}">
+          ${groups.map((g) => `<div class="mt-g"><span class="eyebrow">${esc(g.name)}</span>${g.items.map((m) => `<a href="#/manual/${m.id}" class="${cur && cur.id === m.id ? "on" : ""}">${esc(m.title)}</a>`).join("")}</div>`).join("") || '<p class="muted" style="font-size:13px">Sin resultados.</p>'}
+        </aside>
+        <article class="card manual-doc">${cur ? `<span class="eyebrow">${esc(cur.section || "General")}</span><h2>${esc(cur.title)}</h2>${cur.summary ? `<p class="manual-sum">${esc(cur.summary)}</p>` : ""}
+          <div class="rich manual-body">${cur.body || ""}</div>
+          <div class="manual-foot"><button class="btn btn-ghost btn-sm" id="mOne">Descargar este capítulo (PDF)</button>${isAdmin() ? '<button class="btn btn-ghost btn-sm" id="mEdit">Editar</button><button class="btn btn-danger btn-sm" id="mDel">Eliminar</button>' : ""}</div>`
+          : `<h2>Todavía no hay capítulos</h2><p class="muted">${isAdmin() ? "Creá el primero con “+ Nuevo capítulo”." : "El administrador todavía no cargó el manual."}</p>`}</article>
+      </div>`;
+    stagger(view);
+    const mq = $("mQ");
+    let tq;
+    mq.oninput = () => { clearTimeout(tq); tq = setTimeout(() => { manualQ = mq.value.trim(); renderManual(id).then(() => { const x = $("mQ"); x.focus(); x.setSelectionRange(x.value.length, x.value.length); }); }, 250); };
+    $("mAll").onclick = () => printManual(list, "Manual del campus InnovaFit");
+    $("mOne")?.addEventListener("click", () => printManual([cur], cur.title));
+    $("mNew")?.addEventListener("click", () => manualModal(null, list.length + 1));
+    $("mEdit")?.addEventListener("click", () => manualModal(cur));
+    $("mDel")?.addEventListener("click", async () => {
+      if(!(await confirmBox("Eliminar capítulo", "Se borra \"" + cur.title + "\" del manual."))) return;
+      try{ await pb.collection("manuals").delete(cur.id); ok("¡Eliminado!"); location.hash = "#/manual"; }catch(err){ fail(err); }
+    });
+  }
+
+  function manualModal(m, nextOrder){
+    const x = m || {title:"", section:"", summary:"", body:"", order: nextOrder};
+    openModal(`<span class="eyebrow">Manual</span><h2 style="margin-top:8px">${m ? "Editar capítulo" : "Nuevo capítulo"}</h2>
+      <form id="mForm" novalidate>
+        <div class="two"><label class="field"><span>Título</span><input class="input" name="title" value="${esc(x.title)}"></label>
+          <label class="field"><span>Sección</span><input class="input" name="section" value="${esc(x.section)}" placeholder="Ej: Ventas"></label></div>
+        <div class="two"><label class="field"><span>Resumen</span><input class="input" name="summary" maxlength="400" value="${esc(x.summary)}"></label>
+          <label class="field"><span>Orden</span><input class="input" name="order" type="number" value="${esc(x.order || 0)}"></label></div>
+        <label class="field"><span>Contenido</span><textarea class="input mono" name="body" rows="16">${esc(fromHtml(x.body))}</textarea></label>
+        <p class="hint">Texto simple: dejá una línea vacía entre párrafos. También acepta HTML (&lt;h3&gt;, &lt;ol&gt;, &lt;b&gt;…).</p>
+        <p class="error-msg" id="mErr" role="alert"></p>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-primary">${m ? "Guardar" : "Crear"}</button></div>
+      </form>`, (md) => {
+      const f = md.querySelector("#mForm");
+      f.onsubmit = async (e) => {
+        e.preventDefault();
+        if(!f.title.value.trim()) return void (md.querySelector("#mErr").textContent = "Falta el título.");
+        const data = {title: f.title.value.trim(), section: f.section.value.trim(), summary: f.summary.value.trim(), order: +f.order.value || 0, body: toHtml(f.body.value)};
+        try{
+          const r = m ? await pb.collection("manuals").update(m.id, data) : await pb.collection("manuals").create(data);
+          closeModal();
+          ok("¡Guardado con éxito!", "El equipo ya ve el capítulo actualizado.");
+          if(location.hash === "#/manual/" + r.id) renderManual(r.id); else location.hash = "#/manual/" + r.id;
+        }catch(err){ md.querySelector("#mErr").textContent = errMsg(err); }
+      };
+    }, true);
+  }
+
+  // Versión imprimible del manual: el navegador la guarda como PDF ("Guardar como PDF").
+  function printManual(items, title){
+    const w = window.open("", "_blank");
+    if(!w) return fail("El navegador bloqueó la ventana. Permití ventanas emergentes para descargar el manual.");
+    const date = new Date().toLocaleDateString("es-MX", {day:"numeric", month:"long", year:"numeric"});
+    const cover = items.length > 1;
+    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>${esc(title)}</title>
+      <style>
+        @page{size:A4;margin:18mm 16mm}
+        body{font-family:Manrope,Segoe UI,Arial,sans-serif;color:#1b1814;font-size:11.5pt;line-height:1.55;margin:0}
+        h1{font-size:30pt;margin:0 0 6pt;letter-spacing:-.01em}
+        h2{font-size:18pt;margin:0 0 4pt;color:#111}
+        h3{font-size:13pt;margin:16pt 0 4pt}
+        .k{font:700 8pt/1 monospace;letter-spacing:.14em;text-transform:uppercase;color:#e2541b}
+        .cover{height:250mm;display:flex;flex-direction:column;justify-content:center;page-break-after:always;border-left:6px solid #ff7a1f;padding-left:18mm}
+        .cover img{height:34px;margin-bottom:28pt}
+        .cover p{color:#6b625a;font-size:12pt}
+        .toc{page-break-after:always}
+        .toc li{margin:4pt 0}
+        .ch{page-break-before:always}
+        .ch:first-of-type{page-break-before:auto}
+        .sum{color:#6b625a;font-size:12pt;margin:0 0 12pt;padding-bottom:10pt;border-bottom:2px solid #ffc93c}
+        ol,ul{padding-left:18pt}
+        li{margin:3pt 0}
+        table{border-collapse:collapse;width:100%;margin:8pt 0}
+        td,th{border:1px solid #ddd;padding:5pt 7pt;text-align:left;font-size:10pt}
+        .foot{position:fixed;bottom:0;left:0;right:0;font-size:8pt;color:#9a9086;text-align:center}
+      </style></head><body>
+      ${cover ? `<section class="cover"><img src="${location.origin}/assets/innovafit-logo-dark.png" onerror="this.remove()" alt=""><span class="k">Uso interno · equipo InnovaFit</span><h1>${esc(title)}</h1><p>Funciones del campus, del panel y procedimientos del equipo.<br>Versión del ${date}.</p></section>
+        <section class="toc"><span class="k">Contenido</span><ol>${items.map((m) => `<li><b>${esc(m.title)}</b> <span style="color:#9a9086">· ${esc(m.section || "")}</span></li>`).join("")}</ol></section>` : ""}
+      ${items.map((m) => `<section class="ch"><span class="k">${esc(m.section || "")}</span><h2>${esc(m.title)}</h2>${m.summary ? `<p class="sum">${esc(m.summary)}</p>` : ""}${m.body || ""}</section>`).join("")}
+      <div class="foot">InnovaFit · ${esc(title)} · ${date} · Confidencial</div>
+      <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script></body></html>`);
+    w.document.close();
+  }
+
   /* ---------- Router ---------- */
+  // Los asesores solo ven ventas, soporte y el manual.
+  const AGENT_SECTIONS = ["ventas", "soporte", "manual"];
   async function route(keepModal){
-    const [, section = "resumen", id] = (location.hash.match(/^#\/([^/]+)(?:\/([^/]+))?/) || []);
+    let [, section = isAdmin() ? "resumen" : "ventas", id] = (location.hash.match(/^#\/([^/]+)(?:\/([^/]+))?/) || []);
+    if(!isAdmin() && !AGENT_SECTIONS.includes(section)) section = "ventas";
     document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === section));
     moveRailIndicator();
+    if(!keepModal) refreshBadges();
     try{
-      if(section === "evaluaciones") await renderEvaluaciones();
+      if(section === "ventas") await renderVentas();
+      else if(section === "finanzas") await renderFinanzas();
+      else if(section === "soporte" && id) await renderTicketAdmin(id);
+      else if(section === "soporte") await renderSoporteAdmin();
+      else if(section === "manual") await renderManual(id);
+      else if(!isAdmin()) await renderVentas();
+      else if(section === "evaluaciones") await renderEvaluaciones();
       else if(section === "alumnos") await renderAlumnos();
       else if(section === "cursos" && id) await renderCurso(id);
       else if(section === "cursos") await renderCursos();
@@ -1698,9 +2337,11 @@
     try{ await pb.collection("users").authRefresh(); }
     catch{ pb.authStore.clear(); showLogin(); return; }
     const me = pb.authStore.record;
-    if(me.role !== "admin"){ pb.authStore.clear(); showLogin("Esta cuenta no tiene permisos de administrador."); return; }
+    if(me.role !== "admin" && me.role !== "agent"){ pb.authStore.clear(); showLogin("Esta cuenta no es del equipo InnovaFit."); return; }
     $("loginView").hidden = true;
     $("appView").hidden = false;
+    document.querySelectorAll(".rail a[data-nav]").forEach((a) => (a.hidden = me.role !== "admin" && !AGENT_SECTIONS.includes(a.dataset.nav)));
+    document.querySelector(".rail .tag").textContent = me.role === "admin" ? "Admin" : "Equipo";
     $("me").textContent = me.email;
     $("meName").textContent = me.name || "Admin";
     $("meAv").outerHTML = avatarHtml(me);

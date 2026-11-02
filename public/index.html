@@ -770,10 +770,9 @@
   let SALE = null; // oferta InnovaSale vigente (Admin → Ajustes → Campaña)
   function card(p, i){
     const off = !p.free && SALE ? Sale.forProgram(SALE, p.raw) : null;
-    const href = p.free ? "/campus" + (p.id ? "#curso=" + p.id : "") : wa(off
-      ? "Hola InnovaFit! 🔥 Quiero aprovechar el " + off.pct + "% de InnovaSale en " + p.title + "."
-      : "Hola InnovaFit! Quiero info de " + p.title + ".");
-    const ext = p.free ? "" : ' target="_blank" rel="noopener"';
+    // Las certificaciones abren su ficha en el campus (temario, precio e inscripción); sin registro, primero se crea la cuenta.
+    const href = p.free ? "/campus" + (p.id ? "#curso=" + p.id : "") : p.raw ? "/campus#/certificaciones/" + p.raw.id : wa("Hola InnovaFit! Quiero info de " + p.title + ".");
+    const ext = p.free || p.raw ? "" : ' target="_blank" rel="noopener"';
     return `<article class="prog${off ? " is-sale-card" : ""}" data-in style="--d:${Math.min(i, 4) * .07}s">
       <a class="prog-card" href="${href}"${ext}>
         ${p.img ? `<img class="cv" src="${esc(p.img)}" alt="${esc(p.title)}" loading="lazy">` : `<img src="${esc(photo(p, i))}" alt="" loading="lazy">`}
@@ -784,7 +783,7 @@
       ${off && off.price ? `<div class="sale-price"><s>${Sale.money(off.price)}</s><b>${Sale.money(off.salePrice)}</b><span class="mono">${esc(SALE.currency)}</span></div>` : ""}
       ${off && off.slots ? `<div class="sale-slots">Quedan ${off.slots} cupos</div>` : ""}
       <ul>${p.lines.filter(Boolean).map((l) => `<li>${esc(l)}</li>`).join("")}${p.note ? `<li class="note">${esc(p.note)}</li>` : ""}</ul>
-      <a class="btn ${p.free || off ? "btn-grad" : "btn-line"}" href="${href}"${ext}>${esc(p.free ? C.catalog.freeButton : off ? "Aprovechar oferta" : C.catalog.askButton)}</a></div>
+      <a class="btn ${p.free || off ? "btn-grad" : "btn-line"}" href="${href}"${ext}>${esc(p.free ? C.catalog.freeButton : off ? "Aprovechar oferta" : p.raw ? "Ver programa e inscribirme" : C.catalog.askButton)}</a></div>
     </article>`;
   }
   let railItems = STATIC;
@@ -886,7 +885,8 @@
     const plain = (html) => { const d = document.createElement("div"); d.innerHTML = html || ""; return d.textContent.trim(); };
     const items = [
       ...((courses && courses.items) || []).map((c) => ({free:true, id:c.id, title:c.title, kind:"Curso gratis", img: c.cover ? fileUrl(c, c.cover, "640x360") : "", lines:[c.subtitle || plain(c.description).slice(0, 90), C.catalog.freeNote]})),
-      ...((programs && programs.items) || []).map((p) => ({title:p.title, kind:KIND[p.kind] || "Certificación", img: p.image ? fileUrl(p, p.image, "640x360") : "", lines:[p.summary, [p.duration, p.modality].filter(Boolean).join(" · ")], note:p.note, price:p.priceLabel, raw:p})),
+      ...((programs && programs.items) || []).map((p) => ({title:p.title, kind:KIND[p.kind] || "Certificación", img: p.image ? fileUrl(p, p.image, "640x360") : "", lines:[p.summary, [p.duration, p.modality].filter(Boolean).join(" · ")], note:p.note,
+        price: +p.price ? Sale.money(p.price) + " " + ((s && s.saleCurrency) || "USD") : p.priceLabel, raw:p})),
     ];
     SALE = window.Sale ? Sale.state(s) : null;
     if(SALE) startSale(((programs && programs.items) || []).map((p) => Sale.forProgram(SALE, p)).filter(Boolean));

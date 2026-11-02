@@ -14,27 +14,43 @@
       mode: s.saleMode,
       pct: Math.max(0, Math.min(90, +s.salePercent || 0)),
       slots: +s.saleSlots || 0,
-      currency: (s.saleCurrency || "MXN").trim(),
+      currency: (s.saleCurrency || "USD").trim(),
       text: s.saleText || "",
       ends,
     };
   }
 
-  // Descuento de una certificación: null si no tiene.
+  // Cupos de la oferta de una certificación: total (propio o general) y cuántos quedan.
+  function slotsOf(st, p){
+    const total = +p.saleSlots || (st && st.slots) || 0;
+    return {total, left: total ? Math.max(0, total - (+p.slotsTaken || 0)) : 0};
+  }
+
+  // Descuento de una certificación: null si no tiene o si ya se agotaron sus cupos (vuelve al precio regular).
   function forProgram(st, p){
     if(!st || !p) return null;
     const pct = st.mode === "general" ? st.pct : Math.max(0, Math.min(90, +p.salePercent || 0));
     if(!pct) return null;
+    const {total, left} = slotsOf(st, p);
+    if(total && !left) return null;
     const price = +p.price || 0;
     return {
       pct,
       price,
-      salePrice: price ? Math.round(price * (100 - pct) / 100) : 0,
-      slots: +p.saleSlots || st.slots || 0,
+      salePrice: price ? Math.round(price * (100 - pct)) / 100 : 0,
+      slots: left,
     };
   }
 
-  const money = (n, cur) => "$" + Math.round(n).toLocaleString("es-MX") + (cur ? " " + cur : "");
+  // En oferta pero sin cupos: para avisar "cupos agotados".
+  const soldOut = (st, p) => {
+    if(!st || !p) return false;
+    const pct = st.mode === "general" ? st.pct : +p.salePercent || 0;
+    const {total, left} = slotsOf(st, p);
+    return !!pct && !!total && !left;
+  };
+
+  const money = (n, cur) => "$" + (+n || 0).toLocaleString("es-MX", {minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2}) + (cur ? " " + cur : "");
 
   // Reloj D/H/M/S dentro de el. Llama onEnd una vez al llegar a cero. Devuelve una función para detenerlo.
   function countdown(el, ends, onEnd){
@@ -134,5 +150,8 @@
     return () => { stop(); io.disconnect(); ro.disconnect(); };
   }
 
-  window.Sale = {state, forProgram, money, countdown, fire, pbDate};
+  const api = {state, forProgram, slotsOf, soldOut, money, countdown, fire, pbDate};
+  // El servidor usa las mismas reglas para fijar el precio de cada inscripción.
+  if(typeof window !== "undefined") window.Sale = api;
+  if(typeof module !== "undefined") module.exports = api;
 })();

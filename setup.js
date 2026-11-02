@@ -41,7 +41,10 @@ const env = require("./lib/env");
 const { pb, waitHealthy } = require("./lib/pb");
 
 const ADMIN = '@request.auth.role = "admin"';
+// Equipo InnovaFit: administradores y asesores (ventas y soporte).
+const TEAM = '(@request.auth.role = "admin" || @request.auth.role = "agent")';
 const GB2 = 2 * 1024 * 1024 * 1024;
+const RECEIPT_MIMES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
 
 const created = () => [
   { name: "created", type: "autodate", onCreate: true, onUpdate: false },
@@ -111,7 +114,7 @@ async function setupCollections() {
     name: "users",
     type: "auth",
     fields: [
-      { name: "role", type: "select", values: ["student", "admin"], maxSelect: 1 },
+      { name: "role", type: "select", values: ["student", "admin", "agent"], maxSelect: 1 },
       { name: "phone", type: "text", max: 20 },
       { name: "country", type: "text", max: 6 },
       { name: "docId", type: "text", max: 40 },
@@ -119,8 +122,9 @@ async function setupCollections() {
       // true cuando el alumno ya vio el tutorial del campus (lo marca él mismo).
       { name: "onboarded", type: "bool" },
     ],
-    listRule: "id = @request.auth.id || " + ADMIN,
-    viewRule: "id = @request.auth.id || " + ADMIN,
+    // Los asesores ven a los alumnos (para atender inscripciones y tickets), pero no los editan.
+    listRule: "id = @request.auth.id || " + TEAM,
+    viewRule: "id = @request.auth.id || " + TEAM,
     createRule: ADMIN,
     // El alumno edita su perfil, pero nunca su rol ni sus cursos.
     updateRule: ADMIN + " || (id = @request.auth.id && @request.body.role:isset = false && @request.body.courses:isset = false && @request.body.verified:isset = false)",
@@ -207,8 +211,8 @@ async function setupCollections() {
     deleteRule: ADMIN,
   });
 
-  // Certificaciones que se ofrecen (catálogo que ve el alumno y consulta por WhatsApp).
-  await upsertCollection({
+  // Certificaciones que se ofrecen (catálogo que ve el alumno y en el que se inscribe).
+  const programs = await upsertCollection({
     name: "programs",
     type: "base",
     fields: [
@@ -224,6 +228,19 @@ async function setupCollections() {
       { name: "price", type: "number", min: 0 },
       { name: "salePercent", type: "number", min: 0, max: 90 },
       { name: "saleSlots", type: "number", min: 0 },
+      // Cupos de la oferta ya tomados: cada inscripción con descuento suma uno (el admin lo puede reiniciar).
+      { name: "slotsTaken", type: "number", min: 0 },
+      // Precio anterior (tachado fuera de InnovaSale) y nota de financiación ("o $10,230 MXN a 6 meses").
+      { name: "priceBefore", type: "number", min: 0 },
+      { name: "priceNote", type: "text", max: 120 },
+      // Ficha del programa (la certificación la emite ISSA; InnovaFit la comercializa).
+      { name: "highlights", type: "text", max: 600 }, // una línea por chip: "10 módulos", "Incluye RCP/DEA"…
+      { name: "objective", type: "text", max: 3000 },
+      { name: "audience", type: "text", max: 2000 }, // una línea por perfil
+      { name: "modules", type: "json", maxSize: 60000 }, // [{title, topics}] · topics: una línea por tema
+      { name: "resources", type: "text", max: 3000 }, // una línea por recurso
+      { name: "profile", type: "text", max: 2000 }, // perfil de egreso
+      { name: "brochure", type: "file", maxSelect: 1, maxSize: 15 * 1024 * 1024, mimeTypes: ["application/pdf"] },
       // Foto recortada (PNG sin fondo) para la tarjeta de la landing.
       { name: "photo", type: "file", maxSelect: 1, maxSize: 8 * 1024 * 1024, mimeTypes: ["image/png", "image/webp"] },
       // Curso propio de la certificación: tiene su examen y, si se quiere, material de estudio.
@@ -366,6 +383,121 @@ async function setupCollections() {
     updateRule: ADMIN,
     deleteRule: null,
   });
+
+  // Inscripción a una certificación ISSA: el alumno deja sus datos, un asesor cierra la venta,
+  // el alumno sube el comprobante y el equipo lo valida. Solo el servidor la crea (precio y cupos).
+  await upsertCollection({
+    name: "inscriptions",
+    type: "base",
+    fields: [
+      { name: "user", type: "relation", collectionId: users.id, maxSelect: 1, cascadeDelete: false, required: true },
+      { name: "program", type: "relation", collectionId: programs.id, maxSelect: 1, cascadeDelete: false },
+      { name: "programTitle", type: "text", max: 160 },
+      { name: "code", type: "text", max: 20 },
+      { name: "status", type: "select", values: ["nuevo", "contactado", "por_validar", "pagado", "acceso", "rechazado", "cancelado"], maxSelect: 1 },
+      // Datos del formulario
+      { name: "name", type: "text", max: 120 },
+      { name: "email", type: "email" },
+      { name: "country", type: "text", max: 6 },
+      { name: "phone", type: "text", max: 20 },
+      { name: "docId", type: "text", max: 40 },
+      { name: "city", type: "text", max: 80 },
+      { name: "experience", type: "text", max: 80 },
+      { name: "payPlan", type: "text", max: 80 },
+      { name: "contactTime", type: "text", max: 40 },
+      { name: "message", type: "text", max: 1000 },
+      // Precio al momento de inscribirse
+      { name: "listPrice", type: "number", min: 0 },
+      { name: "discount", type: "number", min: 0, max: 90 },
+      { name: "price", type: "number", min: 0 },
+      { name: "currency", type: "text", max: 6 },
+      { name: "saleApplied", type: "bool" },
+      { name: "usedSlot", type: "bool" },
+      // Comprobante (archivo protegido: solo lo ven el alumno y el equipo)
+      { name: "receipt", type: "file", maxSelect: 1, maxSize: 10 * 1024 * 1024, mimeTypes: RECEIPT_MIMES, protected: true },
+      { name: "accessEmail", type: "email" },
+      { name: "declaredAmount", type: "number", min: 0 },
+      { name: "payRef", type: "text", max: 200 },
+      { name: "receiptAt", type: "date" },
+      // Gestión del equipo
+      { name: "agent", type: "relation", collectionId: users.id, maxSelect: 1, cascadeDelete: false },
+      { name: "paidAmount", type: "number", min: 0 },
+      { name: "reviewedBy", type: "relation", collectionId: users.id, maxSelect: 1, cascadeDelete: false },
+      { name: "reviewedAt", type: "date" },
+      { name: "rejectReason", type: "text", max: 400 },
+      { name: "accessSentAt", type: "date" },
+      { name: "notes", type: "text", max: 3000 },
+      ...created(),
+    ],
+    indexes: ["CREATE INDEX idx_insc_user ON inscriptions (user)", "CREATE INDEX idx_insc_status ON inscriptions (status)"],
+    listRule: "user = @request.auth.id || " + TEAM,
+    viewRule: "user = @request.auth.id || " + TEAM,
+    createRule: null,
+    updateRule: TEAM,
+    deleteRule: ADMIN,
+  });
+
+  // Soporte: cada consulta del alumno es un ticket con su conversación.
+  const tickets = await upsertCollection({
+    name: "tickets",
+    type: "base",
+    fields: [
+      { name: "user", type: "relation", collectionId: users.id, maxSelect: 1, cascadeDelete: true, required: true },
+      { name: "subject", type: "text", required: true, max: 160 },
+      { name: "category", type: "text", max: 60 },
+      { name: "status", type: "select", values: ["abierto", "respondido", "cerrado"], maxSelect: 1 },
+      { name: "unreadUser", type: "bool" }, // respuesta del equipo que el alumno no vio
+      { name: "unreadTeam", type: "bool" }, // mensaje del alumno sin atender
+      { name: "lastAt", type: "date" },
+      { name: "assignee", type: "relation", collectionId: users.id, maxSelect: 1, cascadeDelete: false },
+      ...created(),
+    ],
+    listRule: "user = @request.auth.id || " + TEAM,
+    viewRule: "user = @request.auth.id || " + TEAM,
+    createRule: '@request.auth.id != "" && @request.body.user = @request.auth.id',
+    // El alumno puede cerrar o reabrir su ticket, pero no cambiarle el dueño ni asignarlo.
+    updateRule: TEAM + " || (user = @request.auth.id && @request.body.user:isset = false && @request.body.assignee:isset = false)",
+    deleteRule: ADMIN,
+  });
+
+  await upsertCollection({
+    name: "ticket_messages",
+    type: "base",
+    fields: [
+      { name: "ticket", type: "relation", collectionId: tickets.id, maxSelect: 1, cascadeDelete: true, required: true },
+      { name: "author", type: "relation", collectionId: users.id, maxSelect: 1, cascadeDelete: false },
+      { name: "authorName", type: "text", max: 120 },
+      { name: "fromTeam", type: "bool" },
+      { name: "body", type: "text", max: 5000 },
+      { name: "file", type: "file", maxSelect: 1, maxSize: 10 * 1024 * 1024, mimeTypes: RECEIPT_MIMES, protected: true },
+      ...created(),
+    ],
+    listRule: "ticket.user = @request.auth.id || " + TEAM,
+    viewRule: "ticket.user = @request.auth.id || " + TEAM,
+    // Cada uno escribe con su propio usuario; solo el equipo puede firmar como equipo.
+    createRule: "@request.body.author = @request.auth.id && (" + TEAM + " || (@request.body.ticket.user = @request.auth.id && @request.body.fromTeam != true))",
+    updateRule: null,
+    deleteRule: ADMIN,
+  });
+
+  // Manual interno del campus: solo lo ve el equipo; lo edita el admin.
+  await upsertCollection({
+    name: "manuals",
+    type: "base",
+    fields: [
+      { name: "title", type: "text", required: true, max: 160 },
+      { name: "section", type: "text", max: 80 },
+      { name: "summary", type: "text", max: 400 },
+      { name: "body", type: "editor" },
+      { name: "order", type: "number" },
+      ...created(),
+    ],
+    listRule: TEAM,
+    viewRule: TEAM,
+    createRule: ADMIN,
+    updateRule: ADMIN,
+    deleteRule: ADMIN,
+  });
 }
 
 async function getSettings() {
@@ -450,7 +582,38 @@ async function migrate() {
     console.log("✓ migración 3: notas del catálogo");
   }
 
-  const LAST = 3;
+  if (v < 4) {
+    // Fichas de las certificaciones ISSA tal como las publica innovafit.mx (solo completa campos vacíos).
+    const SEED = require("./seed/programs-issa");
+    const used = new Set();
+    let n = 0;
+    for (const p of (await pb("/api/collections/programs/records?perPage=200&sort=order")).items) {
+      const d = SEED.find((x, i) => !used.has(i) && x.match.test(p.title));
+      if (!d) continue;
+      used.add(SEED.indexOf(d));
+      const empty = (k) => p[k] === undefined || p[k] === null || p[k] === "" || p[k] === 0 || (Array.isArray(p[k]) && !p[k].length);
+      const patch = {};
+      for (const k of ["price", "priceBefore", "priceNote", "highlights", "objective", "audience", "modules", "resources", "profile", "kind"]) {
+        if (d[k] !== undefined && d[k] !== "" && empty(k)) patch[k] = d[k];
+      }
+      // El resumen de fábrica era genérico: lo reemplaza el de innovafit.mx solo si nadie lo cambió.
+      const factory = SEED_PROGRAMS.find(([t]) => t === p.title);
+      if (d.summary && (empty("summary") || (factory && factory[2] === p.summary))) patch.summary = d.summary;
+      if (Object.keys(patch).length) await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", body: patch });
+      const pdf = d.brochure && path.join(ROOT, "seed", "brochures", d.brochure);
+      if (pdf && !p.brochure && fs.existsSync(pdf)) {
+        const f = new FormData();
+        f.set("brochure", await fs.openAsBlob(pdf, { type: "application/pdf" }), "Temario-" + slug(p.title) + ".pdf");
+        await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", form: f });
+      }
+      n++;
+    }
+    // Los precios de innovafit.mx están en dólares.
+    if (!settings.saleCurrency) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { saleCurrency: "USD" } });
+    console.log("✓ migración 4: " + n + " fichas de certificación con temario, precio y PDF");
+  }
+
+  const LAST = 4;
   if (v < LAST) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { seedVersion: LAST } });
 }
 
@@ -494,6 +657,17 @@ async function seedPrograms() {
     await pb("/api/collections/programs/records", { method: "POST", body: { title, kind, summary, modality: "Online + práctica", published: true, order: i + 1 } });
   }
   console.log("✓ catálogo de certificaciones cargado");
+}
+
+// Manual del equipo: se carga una vez (después se edita desde Admin → Manual).
+async function seedManuals() {
+  const existing = await pb("/api/collections/manuals/records?perPage=1");
+  if (existing.totalItems > 0) return;
+  const list = require("./seed/manuals");
+  for (const [i, m] of list.entries()) {
+    await pb("/api/collections/manuals/records", { method: "POST", body: { ...m, order: i + 1 } });
+  }
+  console.log("✓ manual del equipo cargado (" + list.length + " capítulos)");
 }
 
 // Activa el certificado del curso de regalo si todavía no tiene configuración.
@@ -625,6 +799,7 @@ async function seedCourse() {
     await seedCourseCert();
     await seedPrograms();
     await migrate();
+    await seedManuals();
     await seedAssessments();
     console.log("\nListo. Arrancá con `npm start` y entrá a http://localhost:" + env.PORT + "/admin");
     console.log("Usuario admin: " + env.ADMIN_EMAIL + " · contraseña: la de ADMIN_PASSWORD en .env");
