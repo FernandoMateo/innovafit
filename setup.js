@@ -36,6 +36,11 @@ if (!fs.existsSync(ENV_FILE)) {
   );
   console.log("✓ .env creado con contraseñas aleatorias");
 }
+// Canal privado de avisos del monitor (ntfy.sh). Se genera una vez y queda en .env.
+if (!/^NTFY_TOPIC=/m.test(fs.readFileSync(ENV_FILE, "utf8"))) {
+  fs.appendFileSync(ENV_FILE, "\n# Avisos del monitor: suscribite a este canal en la app ntfy\nNTFY_TOPIC=innovafit-" + crypto.randomBytes(9).toString("hex") + "\n");
+  console.log("✓ canal de avisos del monitor agregado a .env (NTFY_TOPIC)");
+}
 
 const env = require("./lib/env");
 const { pb, waitHealthy } = require("./lib/pb");
@@ -779,6 +784,33 @@ async function seedCourse() {
   }
 }
 
+// Ajustes de PocketBase: nombre, URL, IP real detrás de nginx/Node, superusuario solo desde el
+// propio servidor y copias de seguridad automáticas.
+async function setupSettings() {
+  const prod = process.platform === "linux";
+  const domain = process.env.APP_DOMAIN || "campusinnovafit.tech";
+  await pb("/api/settings", {
+    method: "PATCH",
+    body: {
+      meta: { appName: "InnovaFit", appURL: prod ? "https://" + domain + "/pb" : env.PB_URL },
+      // Node reenvía X-Forwarded-For con un solo valor: la IP real que le pasó nginx.
+      trustedProxy: { headers: ["X-Forwarded-For"], useLeftmostIP: false },
+      // El superusuario solo opera desde el mismo servidor (Node y el túnel SSH).
+      superuserIPs: ["127.0.0.1/32", "::1/128"],
+      // Copia diaria a las 04:00 (hora del servidor); se guardan las últimas 3
+      // (incluyen los videos, así que pesan: el monitor muestra cuánto ocupan).
+      backups: { cron: "0 4 * * *", cronMaxKeep: 3 },
+    },
+  });
+  console.log("✓ ajustes de PocketBase (IP real, superusuario local, backups diarios)");
+  // Primera copia en el momento, para no esperar a la noche.
+  const backups = await pb("/api/backups");
+  if (!backups.length) {
+    await pb("/api/backups", { method: "POST", body: {} });
+    console.log("✓ primera copia de seguridad creada");
+  }
+}
+
 (async () => {
   if (!fs.existsSync(env.PB_BIN)) throw new Error("No encuentro PocketBase en " + env.PB_BIN);
 
@@ -794,6 +826,7 @@ async function seedCourse() {
 
   try {
     await setupCollections();
+    await setupSettings();
     await setupAdmin();
     await seedCourse();
     await seedCourseCert();

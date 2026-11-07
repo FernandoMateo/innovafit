@@ -2189,6 +2189,7 @@
       set("ventas", nuevas.totalItems + validar.totalItems);
       set("soporte", tickets.totalItems);
     }catch{}
+    if(isAdmin()) api("/api/admin/status").then((r) => setSysDot(r.status)).catch(() => {});
   }
 
   /* =====================================================
@@ -2294,6 +2295,134 @@
     w.document.close();
   }
 
+  /* =====================================================
+     SISTEMA (monitor del servidor y capacidad)
+     ===================================================== */
+  const fmtBytes = (b) => b == null ? "—" : b >= 1024 ** 3 ? (b / 1024 ** 3).toFixed(1) + " GB" : (b / 1024 ** 2).toFixed(b >= 100 * 1024 ** 2 ? 0 : 1) + " MB";
+  const fmtDur = (s) => s >= 86400 ? Math.floor(s / 86400) + " d " + Math.floor((s % 86400) / 3600) + " h" : Math.floor(s / 3600) + " h " + Math.floor((s % 3600) / 60) + " min";
+  const lvlOf = (pct, warn, crit) => pct >= crit ? "critical" : pct >= warn ? "warning" : "ok";
+  const SYS_TITLE = {ok:"Todo funciona bien", warning:"Hay algo para revisar", critical:"Hay un problema que afecta a los usuarios"};
+  const SYS_ICON = {ok:"✅", warning:"⚠️", critical:"🚨"};
+
+  function setSysDot(status){
+    const d = $("sysDot");
+    if(!d) return;
+    d.hidden = status === "ok";
+    d.className = "sys-dot " + status;
+  }
+
+  async function renderSistema(fresh){
+    const r = await api("/api/admin/status" + (fresh ? "?fresh=1" : ""));
+    setSysDot(r.status);
+    const c = r.capacity, disk = c.disk, mem = c.memory, cpu = c.cpu;
+    const bad = r.checks.filter((x) => x.level !== "ok");
+    const g = c.growth;
+    const growthTxt = g.diskPerDay == null
+      ? "Todavía no hay suficientes días medidos (se necesitan 3). La proyección aparece sola."
+      : g.diskPerDay <= 0 ? "El uso del disco no está creciendo."
+      : "Crece unos <b>" + fmtBytes(g.diskPerDay) + " por día</b>" + (g.daysTo90 != null ? ". A este ritmo llega al 90% en <b>" + (g.daysTo90 > 3650 ? "más de 10 años" : g.daysTo90 + " días") + "</b>." : ".");
+    const hist = (r.history || []).filter((h) => h.diskUsed);
+    const maxUsers = Math.max(1, ...hist.map((h) => h.users || 0));
+
+    view.innerHTML = `
+      <div class="head"><div><span class="eyebrow">Monitor del servidor · se revisa solo cada 5 minutos</span><h1>Sistema</h1></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost" id="sysRefresh">Revisar ahora</button></div></div>
+
+      <div class="card sys-banner ${r.status}">
+        <div class="big">${SYS_ICON[r.status]}</div>
+        <div><h2>${SYS_TITLE[r.status]}</h2>
+          <p class="muted">${bad.length ? bad.map((x) => esc(x.label)).join(" · ") : "Base de datos, disco, memoria, procesador, HTTPS, copias y errores: todo en orden."}
+          · Revisado ${fmtDateTime(r.checkedAt)}</p></div>
+      </div>
+
+      <h2 style="font-size:18px;margin:0 0 10px">Revisiones</h2>
+      <div class="sys-checks">
+        ${[...r.checks].sort((a, b) => ({critical:0, warning:1, ok:2}[a.level] - {critical:0, warning:1, ok:2}[b.level])).map((x) => `
+          <div class="sys-check ${x.level}"><span class="st"></span><b>${esc(x.label)}</b>
+            <span class="msg">${esc(x.message)}</span>
+            ${x.fix ? `<div class="fix"><b>Qué hacer:</b> ${esc(x.fix).replace(/(systemctl [^.]+|journalctl [^.]+|certbot [^.]+|npm run setup)/g, "<code>$1</code>")}</div>` : ""}
+          </div>`).join("")}
+      </div>
+
+      <h2 style="font-size:18px;margin:0 0 10px">Capacidad disponible</h2>
+      <div class="sys-cap">
+        <div class="card spot"><h3>Disco</h3>
+          <div class="val">${disk ? fmtBytes(disk.free) : "—"} <span style="font-size:15px;font-weight:600">libres</span></div>
+          <div class="sys-bar ${disk ? lvlOf(disk.usedPct, 80, 90) : ""}"><i style="width:${disk ? disk.usedPct : 0}%"></i></div>
+          <small>${disk ? disk.usedPct + "% usado de " + fmtBytes(disk.total) : ""}</small></div>
+        <div class="card spot"><h3>Memoria RAM</h3>
+          <div class="val">${fmtBytes(mem.available)} <span style="font-size:15px;font-weight:600">libres</span></div>
+          <div class="sys-bar ${lvlOf(mem.usedPct, 85, 95)}"><i style="width:${mem.usedPct}%"></i></div>
+          <small>${mem.usedPct}% usado de ${fmtBytes(mem.total)}</small></div>
+        <div class="card spot"><h3>Procesador</h3>
+          <div class="val">${Math.round(cpu.perCore * 100)}% <span style="font-size:15px;font-weight:600">de carga</span></div>
+          <div class="sys-bar ${lvlOf(cpu.perCore * 100, 90, 150)}"><i style="width:${Math.min(100, cpu.perCore * 100)}%"></i></div>
+          <small>${cpu.cores} núcleos · carga 1 / 5 / 15 min: ${cpu.load1} / ${cpu.load5} / ${cpu.load15}</small></div>
+        <div class="card spot"><h3>Datos de la plataforma</h3>
+          <table class="sys-table">
+            <tr><td>Base de datos</td><td>${fmtBytes(c.data.db)}</td></tr>
+            <tr><td>Archivos (videos, PDF, fotos)</td><td>${fmtBytes(c.data.storage)}</td></tr>
+            <tr><td>Copias de seguridad</td><td>${fmtBytes(c.data.backups)}</td></tr>
+            <tr><td>Logs de PocketBase</td><td>${fmtBytes(c.data.auxiliary)}</td></tr>
+          </table></div>
+        <div class="card spot"><h3>Registros</h3>
+          <table class="sys-table">
+            <tr><td>Usuarios</td><td>${c.counts.users ?? "—"}</td></tr>
+            <tr><td>Evaluaciones</td><td>${c.counts.attempts ?? "—"}</td></tr>
+            <tr><td>Inscripciones</td><td>${c.counts.enrollments ?? "—"}</td></tr>
+            <tr><td>Certificados</td><td>${c.counts.certificates ?? "—"}</td></tr>
+          </table></div>
+        <div class="card spot"><h3>Funcionando sin cortes</h3>
+          <div class="val">${fmtDur(r.uptime.process)}</div>
+          <small>Sitio desde el último reinicio · servidor: ${fmtDur(r.uptime.system)}${c.certDays != null ? " · HTTPS vence en " + c.certDays + " días" : ""}</small></div>
+      </div>
+
+      <div class="editor">
+        <div class="card panel spot">
+          <h2>¿Cuándo escalar?</h2>
+          <p class="hint" style="margin:0 0 12px">${growthTxt}</p>
+          ${hist.length >= 2 ? `<div id="sysChart" style="margin-bottom:12px"></div>` : ""}
+          <ul class="sys-scale hint" style="padding-left:18px;margin:0">
+            <li><b>Disco al 80%</b> → ampliá el disco del VPS o pasá los videos a almacenamiento externo (S3/R2). Los videos son lo que más ocupa.</li>
+            <li><b>RAM arriba del 85%</b> varios días seguidos → pasá a un plan con más memoria.</li>
+            <li><b>Procesador arriba del 90%</b> en horas pico → más núcleos. Pasa sobre todo con muchos alumnos viendo videos a la vez.</li>
+            <li>Con ${maxUsers.toLocaleString("es-MX")} usuarios, este servidor está lejos de su límite: PocketBase maneja decenas de miles de alumnos en un VPS así.</li>
+          </ul>
+        </div>
+        <div class="card panel">
+          <h2>Avisos al celular</h2>
+          ${r.notify.enabled ? `
+            <p class="hint" style="margin:0 0 12px">Si algo falla te llega una notificación con el problema y qué hacer. También te avisa cuando se resuelve.</p>
+            <ol class="hint" style="padding-left:18px;margin:0 0 14px">
+              <li>Instalá la app <b>ntfy</b> (Android o iPhone, gratis).</li>
+              <li>Tocá <b>+</b> → <b>Subscribe to topic</b> y escribí este canal:</li>
+            </ol>
+            <div class="fix" style="font-family:var(--mono);font-size:14px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);word-break:break-all;margin-bottom:12px">${esc(r.notify.topic)}</div>
+            <p class="hint" style="margin:0 0 14px">No lo compartas: quien lo tenga ve los avisos. En la compu también podés abrir <a href="${esc(r.notify.url)}" target="_blank" rel="noopener">${esc(r.notify.url)}</a>.</p>
+            <button class="btn btn-primary" id="sysTest">Enviar aviso de prueba</button>`
+          : `<p class="hint" style="margin:0">Falta <code>NTFY_TOPIC</code> en el <code>.env</code> del servidor. Se crea solo con <code>npm run setup</code>.</p>`}
+          <p class="hint" style="margin:16px 0 0">Si el servidor entero se cae, este monitor no puede avisar. Para eso está el monitor externo (UptimeRobot) apuntando a <code>/api/health</code>.</p>
+        </div>
+      </div>`;
+
+    $("sysRefresh").onclick = async (e) => {
+      e.target.disabled = true; e.target.textContent = "Revisando…";
+      try{ await renderSistema(true); }catch(err){ fail(err); e.target.disabled = false; e.target.textContent = "Revisar ahora"; }
+    };
+    const t = $("sysTest");
+    if(t) t.onclick = async () => {
+      t.disabled = true;
+      try{ await api("/api/admin/status/test", {}); ok("Aviso enviado", "Revisá la app ntfy en tu celular."); }
+      catch(err){ fail(err); }
+      finally{ t.disabled = false; }
+    };
+    if(hist.length >= 2 && typeof barChart === "function"){
+      barChart($("sysChart"), hist.map((h) => ({label: h.day.slice(8, 10) + "/" + h.day.slice(5, 7), value: Math.round(h.diskUsed / 1024 ** 3 * 10) / 10,
+        tip: fmtBytes(h.diskUsed) + " usados", tipSub: (h.users ?? 0) + " usuarios · RAM " + h.memPct + "%"})));
+    }
+    stagger(view);
+  }
+
   /* ---------- Router ---------- */
   // Los asesores solo ven ventas, soporte y el manual.
   const AGENT_SECTIONS = ["ventas", "soporte", "manual"];
@@ -2322,6 +2451,7 @@
       else if(section === "seguimiento") await renderSeguimiento();
       else if(section === "ajustes") await renderAjustes();
       else if(section === "web") await renderWeb();
+      else if(section === "sistema") await renderSistema();
       else await renderResumen();
       view.classList.remove("view-in"); void view.offsetWidth; view.classList.add("view-in");
     }catch(err){

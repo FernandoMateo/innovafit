@@ -343,6 +343,40 @@
   .mod-ed-h b{flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--grad);color:#170b00;font-family:var(--mono);font-size:12px}
   .mod-ed-h .input{flex:1;min-width:0}
   .brochure-row{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+
+  /* ---------- Sistema (monitor) ---------- */
+  .sys-dot{width:8px;height:8px;border-radius:50%;margin-left:auto;flex:none;background:#ffc93c}
+  .sys-dot.critical{background:#ff4d4d;box-shadow:0 0 0 4px rgba(255,77,77,.18)}
+  .sys-banner{display:flex;gap:16px;align-items:center;padding:20px 22px;margin-bottom:18px}
+  .sys-banner .big{font-size:34px;line-height:1}
+  .sys-banner h2{margin:0 0 4px;font-size:22px}
+  .sys-banner p{margin:0}
+  .sys-banner.ok{border-color:rgba(52,211,153,.35)}
+  .sys-banner.warning{border-color:rgba(255,201,60,.45)}
+  .sys-banner.critical{border-color:rgba(255,77,77,.55);background:linear-gradient(90deg,rgba(255,77,77,.10),transparent 60%)}
+  .sys-checks{display:grid;gap:10px;margin-bottom:22px}
+  .sys-check{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;padding:14px 16px;border-radius:14px;background:var(--bg-2);border:1px solid var(--line)}
+  .sys-check .st{grid-row:span 3;width:12px;height:12px;border-radius:50%;margin-top:5px;background:#34d399}
+  .sys-check.warning .st{background:#ffc93c}
+  .sys-check.critical .st{background:#ff4d4d;box-shadow:0 0 0 4px rgba(255,77,77,.18)}
+  .sys-check b{font-size:15px}
+  .sys-check .msg{color:var(--muted,#b9b0a6);font-size:14px}
+  .sys-check .fix{font-size:13px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);margin-top:4px}
+  .sys-check .fix code{font-family:var(--mono);font-size:12px}
+  .sys-cap{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:22px}
+  .sys-cap .card{padding:18px}
+  .sys-cap h3{margin:0 0 10px;font-size:14px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#b9b0a6)}
+  .sys-cap .val{font-size:28px;font-weight:800;line-height:1.1}
+  .sys-cap small{display:block;color:var(--muted,#b9b0a6);margin-top:6px;font-size:13px}
+  .sys-bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px}
+  .sys-bar i{display:block;height:100%;border-radius:99px;background:var(--grad)}
+  .sys-bar.warning i{background:#ffc93c}
+  .sys-bar.critical i{background:#ff4d4d}
+  .sys-table{width:100%;border-collapse:collapse;font-size:14px}
+  .sys-table td{padding:8px 0;border-bottom:1px solid var(--line)}
+  .sys-table td:last-child{text-align:right;font-family:var(--mono)}
+  .sys-scale li{margin-bottom:8px}
+  @media (max-width:640px){ .sys-banner{flex-direction:column;align-items:flex-start} }
 </style>
 </head>
 <body>
@@ -379,6 +413,7 @@
       <a href="#/certificaciones" data-nav="certificaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5"/></svg><span>Certificaciones</span></a>
       <a href="#/web" data-nav="web"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg><span>Web</span></a>
       <a href="#/ajustes" data-nav="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg><span>Ajustes</span></a>
+      <a href="#/sistema" data-nav="sistema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg><span>Sistema</span><i class="sys-dot" id="sysDot" hidden></i></a>
       <a href="#/manual" data-nav="manual"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 012-2h14v16H6.5A2.5 2.5 0 004 21.5v-2z"/><path d="M8 7h8M8 11h6"/></svg><span>Manual</span></a>
     </div>
     <div class="grow"></div>

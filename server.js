@@ -8,15 +8,35 @@ const crypto = require("crypto");
 const express = require("express");
 const env = require("./lib/env");
 const { pb, q } = require("./lib/pb");
+const monitor = require("./lib/monitor");
 const exam = require("./data/questions.json");
 
 const app = express();
 app.disable("x-powered-by");
-app.set("trust proxy", true);
+// Solo confiamos en nginx (que corre en este mismo servidor). Con `true` se tomaba la IP
+// más a la izquierda de X-Forwarded-For, que el visitante puede inventar para saltarse el límite.
+app.set("trust proxy", "loopback");
+
+// Cuenta los errores 5xx por ruta para que el monitor avise si los usuarios están viendo fallas.
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    if (res.statusCode >= 500) {
+      const route = req.path.split("/").slice(0, 4).map((s) => (/^[a-z0-9]{15}$/.test(s) ? ":id" : s)).join("/");
+      monitor.recordResponse(route, res.statusCode);
+    }
+  });
+  next();
+});
 
 /* ---------- Proxy a PocketBase (antes de cualquier body parser) ---------- */
+// El panel de PocketBase y el login de superusuario NO se publican: se entra por túnel SSH
+// (ssh -L 8090:127.0.0.1:8090 root@servidor → http://127.0.0.1:8090/_/).
+const PB_BLOCKED = /^\/(_(\/|$)|api\/collections\/_superusers(\/|$)|api\/(settings|backups|logs|crons)(\/|$))/i;
 const pbTarget = new URL(env.PB_URL);
 app.use("/pb", (req, res) => {
+  let p;
+  try { p = decodeURIComponent(req.path).replace(/\/+/g, "/"); } catch { return res.status(400).end(); }
+  if (PB_BLOCKED.test(p)) return res.status(404).json({ message: "No encontrado." });
   const target = new URL(req.originalUrl.replace(/^\/pb/, "") || "/", pbTarget);
   const headers = { ...req.headers, host: target.host };
   headers["x-forwarded-for"] = req.ip;
@@ -43,18 +63,49 @@ app.get("/api/exam", (req, res) => {
   res.json({ passScore: PASS_SCORE, questions: PUBLIC_QUESTIONS });
 });
 
-// Salud real para el monitor externo: no alcanza con que PocketBase esté prendido,
+// Salud real para el monitor externo (UptimeRobot): no alcanza con que PocketBase esté prendido,
 // el servidor tiene que tener permisos de superusuario (sin ellos nadie puede registrarse).
+// Responde 503 si la base falla o si el monitor interno tiene un problema crítico, y nombra cuál.
 app.get("/api/health", async (req, res) => {
   res.set("Cache-Control", "no-store");
+  const problems = [];
   try {
     await pb("/api/collections/users"); // solo responde a superusuarios
-    await pb("/api/collections/users/records?perPage=1&fields=id");
     await pb("/api/collections/attempts/records?perPage=1&fields=id");
-    res.json({ ok: true });
   } catch (err) {
     console.error("[health]", err.status || "", err.message);
-    res.status(503).json({ ok: false, message: "La base de datos no está disponible para el servidor." });
+    problems.push("Base de datos");
+  }
+  try {
+    const r = await monitor.getReport(false);
+    r.checks.filter((c) => c.level === "critical" && c.id !== "db").forEach((c) => problems.push(c.label));
+  } catch {}
+  if (problems.length) return res.status(503).json({ ok: false, problems });
+  res.json({ ok: true });
+});
+
+// Estado completo del sistema para el panel de admin.
+app.get("/api/admin/status", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    const admin = await authUser(req);
+    if (!admin || admin.role !== "admin") return res.status(403).json({ message: "Solo administradores." });
+    res.json(await monitor.getReport(req.query.fresh === "1"));
+  } catch (err) {
+    console.error("[status]", err.message);
+    res.status(500).json({ message: "No se pudo revisar el estado: " + err.message });
+  }
+});
+
+app.post("/api/admin/status/test", async (req, res) => {
+  try {
+    const admin = await authUser(req);
+    if (!admin || admin.role !== "admin") return res.status(403).json({ message: "Solo administradores." });
+    const sent = await monitor.notify("Prueba · Monitor InnovaFit", ["Si ves esto, los avisos del monitor te van a llegar a este dispositivo."], "ok");
+    if (!sent) return res.status(400).json({ message: "No se pudo enviar. Revisá que NTFY_TOPIC esté en el .env del servidor." });
+    res.json({ sent: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -704,6 +755,7 @@ function listen() {
       console.log("  Evaluación  http://localhost:" + env.PORT + "/evaluacion");
       console.log("  Campus      http://localhost:" + env.PORT + "/campus");
       console.log("  Admin       http://localhost:" + env.PORT + "/admin");
+      monitor.start();
       resolve(server);
     });
     server.on("error", (err) => {

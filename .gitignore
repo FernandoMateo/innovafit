@@ -12,3 +12,6 @@ pocketbase/pb_migrations/
 
 # Archivos de trabajo de la skill de diseño
 .taste-skill/
+
+# Historial de capacidad del monitor (propio de cada servidor)
+data/monitor-history.json
