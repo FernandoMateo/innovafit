@@ -43,6 +43,21 @@ app.get("/api/exam", (req, res) => {
   res.json({ passScore: PASS_SCORE, questions: PUBLIC_QUESTIONS });
 });
 
+// Salud real para el monitor externo: no alcanza con que PocketBase esté prendido,
+// el servidor tiene que tener permisos de superusuario (sin ellos nadie puede registrarse).
+app.get("/api/health", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    await pb("/api/collections/users"); // solo responde a superusuarios
+    await pb("/api/collections/users/records?perPage=1&fields=id");
+    await pb("/api/collections/attempts/records?perPage=1&fields=id");
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[health]", err.status || "", err.message);
+    res.status(503).json({ ok: false, message: "La base de datos no está disponible para el servidor." });
+  }
+});
+
 // Límite simple por IP para que nadie genere cuentas en masa.
 const hits = new Map();
 function rateLimit(req, res, next) {
