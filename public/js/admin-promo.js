@@ -62,7 +62,7 @@
           <h3>${esc(p.name)}</h3>
           <p>${s || e ? (s ? K().fmtDateTime(p.startsAt) : "…") + " → " + (e ? K().fmtDateTime(p.endsAt) : "…") : "Sin fechas"}</p>
           <div class="meta">${items.map((i) => `<span class="pct-chip" title="${esc(names.get(i.program) || "")}">${esc((names.get(i.program) || "¿?").replace(/^(Certificación|Especialización) (en )?/i, "").slice(0, 26))} · ${+i.pct || 0}%</span>`).join("")}</div>
-          <p class="muted" style="font-size:12.5px">${items.length} programas${pcts.length ? " · de " + Math.min(...pcts) + "% a " + Math.max(...pcts) + "%" : " · sin % cargados"}</p>
+          <p class="mono" style="font-size:12px;color:var(--yellow)">/promo/${esc(p.slug || slugify(p.name))}</p>${pcts.length ? " · de " + Math.min(...pcts) + "% a " + Math.max(...pcts) + "%" : " · sin % cargados"}</p>
         </div></a>`;
       }).join("")}<a class="tile add" href="#/promociones/nueva"><span class="plus">+</span>Nueva promoción</a></div>`;
     stagger(view);
@@ -83,12 +83,12 @@
 
     view.innerHTML = `
       <div class="head"><div><span class="eyebrow"><a href="#/promociones" style="color:inherit">Promociones</a> / ${p ? "editar" : "nueva"}</span><h1>${p ? esc(p.name) : "Nueva promoción"}</h1></div>
-        <div class="actions">${p ? '<a class="btn btn-ghost" href="/buen-fin?preview=1" target="_blank" rel="noopener">Vista previa</a><button class="btn btn-danger" id="pDel">Eliminar</button>' : ""}<button class="btn btn-primary" id="pSave">Guardar</button></div></div>
+        <div class="actions">${p ? `<a class="btn btn-ghost" href="/promo/${esc(p.slug || slugify(p.name))}?preview=1" target="_blank" rel="noopener">Vista previa</a>` + '<button class="btn btn-danger" id="pDel">Eliminar</button>' : ""}<button class="btn btn-primary" id="pSave">Guardar</button></div></div>
       <div class="prog-ed">
         <section class="card panel">
           <h3 class="ed-h">Campaña</h3>
           <label class="field"><span>Nombre</span><input class="input" id="pName" value="${esc(d.name)}" placeholder="Buen Fin 2026"></label>
-          <label class="field"><span>Título de la barra superior</span><input class="input" id="pBanner" value="${esc(d.bannerTitle)}" placeholder="BUEN FIN / BLACK FRIDAY 2026"></label>
+          <label class="field"><span>Dirección de su landing</span><div style="display:flex;align-items:center;gap:6px"><span class="mono muted" style="font-size:13px">/promo/</span><input class="input" id="pSlug" value="${esc(d.slug || "")}" placeholder="se arma con el nombre"></div></label><input class="input" id="pBanner" value="${esc(d.bannerTitle)}" placeholder="BUEN FIN / BLACK FRIDAY 2026"></label>
           <div class="two">
             <label class="field"><span>Inicio</span><input class="input" type="datetime-local" id="pStart" value="${toLocalInput(d.startsAt)}"></label>
             <label class="field"><span>Cierre</span><input class="input" type="datetime-local" id="pEnd" value="${toLocalInput(d.endsAt)}"></label>
@@ -98,7 +98,7 @@
             <label class="field"><span>Estado</span><select class="input" id="pStatus">${Object.entries(PST).map(([k, v]) => `<option value="${k}"${d.status === k ? " selected" : ""}>${v[0]}</option>`).join("")}</select></label>
             <label class="field"><span>Moneda</span><input class="input" id="pCur" value="${esc(d.currency || "USD")}" maxlength="6"></label>
           </div>
-          <label class="check" style="margin-bottom:14px"><input type="checkbox" id="pLanding"${d.landing ? " checked" : ""}> Mostrar en la landing /buen-fin</label>
+          <label class="check" style="margin-bottom:14px"><input type="checkbox" id="pLanding"${d.landing ? " checked" : ""}> Destacada: también se ve en /buen-fin</label>
           <label class="field"><span>Condiciones aplicables</span><textarea class="input" id="pCond" rows="5" placeholder="Vigencia, programas participantes, formas de pago, restricciones…">${esc(d.conditions)}</textarea></label>
           <label class="field"><span>URL del checkout (pasarela de pago)</span><input class="input" id="pCheckout" value="${esc(d.checkoutUrl)}" placeholder="https://…"></label>
           <p class="hint">Se le agrega <code>?ref=FOLIO</code>. Configurá la pasarela para volver a <code>/buen-fin-gracias?ref=FOLIO</code> y avisar el pago a <code>/api/promo/payment</code>. Sin URL, la compra sigue por WhatsApp.</p>

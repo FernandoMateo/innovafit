@@ -65,7 +65,7 @@
     $("loginView").hidden = false;
     const m = location.hash.match(/email=([^&]+)/);
     if(m) $("lEmail").value = decodeURIComponent(m[1]);
-    if(/^#\/(certificaciones|inscripciones|soporte)/.test(location.hash)){ try{ sessionStorage.setItem(NEXT_KEY, location.hash); }catch{} }
+    if(/^#\/(certificaciones|promociones|inscripciones|soporte)/.test(location.hash)){ try{ sessionStorage.setItem(NEXT_KEY, location.hash); }catch{} }
     authMode(m ? "login" : "register");
     $("gateCampaign").innerHTML = await campaignHtml();
     try{
@@ -315,35 +315,53 @@
   }
 
   /* =====================================================
-     PROMOCIONES VIGENTES (la misma promoción de la landing /buen-fin)
+     PROMOCIONES VIGENTES: cada una lleva a su landing (/promo/<slug>)
      ===================================================== */
-  let promoP = null;
-  function loadPromo(){
-    if(!promoP) promoP = fetch("/api/promo/active").then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    return promoP;
+  let promosP = null, promosAt = 0;
+  function loadPromos(){
+    if(!promosP || Date.now() - promosAt > 60000){
+      promosAt = Date.now();
+      promosP = fetch("/api/promo/list").then((r) => (r.ok ? r.json() : {items: []})).then((d) => d.items || []).catch(() => []);
+    }
+    return promosP;
   }
-  async function promosHtml(){
-    const d = await loadPromo();
-    const p = d && d.promo;
-    // Solo activas o por empezar; las finalizadas no se muestran.
-    if(!p || p.status === "finalizada") return "";
-    const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-    const dt = (v) => { const x = v ? new Date(String(v).replace(" ", "T")) : null; return x && !isNaN(x) ? x.getDate() + " " + MONTHS[x.getMonth()] : ""; };
-    const s = dt(p.startsAt), e = dt(p.endsAt);
+  const P_MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const pDay = (v) => { const x = v ? new Date(String(v).replace(" ", "T")) : null; return x && !isNaN(x) ? x.getDate() + " " + P_MONTHS[x.getMonth()] : ""; };
+  function promoCard(p, medium){
+    const s = pDay(p.startsAt), e = pDay(p.endsAt);
     const when = p.status === "activa" ? (e ? "Termina el " + e : "Vigente ahora") : (s ? "Empieza el " + s : "Muy pronto");
-    const progs = (d.programs || []).slice(0, 5);
-    const url = "/buen-fin?utm_source=campus&utm_medium=home&utm_campaign=" + encodeURIComponent(p.name || "promo");
-    return `<section class="promo-now rise" aria-labelledby="promoNowT">
-      <div class="promo-now-head"><span class="eyebrow">Promociones vigentes</span>${p.status === "activa" ? '<span class="promo-live"><i></i>Activa</span>' : '<span class="promo-live soon">Próximamente</span>'}</div>
-      <a class="promo-card-c" href="${url}">
-        <div class="pc-main">
-          <small>${esc(p.bannerTitle || p.name)}</small>
-          <h2 id="promoNowT">${progs.length || 5} certificaciones <span>al precio de 1</span></h2>
-          <p>${p.maxPct ? "Hasta <b>" + p.maxPct + "% de descuento</b> según programa. " : ""}${esc(when)}.</p>
-          ${progs.length ? `<ul>${progs.map((x) => `<li>${esc(x.title.replace(/^(Certificación|Especialización) (en )?/i, ""))}${x.pct ? ` <b>-${x.pct}%</b>` : ""}</li>`).join("")}</ul>` : ""}
-        </div>
-        <span class="pc-cta">Ver promoción <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
-      </a></section>`;
+    const url = p.url + "?utm_source=campus&utm_medium=" + medium + "&utm_campaign=" + encodeURIComponent(p.name || "promo");
+    const progs = (p.programs || []).slice(0, 6);
+    const banner = p.bannerTitle && p.bannerTitle.toLowerCase() !== String(p.name).toLowerCase() ? p.bannerTitle : "";
+    return `<a class="promo-card-c" href="${esc(url)}">
+      <div class="pc-main">
+        <div class="pc-top">${p.status === "activa" ? '<span class="promo-live"><i></i>Activa</span>' : '<span class="promo-live soon">Próximamente</span>'}${banner ? `<small>${esc(banner)}</small>` : ""}</div>
+        <h2>${esc(p.name)}</h2>
+        <p>${p.maxPct ? "Hasta <b>" + p.maxPct + "% de descuento</b> según programa · " : ""}${progs.length ? progs.length + " programas · " : ""}${esc(when)}</p>
+        ${progs.length ? `<ul>${progs.map((x) => `<li>${esc(x.title.replace(/^(Certificación|Especialización) (en )?/i, ""))}${x.pct ? ` <b>-${x.pct}%</b>` : ""}</li>`).join("")}</ul>` : ""}
+      </div>
+      <span class="pc-cta">Ver promoción <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+    </a>`;
+  }
+  // Bloque de la home: las vigentes, con acceso a la sección completa.
+  async function promosHtml(){
+    const list = await loadPromos();
+    if(!list.length) return "";
+    return `<section class="promo-now rise" aria-label="Promociones vigentes">
+      <div class="promo-now-head"><span class="eyebrow">Promociones vigentes</span><a class="promo-all" href="#/promociones">Ver ${list.length > 1 ? "las " + list.length : "todas"} →</a></div>
+      <div class="promo-list">${list.slice(0, 2).map((p) => promoCard(p, "home")).join("")}</div></section>`;
+  }
+  async function renderPromociones(){
+    $("burger").hidden = true;
+    setTab("promociones");
+    const list = await loadPromos();
+    view.innerHTML = `<div class="page">
+      <div class="hello rise"><span class="eyebrow">Solo por tiempo limitado</span>
+        <h1>Promociones <span class="grad-text">vigentes</span></h1>
+        <p>Entrá a cada promoción para ver los programas incluidos, el descuento de cada uno y cómo inscribirte.</p></div>
+      ${list.length ? `<div class="promo-list rise">${list.map((p) => promoCard(p, "promociones")).join("")}</div>`
+        : `<div class="card empty rise"><h2>Por ahora no hay promociones vigentes</h2><p>Cuando se lance una nueva la vas a ver acá. Mientras tanto, mirá las <a href="#/certificaciones" style="color:var(--yellow)">certificaciones</a>.</p></div>`}
+    </div>`;
   }
 
   /* =====================================================
@@ -1609,6 +1627,7 @@
       else if(h.startsWith("#/certificados")) await renderCertificados();
       else if(prog) await renderPrograma(prog[1]);
       else if(h.startsWith("#/certificaciones")) await renderCertificaciones();
+      else if(h.startsWith("#/promociones")) await renderPromociones();
       else if(h.startsWith("#/inscripciones")) await renderInscripciones();
       else if(ticket) await renderTicket(ticket[1]);
       else if(h.startsWith("#/soporte")) await renderSoporte();

@@ -51,13 +51,17 @@
   let ref = qs.get("ref") || qs.get("client_reference_id") || "";
   try{ ref = ref || localStorage.getItem("if_last_order") || ""; }catch{}
   ref = ref.replace(/[^a-z0-9]/g, "").slice(0, 15);
-  let tries = 0, wa = "";
+  let tries = 0, wa = "", promoName = "";
+  function setWa(name){
+    if(name) promoName = name;
+    const link = "https://wa.me/" + wa + "?text=" + encodeURIComponent("Hola InnovaFit 👋 Acabo de comprar con la promoción" + (promoName ? " " + promoName : "") + ". Mi folio es " + ref + ".");
+    $("wa").href = $("wa2").href = link;
+  }
 
   fetch("/api/promo/active").then((r) => r.json()).then((d) => {
     wa = String(d.waNumber || "").replace(/\D/g, "");
     PromoTrack.initPixel(d.pixelId);
-    const link = "https://wa.me/" + wa + "?text=" + encodeURIComponent("Hola InnovaFit 👋 Acabo de comprar con la promoción del Buen Fin. Mi folio es " + ref + ".");
-    $("wa").href = $("wa2").href = link;
+    setWa("");
     ["wa", "wa2"].forEach((id) => $(id).addEventListener("click", () => PromoTrack.contact("gracias")));
   }).catch(() => {});
 
@@ -67,6 +71,7 @@
     try{
       const r = await fetch("/api/promo/orders/" + ref, {cache: "no-store"});
       const d = await r.json();
+      if(r.ok && d.promotionName) setWa(d.promotionName);
       if(r.ok && d.paid){
         $("name").textContent = d.firstName || "crack";
         $("prog").textContent = d.program || "tu programa";

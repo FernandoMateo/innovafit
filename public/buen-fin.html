@@ -62,8 +62,8 @@
         <p class="hero-sub" id="heroSub">Certificación de Entrenador Personal ISSA + especialidades en un solo paquete: 5 programas con descuento en certificaciones y especialidades seleccionadas.</p>
         <ul class="hero-bullets" id="heroBullets">
           <li><b id="bulletPct">Descuento especial</b> según programa</li>
-          <li><b>5 programas</b> incluidos</li>
-          <li><b>180 horas</b> de estudio</li>
+          <li><b id="bulletCount">5 programas</b> incluidos</li>
+          <li data-pack5><b>180 horas</b> de estudio</li>
           <li>Certificación <b>internacional ISSA</b></li>
           <li>Plataforma <b>100% online</b> y On Demand</li>
         </ul>
@@ -80,7 +80,7 @@
         <div class="hv-plate"></div>
         <img src="/assets/campus/entrenador-fuerza.webp" alt="" width="705" height="853" fetchpriority="high" class="hv-img">
         <div class="hv-badge hv-b1"><b>ISSA</b><small>Certificación internacional</small></div>
-        <div class="hv-badge hv-b2"><b>180 h</b><small>de estudio</small></div>
+        <div class="hv-badge hv-b2" data-pack5><b>180 h</b><small>de estudio</small></div>
         <div class="hv-badge hv-b3"><b id="hvPct">5×1</b><small>programas</small></div>
       </figure>
     </div>
@@ -96,7 +96,7 @@
   <section class="programs" id="programas" aria-labelledby="programsTitle">
     <div class="programs-pin" id="programsPin">
       <div class="programs-head">
-        <p class="eyebrow">Paquete Buen Fin</p>
+        <p class="eyebrow" id="programsEyebrow">Paquete promocional</p>
         <h2 id="programsTitle"><span class="gold-text" id="programsCount">5</span> programas, <br>un solo paquete</h2>
         <p class="lead">Empieza con la certificación de Entrenador Personal y suma especialidades que te diferencian. El descuento de cada programa se indica en su tarjeta.</p>
         <div class="programs-meter" aria-hidden="true"><b id="progIdx">01</b><span class="bar"><i id="progBar"></i></span><b id="progTotal">05</b></div>
@@ -106,14 +106,14 @@
       </div>
     </div>
     <div class="programs-cta">
-      <a class="btn btn-gold btn-lg magnetic" href="#comprar" data-cta="programs">Quiero los 5 programas</a>
+      <a class="btn btn-gold btn-lg magnetic" href="#comprar" data-cta="programs" id="programsCta">Quiero los 5 programas</a>
     </div>
   </section>
 
   <!-- Cifras -->
   <section class="stats" id="beneficios" aria-label="Beneficios">
-    <div class="stat"><b data-count="5">5</b><span>programas en un paquete</span></div>
-    <div class="stat"><b data-count="180">180</b><span>horas de estudio</span></div>
+    <div class="stat"><b data-count="5" id="statCount">5</b><span>programas en un paquete</span></div>
+    <div class="stat" data-pack5><b data-count="180">180</b><span>horas de estudio</span></div>
     <div class="stat"><b data-count="100" data-suffix="%">100%</b><span>online y On Demand</span></div>
     <div class="stat"><b id="statPct" data-count="0" data-suffix="%">—</b><span>descuento máximo, según programa</span></div>
   </section>
@@ -195,7 +195,7 @@
   <section class="buy" id="comprar" aria-labelledby="buyTitle">
     <div class="wrap">
       <p class="eyebrow">Elige cómo seguir</p>
-      <h2 id="buyTitle">Aprovecha el <span class="gold-text">Buen Fin</span></h2>
+      <h2 id="buyTitle">Aprovecha <span class="gold-text" id="buyName">la promoción</span></h2>
       <div class="buy-grid">
         <!-- Ruta A: compra directa -->
         <article class="route route-a" id="routeBuy">
@@ -236,12 +236,12 @@
             <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
             <label class="consent"><input type="checkbox" name="consent" required><span>Acepto el <a href="#privacidad" class="link" data-open="privacy">aviso de privacidad</a> y que InnovaFit me contacte por WhatsApp y correo.</span></label>
             <p class="form-err" id="formErr" role="alert"></p>
-            <button class="btn btn-gold btn-lg btn-block" type="submit" id="leadBtn" data-cta="lead">Quiero recibir información del Buen Fin</button>
+            <button class="btn btn-gold btn-lg btn-block" type="submit" id="leadBtn" data-cta="lead">Quiero recibir información de la promoción</button>
           </form>
           <div class="done" id="leadDone" hidden>
             <div class="done-check" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="23"/><path d="M14 27l8 8 17-18"/></svg></div>
             <h3>¡Listo, <span id="doneName">gracias</span>!</h3>
-            <p>Recibimos tus datos. Un asesor de InnovaFit te va a escribir por WhatsApp con la información del Buen Fin.</p>
+            <p>Recibimos tus datos. Un asesor de InnovaFit te va a escribir por WhatsApp con la información de <span id="doneName2">la promoción</span>.</p>
             <a class="btn btn-wa btn-lg btn-block" id="doneWa" href="#" target="_blank" rel="noopener" data-contact="form-done">Escribir ahora por WhatsApp</a>
           </div>
         </article>

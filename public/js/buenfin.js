@@ -1,4 +1,4 @@
-// Landing Buen Fin / Black Friday · InnovaFit by ISSA
+// Landing de promociones · InnovaFit by ISSA (/buen-fin = la destacada, /promo/<slug> = cada promoción)
 // 1) carga la promoción vigente desde /api/promo/active (fechas, programas y % por programa los edita el admin)
 // 2) formularios de información y de compra, con eventos de Meta deduplicados
 // 3) coreografía de scroll con GSAP + ScrollTrigger + Lenis (desactivada con "reducir movimiento")
@@ -21,16 +21,18 @@
   ];
 
   let D = {promo:null, programs:[], waNumber:"", pixelId:""};
+  const PN = () => (D.promo && D.promo.name) || "la promoción";
   const state = {program: ""};
 
   /* ================= Datos ================= */
   async function load(){
     const headers = {};
-    let url = "/api/promo/active";
+    const slug = (location.pathname.match(/^\/promo\/([a-z0-9-]+)/i) || [])[1] || "";
+    let url = "/api/promo/active" + (slug ? "?slug=" + encodeURIComponent(slug) : "");
     if(new URLSearchParams(location.search).get("preview") === "1"){
       try{
         const a = JSON.parse(localStorage.getItem("innovafit_admin_auth") || "null");
-        if(a && a.token){ headers.Authorization = a.token; url += "?preview=1"; }
+        if(a && a.token){ headers.Authorization = a.token; url += (url.includes("?") ? "&" : "?") + "preview=1"; }
       }catch{}
     }
     try{
@@ -77,7 +79,7 @@
   /* ================= WhatsApp ================= */
   const waUrl = (text) => "https://wa.me/" + String(D.waNumber || "").replace(/\D/g, "") + (text ? "?text=" + encodeURIComponent(text) : "");
   function wireWhatsApp(){
-    const base = "Hola InnovaFit 👋 Vi la promoción " + ((D.promo && D.promo.name) || "del Buen Fin") + " y quiero más información.";
+    const base = "Hola InnovaFit 👋 Vi la promoción " + PN() + " y quiero más información.";
     $$("[data-contact]").forEach((a) => {
       if(!a.dataset.custom) a.href = waUrl(base);
       a.addEventListener("click", () => T.contact(a.dataset.contact));
@@ -94,12 +96,33 @@
     const status = p ? p.status : "programada";
 
     // Header
-    $("#stripTitle").textContent = (p && p.bannerTitle) || "BUEN FIN / BLACK FRIDAY 2026";
+    $("#stripTitle").textContent = (p && p.bannerTitle) || "PROMOCIONES INNOVAFIT";
     $("#stripDates").textContent = range ? range + "." : status === "activa" ? "Promoción vigente." : "Fechas por anunciar.";
     $("#stripOffer").textContent = max ? "Obtén hasta " + max + "% de descuento en certificaciones y especialidades ISSA." : "Descuentos especiales en certificaciones y especialidades ISSA.";
 
+    // Nombre de la promoción en los textos de la página
+    if(p){
+      document.title = p.name + " · 5 certificaciones al precio de 1 | InnovaFit by ISSA";
+      $("#programsEyebrow").textContent = "Paquete " + p.name;
+      $("#buyName").textContent = p.name;
+      $("#leadBtn").textContent = "Quiero recibir información de " + p.name;
+      $("#doneName2").textContent = p.name;
+    }
+
     // Hero
     const n = progs.length || 5;
+    // "5 al precio de 1" y las 180 horas son del paquete de 5 programas; otras promociones usan su cantidad.
+    if(n !== 5){
+      const word = n === 1 ? "programa" : "programas";
+      $("#heroTitle").innerHTML = `<span class="ln"><span>¡${n} ${word}</span></span><span class="ln gold"><span>con descuento!</span></span>`;
+      $$("[data-pack5]").forEach((el) => { el.hidden = true; });
+      $("#hvPct").textContent = n;
+      $("#statCount").dataset.count = n; $("#statCount").textContent = n;
+      $("#statCount").nextElementSibling.textContent = n === 1 ? "programa con descuento" : "programas con descuento";
+      $("#bulletCount").textContent = n + " " + word;
+      $("#programsCta").textContent = n === 1 ? "Quiero este programa" : "Quiero los " + n + " programas";
+      $("#programSelect").options[0].textContent = "Todos los programas de la promoción";
+    }
     $("#heroSub").textContent = "Certificación de Entrenador Personal ISSA + especialidades: " + n + " programas en un solo paquete" +
       (max && min && min !== max ? ", con entre " + min + "% y " + max + "% de descuento en certificaciones y especialidades seleccionadas." :
        max ? ", con hasta " + max + "% de descuento en certificaciones y especialidades seleccionadas." : ".");
@@ -107,14 +130,14 @@
     $("#bigPct").textContent = max ? max + "%" : "5×1";
     $("#programsCount").textContent = n;
     $("#progTotal").textContent = pad2(n);
-    $("#mbarText").textContent = max ? "Aprovecha hasta " + max + "% de descuento." : "Aprovecha el descuento del Buen Fin.";
+    $("#mbarText").textContent = max ? "Aprovecha hasta " + max + "% de descuento." : "Aprovecha el descuento de " + PN() + ".";
     const statPct = $("#statPct");
     if(max){ statPct.dataset.count = max; statPct.textContent = max + "%"; }
     else statPct.closest(".stat").hidden = true;
 
     const heroStatus = $("#heroStatus"), clock = $("#heroClock"), vt = $("#validityText");
     if(!p){
-      heroStatus.textContent = "Buen Fin / Black Friday 2026 · muy pronto";
+      heroStatus.textContent = "Promociones InnovaFit · muy pronto";
       vt.textContent = "Vigencia por anunciar.";
     }else if(status === "activa"){
       heroStatus.textContent = (p.bannerTitle || p.name) + " · promoción activa";
@@ -162,7 +185,7 @@
   }
 
   function offBadge(pr){
-    return pr.pct ? `<span class="pcard-off">-${pr.pct}%<small>Buen Fin</small></span>` : "";
+    return pr.pct ? `<span class="pcard-off">-${pr.pct}%<small>${esc(PN())}</small></span>` : "";
   }
 
   function renderPrograms(progs){
@@ -203,7 +226,7 @@
   function renderSelects(progs){
     const opts = progs.map((pr) => `<option value="${esc(pr.id)}">${esc(pr.title)}${pr.pct ? " · -" + pr.pct + "%" : ""}</option>`).join("");
     $("#programSelect").insertAdjacentHTML("beforeend", opts);
-    $("#coProgram").innerHTML = `<option value="">Los 5 programas (paquete)</option>` + opts;
+    $("#coProgram").innerHTML = `<option value="">${progs.length && progs.length !== 5 ? "Todos los programas de la promoción" : "Los 5 programas (paquete)"}</option>` + opts;
     const cc = COUNTRIES.map(([c, n, f]) => `<option value="${c}" data-name="${esc(n)}">${f} ${esc(n)} +${c.replace(/-.*/, "")}</option>`).join("");
     $("#ccSelect").innerHTML = cc;
     $("#coCc").innerHTML = cc;
@@ -256,7 +279,7 @@
   }
 
   function sideHtml(pr, withCta){
-    return `<p class="pcard-kind">${esc(KIND[pr.kind] || "Programa")}${pr.pct ? " · -" + pr.pct + "% Buen Fin" : ""}</p>
+    return `<p class="pcard-kind">${esc(KIND[pr.kind] || "Programa")}${pr.pct ? " · -" + pr.pct + "% " + esc(PN()) : ""}</p>
       <h3>${esc(pr.title)}</h3>
       ${pr.objective ? `<h4>Objetivo</h4><p>${esc(pr.objective)}</p>` : pr.summary ? `<p>${esc(pr.summary)}</p>` : ""}
       ${pr.profile ? `<h4>Competencias</h4><p>${esc(pr.profile)}</p>` : ""}
@@ -415,14 +438,14 @@
       btn.textContent = "Enviando…";
       try{
         const progTitle = form.querySelector("[name=program]").selectedOptions[0].textContent.replace(/ · -\d+%$/, "");
-        const res = await post("/api/promo/leads", {...o, programTitle: progTitle, eventId, ...T.context()});
+        const res = await post("/api/promo/leads", {...o, programTitle: progTitle, eventId, promotion: D.promo && D.promo.id, ...T.context()});
         if(!res.duplicate) T.track("Lead", {content_name: progTitle}, res.eventId, res.eventId);
         remember(o);
         const first = o.name.trim().split(/\s+/)[0];
         $("#doneName").textContent = first;
         const wa = $("#doneWa");
         wa.dataset.custom = "1";
-        wa.href = waUrl("Hola InnovaFit 👋 Soy " + o.name.trim() + ". Acabo de dejar mis datos en la landing del " + ((D.promo && D.promo.name) || "Buen Fin") + " y me interesa: " + progTitle + ".");
+        wa.href = waUrl("Hola InnovaFit 👋 Soy " + o.name.trim() + ". Acabo de dejar mis datos en la landing de " + PN() + " y me interesa: " + progTitle + ".");
         form.hidden = true;
         $("#leadDone").hidden = false;
         if(window.gsap && !reduce) gsap.from("#leadDone > *", {y:24, opacity:0, stagger:.08, duration:.6, ease:"expo.out"});
@@ -432,7 +455,7 @@
         err.textContent = ex.message;
       }finally{
         btn.disabled = false;
-        btn.textContent = "Quiero recibir información del Buen Fin";
+        btn.textContent = "Quiero recibir información de " + PN();
       }
     });
   }
@@ -457,11 +480,11 @@
       btn.textContent = "Preparando tu compra…";
       try{
         const progTitle = form.elements.namedItem("program").selectedOptions[0].textContent.replace(/ · -\d+%$/, "");
-        const res = await post("/api/promo/checkout", {...o, ...T.context()});
+        const res = await post("/api/promo/checkout", {...o, promotion: D.promo && D.promo.id, ...T.context()});
         T.track("InitiateCheckout", {content_name: progTitle, content_ids: o.program ? [o.program] : undefined, value: res.value || undefined, currency: res.currency}, res.eventId, res.eventId);
         remember(o);
         try{ localStorage.setItem("if_last_order", res.id); }catch{}
-        const go = res.url || waUrl("Hola InnovaFit 👋 Soy " + o.name.trim() + " y quiero comprar " + progTitle + " con la promoción " + ((D.promo && D.promo.name) || "del Buen Fin") + ". Mi folio es " + res.id + ".");
+        const go = res.url || waUrl("Hola InnovaFit 👋 Soy " + o.name.trim() + " y quiero comprar " + progTitle + " con la promoción " + PN() + ". Mi folio es " + res.id + ".");
         if(!res.url) T.contact("checkout-whatsapp");
         setTimeout(() => { location.href = go; }, 350); // da tiempo a que salga el evento del Pixel
       }catch(ex){
@@ -700,7 +723,7 @@
 
     /* --- Cinta: avanza sola, acelera e inclina con la velocidad del scroll --- */
     const track = $("#marquee");
-    const phrase = ["Buen Fin", "Black Friday 2026", "5 programas", "1 solo precio", "Certificación ISSA", "100% online"];
+    const phrase = [...((D.promo && D.promo.bannerTitle) || PN()).split("/").map((s) => s.trim()).filter(Boolean), ...((D.programs || []).length && D.programs.length !== 5 ? [D.programs.length + " programas"] : ["5 programas", "1 solo precio"]), "Certificación ISSA", "100% online"];
     track.innerHTML = Array(4).fill(phrase.map((p) => `<span>${p}</span>`).join("")).join("");
     const loop = gsap.to(track, {xPercent: -50, duration: 28, ease: "none", repeat: -1});
     let dir = 1;

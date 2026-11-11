@@ -8,7 +8,8 @@ En producción: https://campusinnovafit.tech
 | Ruta | Qué es |
 |---|---|
 | `/` | Landing para entrenadores personales |
-| `/buen-fin` | Landing de la promoción vigente (Buen Fin / Black Friday), conectada a Meta Ads |
+| `/promo/<slug>` | Landing propia de cada promoción (la dirección se edita en Admin → Promociones) |
+| `/buen-fin` | Landing de la promoción destacada (Buen Fin / Black Friday), conectada a Meta Ads |
 | `/buen-fin-gracias` | Página de regreso de la pasarela: confirma el pago y dispara `Purchase` |
 | `/evaluacion` | Evaluación de 25 preguntas (aprueba con 80/100) |
 | `/campus` | Campus del alumno: registro obligatorio, cursos, comprobación, examen de acreditación y certificados |
@@ -37,7 +38,8 @@ En producción: https://campusinnovafit.tech
 - Los programas de la promoción son los de **Admin → Certificaciones** (temario, objetivo, competencias, PDF e imagen). Se pueden dejar sin publicar en el campus y aun así aparecer en la landing.
 - **Admin → Inscripciones**: cada envío del formulario o del botón de compra queda en `promo_leads` con sus UTM, consentimiento y estado (nuevo, contactado, en checkout, pagado, descartado). Filtros por promoción, taller, estado y fechas; exporta a CSV o Excel respetando los filtros. Los asesores también la ven.
 - **Pagado** solo lo pone el servidor: el webhook de la pasarela o el botón "Confirmar pago validado" del equipo (la base rechaza marcarlo a mano). Recién ahí se envía `Purchase` a Meta.
-- Vista previa para el equipo: `/buen-fin?preview=1` (con la sesión del admin abierta en el mismo navegador).
+- Vista previa para el equipo: `/promo/<slug>?preview=1` (con la sesión del admin abierta en el mismo navegador).
+- **Campus → Promociones**: pestaña con todas las promociones activas y próximas; cada tarjeta abre la landing de esa promoción (con `utm_source=campus`). La home del campus muestra las dos primeras.
 
 ### Medición (Meta)
 

@@ -493,6 +493,8 @@ async function setupCollections() {
     fields: [
       { name: "name", type: "text", required: true, max: 120 },
       { name: "bannerTitle", type: "text", max: 120 }, // "BUEN FIN / BLACK FRIDAY 2026"
+      // Dirección de su landing: /promo/<slug>
+      { name: "slug", type: "text", max: 60, pattern: "^[a-z0-9-]*$" },
       { name: "startsAt", type: "date" },
       { name: "endsAt", type: "date" },
       { name: "status", type: "select", values: ["programada", "activa", "finalizada"], maxSelect: 1, required: true },
@@ -514,6 +516,7 @@ async function setupCollections() {
       { name: "institutional", type: "text", max: 2000 },
       ...created(),
     ],
+    indexes: ["CREATE UNIQUE INDEX idx_promo_slug ON promotions (slug) WHERE slug != ''"],
     listRule: TEAM,
     viewRule: TEAM,
     createRule: ADMIN,
@@ -719,7 +722,19 @@ async function migrate() {
     console.log("✓ migración 5: promoción Buen Fin 2026 en borrador (Admin → Promociones)");
   }
 
-  const LAST = 5;
+  if (v < 6) {
+    // Cada promoción tiene su landing propia en /promo/<slug>.
+    for (const p of (await pb("/api/collections/promotions/records?perPage=200&sort=created")).items) {
+      if (p.slug) continue;
+      const base = slug(p.name) || p.id;
+      let s = base;
+      for (let i = 2; (await pb("/api/collections/promotions/records?perPage=1&filter=" + encodeURIComponent('slug = "' + s + '"'))).totalItems; i++) s = base + "-" + i;
+      await pb("/api/collections/promotions/records/" + p.id, { method: "PATCH", body: { slug: s } });
+    }
+    console.log("✓ migración 6: dirección propia para cada promoción (/promo/…)");
+  }
+
+  const LAST = 6;
   if (v < LAST) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { seedVersion: LAST } });
 }
 
@@ -748,6 +763,7 @@ async function seedPromotion() {
     method: "POST",
     body: {
       name: "Buen Fin 2026",
+      slug: "buen-fin-2026",
       bannerTitle: "BUEN FIN / BLACK FRIDAY 2026",
       status: "programada",
       landing: true,
