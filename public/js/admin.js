@@ -2187,6 +2187,7 @@
         b.textContent = n > 99 ? "99+" : n;
       };
       set("ventas", nuevas.totalItems + validar.totalItems);
+      pb.collection("promo_leads").getList(1, 1, {filter:'status = "nuevo"', fields:"id"}).then((r) => set("inscripciones", r.totalItems)).catch(() => {});
       set("soporte", tickets.totalItems);
     }catch{}
     if(isAdmin()) api("/api/admin/status").then((r) => setSysDot(r.status)).catch(() => {});
@@ -2423,9 +2424,13 @@
     stagger(view);
   }
 
+  // Utilidades para las secciones que viven en otros archivos (admin-promo.js).
+  window.AdminKit = {view, openModal, closeModal, confirmBox, ok, fail, pager, bindPager, searchInput, segPill, stagger, kpi, downloadCsv, csvCell,
+    fmtDate, fmtDateTime, waLink, initials, isAdmin, money, toDate, todayISO, nowPb};
+
   /* ---------- Router ---------- */
-  // Los asesores solo ven ventas, soporte y el manual.
-  const AGENT_SECTIONS = ["ventas", "soporte", "manual"];
+  // Los asesores solo ven ventas, inscripciones de la landing, soporte y el manual.
+  const AGENT_SECTIONS = ["ventas", "inscripciones", "soporte", "manual"];
   async function route(keepModal){
     let [, section = isAdmin() ? "resumen" : "ventas", id] = (location.hash.match(/^#\/([^/]+)(?:\/([^/]+))?/) || []);
     if(!isAdmin() && !AGENT_SECTIONS.includes(section)) section = "ventas";
@@ -2434,6 +2439,8 @@
     if(!keepModal) refreshBadges();
     try{
       if(section === "ventas") await renderVentas();
+      else if(section === "inscripciones") await AdminPromo.renderLeads(id);
+      else if(section === "promociones" && isAdmin()) await AdminPromo.renderPromos(id);
       else if(section === "finanzas") await renderFinanzas();
       else if(section === "soporte" && id) await renderTicketAdmin(id);
       else if(section === "soporte") await renderSoporteAdmin();
