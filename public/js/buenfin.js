@@ -95,7 +95,7 @@
 
     // Header
     $("#stripTitle").textContent = (p && p.bannerTitle) || "BUEN FIN / BLACK FRIDAY 2026";
-    $("#stripDates").textContent = range ? range + "." : "Fechas por anunciar.";
+    $("#stripDates").textContent = range ? range + "." : status === "activa" ? "Promoción vigente." : "Fechas por anunciar.";
     $("#stripOffer").textContent = max ? "Obtén hasta " + max + "% de descuento en certificaciones y especialidades ISSA." : "Descuentos especiales en certificaciones y especialidades ISSA.";
 
     // Hero
@@ -138,7 +138,7 @@
     renderBacking(progs, p);
     renderFaq(p, range, max);
 
-    $("#condText").textContent = (p && p.conditions) || ("Promoción " + (range ? range.toLowerCase() : "con fechas por anunciar") + ". El porcentaje de descuento depende de cada programa y se indica en su tarjeta; no todos los programas tienen el mismo descuento.");
+    $("#condText").textContent = (p && p.conditions) || ("Promoción " + (range ? range.toLowerCase() : status === "activa" ? "vigente" : "con fechas por anunciar") + ". El porcentaje de descuento depende de cada programa y se indica en su tarjeta; no todos los programas tienen el mismo descuento.");
 
     // Compra según estado
     const buy = $("#buyBtn");
@@ -286,11 +286,12 @@
   }
 
   function renderFaq(p, range, max){
+    const status = p ? p.status : "programada";
     let list = (p && p.faq) || [];
     if(!list.length){
       // Sin respuestas oficiales cargadas: solo lo que la propia promoción ya dice.
       list = [
-        {q: "¿Hasta cuándo es válida la promoción?", a: range ? range + ". La fecha y hora exactas de cierre se muestran en el contador de arriba." : "Las fechas se publican en esta página en cuanto se confirmen."},
+        {q: "¿Hasta cuándo es válida la promoción?", a: range ? range + ". La fecha y hora exactas de cierre se muestran en el contador de arriba." : status === "activa" ? "La promoción está vigente. Si se anuncia una fecha de cierre, la verás en esta página con su cuenta regresiva." : "Las fechas se publican en esta página en cuanto se confirmen."},
         {q: "¿Todos los programas tienen el mismo descuento?", a: "No. El porcentaje depende de cada programa" + (max ? " (hasta " + max + "%)" : "") + " y se indica en su tarjeta."},
         {q: "¿La formación es online?", a: "Sí. La plataforma es 100% online y On Demand: estudias por módulos con videos, evaluaciones y casos prácticos, según tu disponibilidad."},
         {q: "¿Cómo aprovecho la promoción?", a: "Tienes dos caminos: comprar directo con el botón «Comprar mi certificación» o dejarnos tus datos para que un asesor te contacte por WhatsApp."},
