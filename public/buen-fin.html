@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Buen Fin 2026 · 5 certificaciones al precio de 1 | InnovaFit by ISSA</title>
+<meta name="description" content="Certificación de Entrenador Personal ISSA + especialidades en un solo paquete, con descuento de Buen Fin / Black Friday. 100% online y On Demand.">
+<meta name="theme-color" content="#050505">
+<meta property="og:type" content="website">
+<meta property="og:title" content="¡5 certificaciones al precio de 1! · InnovaFit by ISSA">
+<meta property="og:description" content="Buen Fin / Black Friday 2026: certificación de Entrenador Personal ISSA + especialidades, 100% online.">
+<meta property="og:image" content="/assets/campus/entrenador-fuerza.webp">
+<link rel="icon" href="/assets/innovafit-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="/assets/campus/entrenador-fuerza.webp" fetchpriority="high">
+<link rel="stylesheet" href="/css/buenfin.css">
+</head>
+<body>
+<a class="skip" href="#programas">Saltar al contenido</a>
+<div class="progress" aria-hidden="true"><i id="progress"></i></div>
+
+<!-- ============ 1. HEADER ============ -->
+<header class="hdr" id="hdr">
+  <div class="strip">
+    <p class="strip-text"><b id="stripTitle">BUEN FIN / BLACK FRIDAY 2026</b><span class="sep">|</span><span id="stripDates">Fechas por anunciar.</span> <span id="stripOffer">Descuentos especiales en certificaciones y especialidades ISSA.</span></p>
+    <a class="strip-cta" href="#comprar" data-cta="strip">Reclama tu descuento</a>
+  </div>
+  <nav class="nav" aria-label="Principal">
+    <a class="brand" href="#top" aria-label="InnovaFit by ISSA, inicio">
+      <img src="/assets/innovafit-logo.png" alt="InnovaFit" width="140" height="28">
+      <span class="by">by ISSA</span>
+    </a>
+    <div class="menu" id="menu" data-lenis-prevent>
+      <a href="#programas">Certificaciones</a>
+      <a href="#beneficios">Beneficios</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#faq">Preguntas frecuentes</a>
+      <a class="btn btn-gold btn-sm menu-cta" href="#comprar" data-cta="nav">Quiero certificarme</a>
+    </div>
+    <button class="burger" id="burger" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu"><span></span><span></span></button>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- ============ 2. HERO ============ -->
+  <section class="hero" id="hero">
+    <canvas class="sparks" id="sparks" aria-hidden="true"></canvas>
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-ring" aria-hidden="true"></div>
+    <div class="hero-bigpct" aria-hidden="true"><span id="bigPct">50%</span></div>
+
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow hero-eyebrow"><i class="live"></i><span id="heroStatus">Buen Fin / Black Friday 2026</span></p>
+        <h1 class="hero-title" id="heroTitle">
+          <span class="ln"><span>¡5 certificaciones</span></span>
+          <span class="ln gold"><span>al precio de 1!</span></span>
+        </h1>
+        <p class="hero-sub" id="heroSub">Certificación de Entrenador Personal ISSA + especialidades en un solo paquete: 5 programas con descuento en certificaciones y especialidades seleccionadas.</p>
+        <ul class="hero-bullets" id="heroBullets">
+          <li><b id="bulletPct">Descuento especial</b> según programa</li>
+          <li><b>5 programas</b> incluidos</li>
+          <li><b>180 horas</b> de estudio</li>
+          <li>Certificación <b>internacional ISSA</b></li>
+          <li>Plataforma <b>100% online</b> y On Demand</li>
+        </ul>
+        <div class="hero-ctas">
+          <a class="btn btn-gold btn-lg magnetic" href="#comprar" data-cta="hero-primary"><span>Quiero aprovechar el descuento</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+          <a class="btn btn-line btn-lg" href="#programas" data-cta="hero-secondary">Conoce los programas</a>
+        </div>
+        <div class="hero-validity" id="heroValidity">
+          <div class="clock" id="heroClock" hidden></div>
+          <p class="validity-text"><span id="validityText">Vigencia por anunciar.</span> <a href="#condiciones" class="link">Ver condiciones</a></p>
+        </div>
+      </div>
+      <figure class="hero-visual" aria-hidden="true">
+        <div class="hv-plate"></div>
+        <img src="/assets/campus/entrenador-fuerza.webp" alt="" width="705" height="853" fetchpriority="high" class="hv-img">
+        <div class="hv-badge hv-b1"><b>ISSA</b><small>Certificación internacional</small></div>
+        <div class="hv-badge hv-b2"><b>180 h</b><small>de estudio</small></div>
+        <div class="hv-badge hv-b3"><b id="hvPct">5×1</b><small>programas</small></div>
+      </figure>
+    </div>
+    <a class="scroll-cue" href="#programas" aria-label="Bajar a los programas"><span>Desliza</span><i></i></a>
+  </section>
+
+  <!-- Cinta en movimiento: se inclina con la velocidad del scroll -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track" id="marquee"></div>
+  </div>
+
+  <!-- ============ 3. LOS 5 PROGRAMAS ============ -->
+  <section class="programs" id="programas" aria-labelledby="programsTitle">
+    <div class="programs-pin" id="programsPin">
+      <div class="programs-head">
+        <p class="eyebrow">Paquete Buen Fin</p>
+        <h2 id="programsTitle"><span class="gold-text" id="programsCount">5</span> programas, <br>un solo paquete</h2>
+        <p class="lead">Empieza con la certificación de Entrenador Personal y suma especialidades que te diferencian. El descuento de cada programa se indica en su tarjeta.</p>
+        <div class="programs-meter" aria-hidden="true"><b id="progIdx">01</b><span class="bar"><i id="progBar"></i></span><b id="progTotal">05</b></div>
+      </div>
+      <div class="programs-track" id="programsTrack">
+        <!-- tarjetas desde JS -->
+      </div>
+    </div>
+    <div class="programs-cta">
+      <a class="btn btn-gold btn-lg magnetic" href="#comprar" data-cta="programs">Quiero los 5 programas</a>
+    </div>
+  </section>
+
+  <!-- Cifras -->
+  <section class="stats" id="beneficios" aria-label="Beneficios">
+    <div class="stat"><b data-count="5">5</b><span>programas en un paquete</span></div>
+    <div class="stat"><b data-count="180">180</b><span>horas de estudio</span></div>
+    <div class="stat"><b data-count="100" data-suffix="%">100%</b><span>online y On Demand</span></div>
+    <div class="stat"><b id="statPct" data-count="0" data-suffix="%">—</b><span>descuento máximo, según programa</span></div>
+  </section>
+
+  <!-- ============ 4. DEMO DE LA PLATAFORMA ============ -->
+  <section class="demo" id="como-funciona" aria-labelledby="demoTitle">
+    <div class="demo-pin" id="demoPin">
+      <div class="demo-head">
+        <p class="eyebrow">Mira cómo se estudia</p>
+        <h2 id="demoTitle">Así se ve tu <span class="gold-text">formación</span></h2>
+      </div>
+      <div class="demo-frame" id="demoFrame">
+        <div class="demo-chrome" aria-hidden="true"><i></i><i></i><i></i><span id="demoLabel">Campus InnovaFit · Módulo 1 de Biomecánica</span></div>
+        <div class="demo-media" id="demoMedia">
+          <div class="demo-pending"><b>Video del Módulo 1 de Biomecánica</b><span>Se carga desde el campus en cuanto InnovaFit lo publique.</span></div>
+        </div>
+      </div>
+      <ul class="demo-points" id="demoPoints">
+        <li><b>100% online</b><span>Estudia desde tu celular, tablet o computadora.</span></li>
+        <li><b>On Demand</b><span>Sin horarios fijos: avanzas según tu disponibilidad.</span></li>
+        <li><b>Por módulos</b><span>Videos, lecturas y evaluaciones en cada etapa.</span></li>
+        <li><b>Casos prácticos</b><span>Aplicas lo aprendido a situaciones reales con clientes.</span></li>
+      </ul>
+      <div class="demo-cta"><a class="btn btn-gold btn-lg magnetic" href="#comprar" data-cta="demo">Quiero acceder a esta formación</a></div>
+    </div>
+  </section>
+
+  <!-- ============ 5. PROBLEMA → SOLUCIÓN ============ -->
+  <section class="pain" aria-labelledby="painTitle">
+    <div class="pain-pin" id="painPin">
+      <p class="eyebrow">¿Te suena?</p>
+      <h2 class="pain-text" id="painTitle">Tienes experiencia entrenando, pero no una certificación internacional que la respalde. Quieres trabajar en gimnasios o hacer crecer tu propio negocio, y necesitas algo que te diferencie.</h2>
+      <div class="solution" id="solution">
+        <div class="solution-inner">
+          <p class="eyebrow dark">La solución</p>
+          <h3>Certifícate con <span>ISSA</span></h3>
+          <p>Respaldo internacional, contenido estructurado por módulos y especialidades que te ayudan a destacar con tus clientes y empleadores.</p>
+          <a class="btn btn-dark btn-lg" href="#temarios" data-cta="pain">Quiero conocer la certificación</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6. MENTORÍAS ============ -->
+  <section class="mentor" id="mentorias" aria-labelledby="mentorTitle">
+    <div class="wrap">
+      <p class="eyebrow">Acompañamiento</p>
+      <h2 id="mentorTitle">Mentorías online <span class="gold-text">en vivo</span></h2>
+      <p class="lead">Sesiones en vivo para resolver dudas y aplicar lo que estudias. Las fechas, los horarios y los enlaces se publican aquí en cuanto se confirmen.</p>
+      <div class="mentor-grid" id="mentorGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ 7. TEMARIOS ============ -->
+  <section class="syllabus" id="temarios" aria-labelledby="sylTitle">
+    <div class="wrap">
+      <p class="eyebrow">Temarios académicos</p>
+      <h2 id="sylTitle">Lo que vas a <span class="gold-text">aprender</span></h2>
+      <div class="tabs" role="tablist" aria-label="Programas" id="sylTabs"></div>
+      <div class="syl-panels" id="sylPanels"></div>
+    </div>
+  </section>
+
+  <!-- ============ 8. RESPALDO ============ -->
+  <section class="backing" aria-labelledby="backTitle">
+    <div class="wrap backing-grid">
+      <div class="backing-big" aria-hidden="true"><span data-t="ISSA" id="issaBig">ISSA</span></div>
+      <div>
+        <p class="eyebrow">Respaldo institucional</p>
+        <h2 id="backTitle">Formación con <span class="gold-text">respaldo internacional</span></h2>
+        <p class="lead" id="institutional">International Sports Sciences Association (ISSA): formación en ciencias del ejercicio con presencia internacional.</p>
+        <ul class="accr" id="accrList"></ul>
+        <p class="fine">Las acreditaciones se indican únicamente en el programa o examen que las tiene. No todas aplican a los cinco programas.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 9. COMPRA / INFORMACIÓN ============ -->
+  <section class="buy" id="comprar" aria-labelledby="buyTitle">
+    <div class="wrap">
+      <p class="eyebrow">Elige cómo seguir</p>
+      <h2 id="buyTitle">Aprovecha el <span class="gold-text">Buen Fin</span></h2>
+      <div class="buy-grid">
+        <!-- Ruta A: compra directa -->
+        <article class="route route-a" id="routeBuy">
+          <span class="route-tag">Ruta A</span>
+          <h3>Compra directa</h3>
+          <p>Elige tu programa y paga en línea. Te damos acceso apenas se confirme el pago.</p>
+          <ul class="price-list" id="priceList"></ul>
+          <button class="btn btn-gold btn-lg btn-block magnetic" type="button" id="buyBtn" data-cta="buy">Comprar mi certificación</button>
+          <p class="fine" id="buyNote">Pago seguro. El precio final se muestra antes de pagar.</p>
+        </article>
+
+        <!-- Ruta B: solicitar información -->
+        <article class="route route-b" id="routeInfo">
+          <span class="route-tag">Ruta B</span>
+          <h3>Solicitar información</h3>
+          <p>Déjanos tus datos y un asesor de InnovaFit te contacta por WhatsApp.</p>
+          <form id="leadForm" novalidate>
+            <label class="f"><span>Nombre completo</span><input name="name" autocomplete="name" required placeholder="Nombre y apellido"></label>
+            <div class="f">
+              <span id="waLbl">WhatsApp</span>
+              <div class="phone" role="group" aria-labelledby="waLbl">
+                <select name="country" aria-label="Código de país" id="ccSelect"></select>
+                <input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" required placeholder="Tu número">
+              </div>
+            </div>
+            <label class="f"><span>Correo</span><input name="email" type="email" autocomplete="email" required placeholder="tu@correo.com"></label>
+            <div class="f2">
+              <label class="f"><span>País</span><input name="countryName" autocomplete="country-name" required placeholder="País"></label>
+              <label class="f"><span>Ciudad</span><input name="city" autocomplete="address-level2" required placeholder="Ciudad"></label>
+            </div>
+            <label class="f"><span>Certificación de interés</span><select name="program" id="programSelect"><option value="">Los 5 programas (paquete)</option></select></label>
+            <fieldset class="f radios">
+              <legend>¿Trabajas como entrenador?</legend>
+              <label><input type="radio" name="isTrainer" value="si" required><span>Sí</span></label>
+              <label><input type="radio" name="isTrainer" value="no"><span>Todavía no</span></label>
+            </fieldset>
+            <label class="f"><span>¿Qué información necesitas?</span><textarea name="infoNeeded" rows="3" placeholder="Precios, formas de pago, fechas, temario…"></textarea></label>
+            <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <label class="consent"><input type="checkbox" name="consent" required><span>Acepto el <a href="#privacidad" class="link" data-open="privacy">aviso de privacidad</a> y que InnovaFit me contacte por WhatsApp y correo.</span></label>
+            <p class="form-err" id="formErr" role="alert"></p>
+            <button class="btn btn-gold btn-lg btn-block" type="submit" id="leadBtn" data-cta="lead">Quiero recibir información del Buen Fin</button>
+          </form>
+          <div class="done" id="leadDone" hidden>
+            <div class="done-check" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="23"/><path d="M14 27l8 8 17-18"/></svg></div>
+            <h3>¡Listo, <span id="doneName">gracias</span>!</h3>
+            <p>Recibimos tus datos. Un asesor de InnovaFit te va a escribir por WhatsApp con la información del Buen Fin.</p>
+            <a class="btn btn-wa btn-lg btn-block" id="doneWa" href="#" target="_blank" rel="noopener" data-contact="form-done">Escribir ahora por WhatsApp</a>
+          </div>
+        </article>
+      </div>
+      <div class="conditions" id="condiciones">
+        <h3>Vigencia y condiciones</h3>
+        <p id="condText">Las fechas y condiciones de la promoción se publican aquí. El porcentaje de descuento varía según el programa.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10. FAQ ============ -->
+  <section class="faq" id="faq" aria-labelledby="faqTitle">
+    <div class="wrap narrow">
+      <p class="eyebrow">Dudas</p>
+      <h2 id="faqTitle">Preguntas <span class="gold-text">frecuentes</span></h2>
+      <div class="faq-list" id="faqList"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ 11. FOOTER ============ -->
+<footer class="ftr">
+  <div class="wrap ftr-grid">
+    <div>
+      <div class="ftr-logos"><img src="/assets/innovafit-logo.png" alt="InnovaFit" width="140" height="28"><span class="issa-mark">ISSA</span></div>
+      <p class="muted">InnovaFit by ISSA · Distribuidor de certificaciones ISSA para Latinoamérica.</p>
+    </div>
+    <div>
+      <h4>Contacto</h4>
+      <a class="ftr-wa" id="ftrWa" href="#" target="_blank" rel="noopener" data-contact="footer">WhatsApp</a>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <a href="#privacidad" data-open="privacy">Aviso de privacidad</a>
+      <a href="#terminos" data-open="terms">Términos y condiciones</a>
+      <a href="#condiciones">Políticas de la promoción</a>
+    </div>
+  </div>
+  <p class="copy">© 2026 InnovaFit by ISSA. Todos los derechos reservados.</p>
+</footer>
+
+<!-- ============ 12. MOBILE: WhatsApp flotante + barra fija ============ -->
+<a class="wa-float" id="waFloat" href="#" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp" data-contact="float">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18a8 8 0 01-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1112 20zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1-1.8-.9-3-1.6-4.1-3.6-.1-.2 0-.4.1-.5.2-.2.5-.5.6-.7.1-.2.1-.4 0-.5-.1-.2-.6-1.5-.9-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s.9 2.6 1.1 2.8c1.5 2 3.1 3.1 5.3 3.9.6.2 1.1.2 1.5.1.4-.1 1.4-.6 1.6-1.1.2-.5.2-1 .1-1.1-.1-.1-.2-.2-.4-.3z"/></svg>
+</a>
+<div class="mbar" id="mbar">
+  <p><b>¡Certifícate hoy!</b><span id="mbarText">Aprovecha el descuento del Buen Fin.</span></p>
+  <a class="btn btn-gold btn-sm" href="#comprar" data-cta="mobile-bar">Quiero mi promoción</a>
+</div>
+
+<!-- Temario dentro de la landing -->
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle">
+  <button class="sheet-x" type="button" data-close aria-label="Cerrar">×</button>
+  <div class="sheet-body" id="sheetBody" data-lenis-prevent></div>
+</dialog>
+
+<!-- Datos mínimos antes de ir al pago -->
+<dialog class="sheet sheet-sm" id="checkout" aria-labelledby="coTitle">
+  <button class="sheet-x" type="button" data-close aria-label="Cerrar">×</button>
+  <form class="sheet-body" id="coForm" novalidate data-lenis-prevent>
+    <p class="eyebrow">Ruta A · Compra directa</p>
+    <h3 id="coTitle">Antes de pagar</h3>
+    <p class="muted">Con estos datos vinculamos tu pago y te enviamos el acceso.</p>
+    <label class="f"><span>Programa</span><select name="program" id="coProgram"></select></label>
+    <label class="f"><span>Nombre completo</span><input name="name" autocomplete="name" required></label>
+    <div class="f">
+      <span id="coWaLbl">WhatsApp</span>
+      <div class="phone" role="group" aria-labelledby="coWaLbl"><select name="country" aria-label="Código de país" id="coCc"></select><input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" required></div>
+    </div>
+    <label class="f"><span>Correo</span><input name="email" type="email" autocomplete="email" required></label>
+    <label class="consent"><input type="checkbox" name="consent" required><span>Acepto el <a href="#privacidad" class="link" data-open="privacy">aviso de privacidad</a> y los <a href="#terminos" class="link" data-open="terms">términos</a>.</span></label>
+    <p class="form-err" id="coErr" role="alert"></p>
+    <button class="btn btn-gold btn-lg btn-block" type="submit" id="coBtn">Continuar al pago</button>
+  </form>
+</dialog>
+
+<dialog class="sheet sheet-sm" id="legal" aria-labelledby="legalTitle">
+  <button class="sheet-x" type="button" data-close aria-label="Cerrar">×</button>
+  <div class="sheet-body" id="legalBody" data-lenis-prevent></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
+<script src="/js/promo-track.js" defer></script>
+<script src="/js/buenfin.js" defer></script>
+</body>
+</html>

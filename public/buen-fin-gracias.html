@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gracias por tu compra · InnovaFit by ISSA</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#050505">
+<link rel="icon" href="/assets/innovafit-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;600;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/buenfin.css">
+<style>
+  .ty{min-height:100svh;display:grid;place-items:center;padding:40px 16px;text-align:center;background:radial-gradient(60% 50% at 50% 30%,rgba(242,193,78,.16),transparent 70%)}
+  .ty-card{width:min(560px,100%);padding:clamp(26px,5vw,44px);border-radius:28px;border:1px solid var(--line-2);background:linear-gradient(170deg,var(--card-2),var(--card))}
+  .ty img{height:26px;width:auto;margin:0 auto 26px}
+  .ty h1{font-size:clamp(40px,7vw,64px);margin:16px 0 10px}
+  .ty p{color:#d3cab7;margin-bottom:22px}
+  .spin{width:56px;height:56px;margin:0 auto;border-radius:50%;border:3px solid var(--line-2);border-top-color:var(--gold);animation:spin .9s linear infinite}
+</style>
+</head>
+<body>
+<main class="ty">
+  <div class="ty-card">
+    <img src="/assets/innovafit-logo.png" alt="InnovaFit">
+    <div id="wait">
+      <div class="spin" aria-hidden="true"></div>
+      <h1>Confirmando <span class="gold-text">tu pago</span></h1>
+      <p>Esto tarda unos segundos. No cierres esta ventana.</p>
+    </div>
+    <div id="ok" hidden>
+      <div class="done-check" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="23"/><path d="M14 27l8 8 17-18"/></svg></div>
+      <h1>¡Bienvenido, <span class="gold-text" id="name">crack</span>!</h1>
+      <p>Tu pago de <b id="prog">tu programa</b> quedó confirmado. En breve te escribimos por WhatsApp y correo con tu acceso.</p>
+      <a class="btn btn-wa btn-lg btn-block" id="wa" href="#" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+    </div>
+    <div id="slow" hidden>
+      <h1>Recibimos <span class="gold-text">tu compra</span></h1>
+      <p>La confirmación del pago todavía no llegó. Si ya pagaste, no te preocupes: un asesor la revisa y te escribe. Puedes escribirnos ahora con tu folio <b id="ref"></b>.</p>
+      <a class="btn btn-gold btn-lg btn-block" id="wa2" href="#" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+    </div>
+  </div>
+</main>
+<script src="/js/promo-track.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const qs = new URLSearchParams(location.search);
+  let ref = qs.get("ref") || qs.get("client_reference_id") || "";
+  try{ ref = ref || localStorage.getItem("if_last_order") || ""; }catch{}
+  ref = ref.replace(/[^a-z0-9]/g, "").slice(0, 15);
+  let tries = 0, wa = "";
+
+  fetch("/api/promo/active").then((r) => r.json()).then((d) => {
+    wa = String(d.waNumber || "").replace(/\D/g, "");
+    PromoTrack.initPixel(d.pixelId);
+    const link = "https://wa.me/" + wa + "?text=" + encodeURIComponent("Hola InnovaFit 👋 Acabo de comprar con la promoción del Buen Fin. Mi folio es " + ref + ".");
+    $("wa").href = $("wa2").href = link;
+    ["wa", "wa2"].forEach((id) => $(id).addEventListener("click", () => PromoTrack.contact("gracias")));
+  }).catch(() => {});
+
+  async function poll(){
+    if(!ref){ show("slow"); return; }
+    tries++;
+    try{
+      const r = await fetch("/api/promo/orders/" + ref, {cache: "no-store"});
+      const d = await r.json();
+      if(r.ok && d.paid){
+        $("name").textContent = d.firstName || "crack";
+        $("prog").textContent = d.program || "tu programa";
+        show("ok");
+        // Purchase SOLO con el pago confirmado por el servidor, una sola vez y con el mismo
+        // event_id que la Conversions API (Meta deduplica).
+        if(d.purchase){
+          let done = false;
+          try{ done = localStorage.getItem("if_pur_" + ref) === "1"; }catch{}
+          if(!done){
+            PromoTrack.track("Purchase", {value: d.purchase.value, currency: d.purchase.currency, content_ids: d.purchase.contentId ? [d.purchase.contentId] : undefined, content_type: "product", content_name: d.program}, d.purchase.eventId, d.purchase.eventId);
+            try{ localStorage.setItem("if_pur_" + ref, "1"); }catch{}
+            fetch("/api/promo/orders/" + ref + "/pixel", {method: "POST"}).catch(() => {});
+          }
+        }
+        return;
+      }
+    }catch{}
+    if(tries < 20) setTimeout(poll, 3000);
+    else show("slow");
+  }
+  function show(id){
+    ["wait", "ok", "slow"].forEach((x) => { $(x).hidden = x !== id; });
+    $("ref").textContent = ref || "—";
+  }
+  poll();
+})();
+</script>
+</body>
+</html>

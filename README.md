@@ -8,6 +8,8 @@ En producción: https://campusinnovafit.tech
 | Ruta | Qué es |
 |---|---|
 | `/` | Landing para entrenadores personales |
+| `/buen-fin` | Landing de la promoción vigente (Buen Fin / Black Friday), conectada a Meta Ads |
+| `/buen-fin-gracias` | Página de regreso de la pasarela: confirma el pago y dispara `Purchase` |
 | `/evaluacion` | Evaluación de 25 preguntas (aprueba con 80/100) |
 | `/campus` | Campus del alumno: registro obligatorio, cursos, comprobación, examen de acreditación y certificados |
 | `/admin` | Panel: resumen, evaluaciones (leads), alumnos, seguimiento de acreditación, cursos con editor de preguntas, certificados, catálogo de certificaciones y ajustes |
@@ -28,6 +30,35 @@ En producción: https://campusinnovafit.tech
 - Cada acción guardada muestra una confirmación en el centro de la pantalla.
 - **Si no aprueba**: ve su mapa por bloque y la invitación a la Certificación Doble por WhatsApp.
 - El admin crea cursos, sube lecciones (video, audio, PDF, imagen, link de YouTube/Vimeo o lectura), las reordena y edita. También crea alumnos y elige qué cursos ve cada uno.
+
+## Landing de promociones e Inscripciones
+
+- **Admin → Promociones**: nombre, título de la barra, fechas de inicio y cierre, estado, programas incluidos con **% de descuento por programa** (nunca uno global), precio final opcional, acreditación por programa, condiciones, URL del checkout, video demo (una lección del campus o YouTube/Vimeo), mentorías y preguntas frecuentes. Todo se edita sin tocar código. "Programada" se activa sola al llegar el inicio y pasa a "Finalizada" al cierre.
+- Los programas de la promoción son los de **Admin → Certificaciones** (temario, objetivo, competencias, PDF e imagen). Se pueden dejar sin publicar en el campus y aun así aparecer en la landing.
+- **Admin → Inscripciones**: cada envío del formulario o del botón de compra queda en `promo_leads` con sus UTM, consentimiento y estado (nuevo, contactado, en checkout, pagado, descartado). Filtros por promoción, taller, estado y fechas; exporta a CSV o Excel respetando los filtros. Los asesores también la ven.
+- **Pagado** solo lo pone el servidor: el webhook de la pasarela o el botón "Confirmar pago validado" del equipo (la base rechaza marcarlo a mano). Recién ahí se envía `Purchase` a Meta.
+- Vista previa para el equipo: `/buen-fin?preview=1` (con la sesión del admin abierta en el mismo navegador).
+
+### Medición (Meta)
+
+| Evento | Cuándo | Dedupe |
+|---|---|---|
+| `PageView` | al cargar | — |
+| `ViewContent` | "Ver temario", pestaña de un temario o play del video | una vez por programa por visita |
+| `Lead` | formulario guardado (no se repite en reenvíos ni doble clic) | `eventID` = el del servidor (CAPI) |
+| `InitiateCheckout` | "Continuar al pago" | `ic-<folio>` en Pixel y CAPI |
+| `Purchase` | **solo** con el pago confirmado | `pur-<folio>` en Pixel (página de gracias, una vez) y CAPI |
+| `Contact` | clic en cualquier botón de WhatsApp | máx. uno cada 3 s |
+
+UTM: se guardan los 5 (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`) más `fbclid` → `fbc`, por 30 días (gana el último anuncio). Parámetros sugeridos para los anuncios:
+`utm_source=meta&utm_medium=paid&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}`
+
+### Pasarela de pago
+
+1. En la promoción cargá la **URL del checkout**. La landing le agrega `?ref=<folio>&client_reference_id=<folio>&prefilled_email=…`.
+2. Configurá la URL de regreso de la pasarela: `https://campusinnovafit.tech/buen-fin-gracias?ref=<folio>`.
+3. Configurá el webhook de pago: `POST https://campusinnovafit.tech/api/promo/payment` con cuerpo JSON `{"ref":"<folio>","status":"paid","amount":123.45,"currency":"USD","orderId":"…"}` y la cabecera `x-signature: sha256=<HMAC-SHA256 del cuerpo con PAYMENT_WEBHOOK_SECRET>` (o `x-webhook-token: <PAYMENT_WEBHOOK_SECRET>` si la pasarela no firma). Si la pasarela manda otro formato, se adapta en `lib/promo-routes.js` (ruta `/api/promo/payment`).
+4. Sin URL de checkout, "Comprar" deja la inscripción en "En checkout" y abre WhatsApp con el folio.
 
 ## Instalación
 
@@ -53,6 +84,13 @@ La carga inicial busca los videos, audios y PDF del curso en la carpeta de `SEED
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Usuario del panel `/admin` |
 | `WA_NUMBER` | WhatsApp de ventas (código de país + número, sin `+`) |
 | `EXTERNAL_PB=1` | Si PocketBase corre como servicio aparte, `npm start` no lo lanza |
+| `META_PIXEL_ID` | ID del Pixel de Meta de la landing `/buen-fin` |
+| `META_CAPI_TOKEN` | Token de acceso de la Conversions API (Events Manager → Configuración) |
+| `META_TEST_EVENT_CODE` | Opcional: código de prueba de Events Manager (quitarlo en producción) |
+| `KOMMO_SUBDOMAIN` / `KOMMO_TOKEN` | Kommo (amoCRM): subdominio (`innovafit` de innovafit.kommo.com) y token de larga duración de una integración privada |
+| `KOMMO_PIPELINE_ID` / `KOMMO_STATUS_ID` | Opcionales: embudo y etapa donde entran los leads |
+| `CRM_WEBHOOK_URL` | Alternativa a Kommo: recibe cada lead en JSON (Zapier, Make, otro CRM) |
+| `PAYMENT_WEBHOOK_SECRET` | Secreto del webhook de pago (sin él, `/api/promo/payment` queda desactivado) |
 
 ## Despliegue automático
 

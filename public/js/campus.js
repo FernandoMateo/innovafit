@@ -315,6 +315,38 @@
   }
 
   /* =====================================================
+     PROMOCIONES VIGENTES (la misma promoción de la landing /buen-fin)
+     ===================================================== */
+  let promoP = null;
+  function loadPromo(){
+    if(!promoP) promoP = fetch("/api/promo/active").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    return promoP;
+  }
+  async function promosHtml(){
+    const d = await loadPromo();
+    const p = d && d.promo;
+    // Solo activas o por empezar; las finalizadas no se muestran.
+    if(!p || p.status === "finalizada") return "";
+    const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    const dt = (v) => { const x = v ? new Date(String(v).replace(" ", "T")) : null; return x && !isNaN(x) ? x.getDate() + " " + MONTHS[x.getMonth()] : ""; };
+    const s = dt(p.startsAt), e = dt(p.endsAt);
+    const when = p.status === "activa" ? (e ? "Termina el " + e : "Vigente ahora") : (s ? "Empieza el " + s : "Muy pronto");
+    const progs = (d.programs || []).slice(0, 5);
+    const url = "/buen-fin?utm_source=campus&utm_medium=home&utm_campaign=" + encodeURIComponent(p.name || "promo");
+    return `<section class="promo-now rise" aria-labelledby="promoNowT">
+      <div class="promo-now-head"><span class="eyebrow">Promociones vigentes</span>${p.status === "activa" ? '<span class="promo-live"><i></i>Activa</span>' : '<span class="promo-live soon">Próximamente</span>'}</div>
+      <a class="promo-card-c" href="${url}">
+        <div class="pc-main">
+          <small>${esc(p.bannerTitle || p.name)}</small>
+          <h2 id="promoNowT">${progs.length || 5} certificaciones <span>al precio de 1</span></h2>
+          <p>${p.maxPct ? "Hasta <b>" + p.maxPct + "% de descuento</b> según programa. " : ""}${esc(when)}.</p>
+          ${progs.length ? `<ul>${progs.map((x) => `<li>${esc(x.title.replace(/^(Certificación|Especialización) (en )?/i, ""))}${x.pct ? ` <b>-${x.pct}%</b>` : ""}</li>`).join("")}</ul>` : ""}
+        </div>
+        <span class="pc-cta">Ver promoción <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+      </a></section>`;
+  }
+
+  /* =====================================================
      MIS CURSOS
      ===================================================== */
   async function renderHome(){
@@ -328,6 +360,7 @@
       <div class="hello rise"><span class="eyebrow">Mis cursos</span>
         <h1>${first ? "Hola, " + esc(first) : "Bienvenido"} <span class="grad-text">💪</span></h1>
         <p>Retomá donde lo dejaste. Aprobá el examen de acreditación y tu certificado InnovaFit se emite al instante.</p></div>
+      ${await promosHtml()}
       <div class="rise">${await campaignHtml()}</div>
       ${courses.length ? `<div class="grid">${courses.map((c, i) => {
         const pct = pctFor(lessonLists[i]);
@@ -827,7 +860,9 @@
     if(sale) items = [...items].sort((a, b) => !!offOf(b) - !!offOf(a));
     const top = Math.max(0, ...items.map((p) => (offOf(p) || {pct: 0}).pct));
     const rib = sale ? "" : await ribbon();
+    const promoBlock = await promosHtml();
     view.innerHTML = `<div class="page${sale ? " progs-sale" : ""}">
+      ${promoBlock}
       ${sale ? `<div class="sale-head rise">
           <div class="sale-flames" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
           <canvas class="sale-fire" aria-hidden="true"></canvas>

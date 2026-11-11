@@ -485,6 +485,102 @@ async function setupCollections() {
     deleteRule: ADMIN,
   });
 
+  // Promociones de campaña (Buen Fin, Black Friday…): fechas, programas incluidos y % POR programa.
+  // La landing /buen-fin las lee a través del servidor (nunca directo), así que el público no las lista.
+  const promotions = await upsertCollection({
+    name: "promotions",
+    type: "base",
+    fields: [
+      { name: "name", type: "text", required: true, max: 120 },
+      { name: "bannerTitle", type: "text", max: 120 }, // "BUEN FIN / BLACK FRIDAY 2026"
+      { name: "startsAt", type: "date" },
+      { name: "endsAt", type: "date" },
+      { name: "status", type: "select", values: ["programada", "activa", "finalizada"], maxSelect: 1, required: true },
+      // La que se muestra en /buen-fin cuando hay más de una vigente.
+      { name: "landing", type: "bool" },
+      { name: "programs", type: "relation", collectionId: programs.id, maxSelect: 20, cascadeDelete: false },
+      // [{program, pct, finalPrice, priceBefore, accreditation}] en el orden de la landing.
+      { name: "items", type: "json", maxSize: 40000 },
+      { name: "currency", type: "text", max: 6 },
+      { name: "conditions", type: "text", max: 4000 },
+      { name: "checkoutUrl", type: "url" },
+      // Video demo: una lección real del campus (Módulo 1 de Biomecánica) o un link de YouTube/Vimeo.
+      { name: "demoLesson", type: "relation", collectionId: lessons.id, maxSelect: 1, cascadeDelete: false },
+      { name: "demoVideoUrl", type: "url" },
+      // [{title, period, schedule, zoomUrl, text, visible}]
+      { name: "mentorships", type: "json", maxSize: 20000 },
+      // [{q, a}] — respuestas oficiales aprobadas por InnovaFit
+      { name: "faq", type: "json", maxSize: 40000 },
+      { name: "institutional", type: "text", max: 2000 },
+      ...created(),
+    ],
+    listRule: TEAM,
+    viewRule: TEAM,
+    createRule: ADMIN,
+    updateRule: ADMIN,
+    deleteRule: ADMIN,
+  });
+
+  // Inscripciones (leads) que deja la landing de la promoción. Solo el servidor las crea.
+  // El estado "pagado" lo pone únicamente el servidor (webhook de pago o confirmación del equipo
+  // por /api/admin/promo-leads/:id/paid), porque ahí se dispara el evento Purchase de Meta.
+  await upsertCollection({
+    name: "promo_leads",
+    type: "base",
+    fields: [
+      { name: "name", type: "text", required: true, max: 120 },
+      { name: "email", type: "email", required: true },
+      { name: "country", type: "text", max: 6 }, // código de país del WhatsApp
+      { name: "phone", type: "text", max: 20 },
+      { name: "countryName", type: "text", max: 60 },
+      { name: "city", type: "text", max: 80 },
+      { name: "program", type: "relation", collectionId: programs.id, maxSelect: 1, cascadeDelete: false },
+      { name: "programTitle", type: "text", max: 160 },
+      { name: "isTrainer", type: "select", values: ["si", "no"], maxSelect: 1 },
+      { name: "infoNeeded", type: "text", max: 1500 },
+      { name: "promotion", type: "relation", collectionId: promotions.id, maxSelect: 1, cascadeDelete: false },
+      { name: "source", type: "select", values: ["formulario", "checkout"], maxSelect: 1 },
+      { name: "status", type: "select", values: ["nuevo", "contactado", "en_checkout", "pagado", "descartado"], maxSelect: 1 },
+      { name: "utm_source", type: "text", max: 200 },
+      { name: "utm_medium", type: "text", max: 200 },
+      { name: "utm_campaign", type: "text", max: 200 },
+      { name: "utm_content", type: "text", max: 200 },
+      { name: "utm_term", type: "text", max: 200 },
+      { name: "landingUrl", type: "text", max: 1000 },
+      { name: "referrer", type: "text", max: 1000 },
+      { name: "consent", type: "bool" },
+      { name: "consentAt", type: "date" },
+      // Medición: event_id compartido Pixel/CAPI y cookies de Meta para emparejar la conversión.
+      { name: "eventId", type: "text", max: 60 },
+      { name: "fbp", type: "text", max: 200 },
+      { name: "fbc", type: "text", max: 300 },
+      { name: "crmStatus", type: "select", values: ["pendiente", "enviado", "error", "omitido"], maxSelect: 1 },
+      { name: "crmId", type: "text", max: 60 },
+      { name: "crmError", type: "text", max: 400 },
+      { name: "checkoutAt", type: "date" },
+      { name: "paidAt", type: "date" },
+      { name: "paidAmount", type: "number", min: 0 },
+      { name: "currency", type: "text", max: 6 },
+      { name: "payRef", type: "text", max: 200 },
+      { name: "paidVia", type: "select", values: ["webhook", "equipo"], maxSelect: 1 },
+      { name: "purchaseSentAt", type: "date" }, // CAPI Purchase enviado
+      { name: "purchasePixelAt", type: "date" }, // Pixel Purchase disparado en la página de gracias
+      { name: "notes", type: "text", max: 3000 },
+      ...created(),
+    ],
+    indexes: [
+      "CREATE INDEX idx_pl_status ON promo_leads (status)",
+      "CREATE INDEX idx_pl_promo ON promo_leads (promotion)",
+      "CREATE INDEX idx_pl_program ON promo_leads (program)",
+      "CREATE INDEX idx_pl_email ON promo_leads (email)",
+    ],
+    listRule: TEAM,
+    viewRule: TEAM,
+    createRule: null,
+    updateRule: TEAM + ' && (@request.body.status:isset = false || @request.body.status != "pagado") && @request.body.paidAt:isset = false && @request.body.purchaseSentAt:isset = false',
+    deleteRule: ADMIN,
+  });
+
   // Manual interno del campus: solo lo ve el equipo; lo edita el admin.
   await upsertCollection({
     name: "manuals",
@@ -618,8 +714,56 @@ async function migrate() {
     console.log("✓ migración 4: " + n + " fichas de certificación con temario, precio y PDF");
   }
 
-  const LAST = 4;
+  if (v < 5) {
+    await seedPromotion();
+    console.log("✓ migración 5: promoción Buen Fin 2026 en borrador (Admin → Promociones)");
+  }
+
+  const LAST = 5;
   if (v < LAST) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { seedVersion: LAST } });
+}
+
+// Promoción Buen Fin 2026 en estado "programada", sin fechas ni porcentajes: el equipo de InnovaFit
+// los completa en Admin → Promociones. Las especialidades se crean como borrador (no publicadas en el
+// campus) solo con el nombre: su temario oficial lo carga InnovaFit en Admin → Certificaciones.
+async function seedPromotion() {
+  const has = await pb("/api/collections/promotions/records?perPage=1");
+  if (has.totalItems) return;
+  const all = (await pb("/api/collections/programs/records?perPage=200&sort=order")).items;
+  const find = (re) => all.find((p) => re.test(p.title));
+  const ensure = async (re, title, order) =>
+    find(re) || (await pb("/api/collections/programs/records", { method: "POST", body: { title, kind: "especializacion", published: false, order } }));
+  const list = [
+    find(/\bCPT\b|personal trainer/i),
+    await ensure(/prevenci[oó]n de lesiones/i, "Especialización en Prevención de Lesiones", 101),
+    await ensure(/\bHIIT\b/i, "Especialización en HIIT", 102),
+    await ensure(/gl[uú]teo/i, "Especialización en Glúteo", 103),
+    await ensure(/programa complementario/i, "Programa complementario (nombre por confirmar)", 104),
+  ].filter(Boolean);
+
+  const gift = (await pb("/api/collections/courses/records?perPage=1&filter=" + encodeURIComponent('title = "Fundamentos de Biomecánica"'))).items[0];
+  const demo = gift && (await pb("/api/collections/lessons/records?perPage=1&sort=order&filter=" + encodeURIComponent('course = "' + gift.id + '" && kind = "video"'))).items[0];
+
+  await pb("/api/collections/promotions/records", {
+    method: "POST",
+    body: {
+      name: "Buen Fin 2026",
+      bannerTitle: "BUEN FIN / BLACK FRIDAY 2026",
+      status: "programada",
+      landing: true,
+      currency: "USD",
+      programs: list.map((p) => p.id),
+      items: list.map((p) => ({ program: p.id, pct: 0, finalPrice: 0, priceBefore: 0, accreditation: "" })),
+      conditions: "",
+      demoLesson: demo ? demo.id : "",
+      mentorships: [
+        { title: "Mentoría online en vivo · 1", period: "Enero – marzo 2027", schedule: "", zoomUrl: "", text: "", visible: true },
+        { title: "Mentoría online en vivo · 2", period: "Abril – junio 2027", schedule: "", zoomUrl: "", text: "", visible: true },
+      ],
+      faq: [],
+      institutional: "",
+    },
+  });
 }
 
 // Carga las preguntas de la comprobación y del examen si la lección todavía no tiene (archivo fuera del repo).

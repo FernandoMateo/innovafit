@@ -743,6 +743,9 @@ app.post("/api/inscriptions/:id/cancel", express.json({ limit: "4kb" }), async (
   }
 });
 
+/* ---------- Landing de promociones (/buen-fin) e Inscripciones ---------- */
+require("./lib/promo-routes")(app, { authUser });
+
 /* ---------- Páginas ---------- */
 app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, "public", "index.html")));
