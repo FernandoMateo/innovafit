@@ -492,6 +492,41 @@ p{margin:0}
 .probs .pain-pin{min-height:90vh}
 .probs .pain-pin .btn{margin-top:26px}
 
+/* Bloque 2 · escenario de los 10 problemas: un problema por pantalla, con número gigante.
+   Sin JS (o con "reducir movimiento") queda como lista; con JS (.is-live) se fija y pasa con el scroll. */
+.probs-intro{padding-bottom:40px}
+.pstage{position:relative;isolation:isolate}
+.pslides{list-style:none;margin:0;padding:0}
+.pslide{width:min(1240px,100% - 32px);margin:0 auto 18px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;padding:24px;border-radius:24px;border:1px solid var(--line);background:var(--card)}
+.pslide-n{position:relative;display:inline-block;font-family:var(--display);line-height:.82;font-size:clamp(90px,12vw,160px);color:transparent;-webkit-text-stroke:2px rgba(242,193,78,.55);padding-block:.04em;letter-spacing:-.02em}
+.pslide-n::after{content:attr(data-t);position:absolute;inset:0;padding-block:inherit;background:var(--gold-grad);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:0;
+  clip-path:inset(calc(100% - var(--fill,100%)) 0 0 0);animation:shine 5s linear infinite}
+.pslide-txt h3{font-size:clamp(30px,3.6vw,60px);line-height:.95;margin-bottom:14px}
+.pslide-txt>p{font-size:clamp(16px,1.45vw,20px);color:#d8cfbb;max-width:40ch}
+.pslide .need{margin-top:20px;padding:16px 18px;border-radius:16px;background:rgba(242,193,78,.08);border:1px solid var(--line-2);color:#f1e8d3;font-size:clamp(15px,1.25vw,17px);max-width:46ch;transform-origin:0 50%}
+.pslide .need b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.pstage-flash,.pstage-wipe,.pstage-prog{display:none}
+
+.pstage.is-live{height:100vh;height:100svh;overflow:hidden;background:radial-gradient(70% 70% at 30% 50%,rgba(242,193,78,.1),transparent 70%)}
+.pstage.is-live .pslides{position:absolute;inset:0}
+.pstage.is-live .pslide{position:absolute;inset:0;width:auto;margin:0;padding:calc(var(--hdr) * .6) max(16px,calc((100% - 1240px)/2)) 70px;border:0;border-radius:0;background:none;
+  grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(20px,4vw,70px)}
+.pstage.is-live .pslide-n{font-size:clamp(200px,31vw,500px);justify-self:center;will-change:transform,filter}
+.pstage.is-live .pslide-txt>*{will-change:transform}
+.pstage.is-live .pstage-flash{display:block;position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;background:radial-gradient(60% 60% at 50% 50%,rgba(255,240,194,.55),rgba(242,193,78,.18) 40%,transparent 70%);mix-blend-mode:screen}
+.pstage.is-live .pstage-wipe{display:block;position:absolute;inset:-10% -20%;z-index:4;pointer-events:none;background:var(--gold-grad);background-size:200% 100%;clip-path:inset(0 100% 0 0);transform:skewX(-14deg)}
+.pstage.is-live .pstage-prog{display:flex;position:absolute;z-index:5;left:50%;bottom:22px;translate:-50% 0;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.pstage-prog b{color:var(--gold)}
+.pstage-prog .bar{width:min(240px,50vw);height:2px;background:var(--line-2);position:relative;overflow:hidden}
+.pstage-prog .bar i{position:absolute;inset:0;background:var(--gold);transform-origin:0 50%;transform:scaleX(.1)}
+@media (max-width:900px){
+  .pslide{grid-template-columns:1fr;gap:10px}
+  .pstage.is-live .pslide{grid-template-columns:1fr;align-content:center;gap:6px;padding:calc(var(--hdr) + 10px) 20px 70px}
+  .pstage.is-live .pslide-n{font-size:clamp(130px,44vw,240px);margin-bottom:14px;justify-self:start}
+  .pslide-txt h3{font-size:clamp(28px,8vw,40px)}
+  .pslide .need{margin-top:14px}
+}
+
 /* Bloque 3: solución */
 .sol{padding:40px 0 60px}
 .sol .solution{margin-top:0}

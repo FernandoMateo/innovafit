@@ -100,21 +100,13 @@
     const pack = (p && p.pack) || {};
     const cur = (p && p.currency) || "USD";
 
-    // Cantidad de formaciones del paquete: el texto dice "cinco"/"5×1" solo si son cinco.
-    const n = progs.length || 5;
-    const nx = n + "×1", nword = NUM[n] || String(n);
-    PACK = pack.name || "Certificación Internacional " + nx;
-    $$("[data-nx]").forEach((el) => { el.textContent = nx; });
-    $$("[data-nword]").forEach((el) => { el.textContent = nword; });
-    $$("[data-nword-cap]").forEach((el) => { el.textContent = cap(nword); });
+    // El paquete es siempre la Certificación Internacional 5×1 (cinco formaciones).
+    PACK = pack.name || "Certificación Internacional 5×1";
     $$("[data-pack]").forEach((el) => { el.textContent = PACK; });
-    $("#bigPct").textContent = nx;
-    $("#progTotal").textContent = pad2(n);
-
     // Barra superior
     $("#stripTitle").textContent = (p && p.bannerTitle) || "PROMOCIONES INNOVAFIT";
     $("#stripDates").textContent = range ? range + "." : status === "activa" ? "Promoción vigente." : status === "finalizada" ? "Promoción finalizada." : "Fechas por anunciar.";
-    $("#stripOffer").textContent = PACK + ": " + nword + " formaciones en un solo paquete" + (pack.pct ? ", con " + pack.pct + "% de descuento." : ".");
+    $("#stripOffer").textContent = PACK + ": cinco formaciones en un solo paquete" + (pack.pct ? ", con " + pack.pct + "% de descuento." : ".");
 
     // Nombre de la promoción en los textos
     const isBF = p && /buen\s*fin/i.test(p.name);
@@ -125,7 +117,7 @@
       $("#finalPromo").textContent = isBF ? "la promoción especial del Buen Fin" : "la promoción especial " + p.name;
       $("#doneName2").textContent = p.name;
     }
-    $("#mbarText").textContent = pack.pct ? pack.pct + "% de descuento en el paquete." : cap(nword) + " formaciones en un solo paquete.";
+    $("#mbarText").textContent = pack.pct ? pack.pct + "% de descuento en el paquete." : "Cinco formaciones en un paquete.";
 
     // Bloque de la oferta: precio del paquete (lo carga el admin; si falta, no se inventa)
     if(pack.price){
@@ -188,11 +180,14 @@
       track.innerHTML = Array.from({length:5}, (_, i) => `<article class="pcard pending"><div class="pcard-img"><span class="ph">${i + 1}</span></div><div class="pcard-body"><span class="pcard-kind">Formación ${i + 1}</span><h3>Por anunciar</h3><p class="pending-note">InnovaFit publica aquí el nombre oficial y el temario.</p></div></article>`).join("");
       return;
     }
+    // El paquete es de cinco: si todavía falta cargar alguna, se muestra su lugar sin inventar el nombre.
+    const total = Math.max(5, progs.length);
+    const missing = Array.from({length: total - progs.length}, (_, k) => progs.length + k);
     track.innerHTML = progs.map((pr, i) => `
       <article class="pcard${pr.summary ? "" : " pending"}" data-id="${esc(pr.id)}">
         <div class="pcard-img">
           ${pr.image ? `<img src="${esc(pr.image)}" alt="" loading="lazy" decoding="async">` : `<span class="ph">${i + 1}</span>`}
-          <span class="pcard-num">${pad2(i + 1)} / ${pad2(progs.length)}</span>
+          <span class="pcard-num">${pad2(i + 1)} / ${pad2(total)}</span>
         </div>
         <div class="pcard-body">
           <span class="pcard-kind">Formación ${i + 1}${KIND[pr.kind] ? " · " + esc(KIND[pr.kind]) : ""}</span>
@@ -202,7 +197,7 @@
           ${pr.accreditation ? `<p class="pcard-acc">${esc(pr.accreditation)}</p>` : ""}
           <button class="btn btn-line btn-sm" type="button" data-syllabus="${esc(pr.id)}">Ver temario</button>
         </div>
-      </article>`).join("");
+      </article>`).join("") + missing.map((i) => `<article class="pcard pending"><div class="pcard-img"><span class="ph">${i + 1}</span><span class="pcard-num">${pad2(i + 1)} / ${pad2(total)}</span></div><div class="pcard-body"><span class="pcard-kind">Formación ${i + 1}</span><h3>Por confirmar</h3><p class="pending-note">InnovaFit publica aquí el nombre oficial y el temario de esta formación.</p></div></article>`).join("");
   }
 
   function renderSelects(progs){
@@ -244,14 +239,14 @@
   function renderFaq(p, e, status){
     let list = (p && p.faq) || [];
     if(!list.length){
-      const until = e ? "La promoción especial está disponible hasta el " + fmtLong(e) + ", de acuerdo con sus condiciones comerciales."
-        : status === "activa" ? "La promoción especial está vigente, de acuerdo con sus condiciones comerciales. Si se anuncia una fecha de cierre, la verás en esta página."
-        : "Las fechas de la promoción se publican en esta página en cuanto se confirmen.";
+      const until = e ? "Hasta el " + fmtLong(e) + ", según sus condiciones comerciales."
+        : status === "activa" ? "Está vigente según sus condiciones comerciales. Si se anuncia una fecha de cierre, la verás aquí."
+        : "Las fechas se publican aquí en cuanto se confirmen.";
       list = [
-        {q: "¿Qué incluye la " + PACK + "?", a: "Incluye " + (NUM[(D.programs || []).length || 5] || "los") + " programas de formación que integran el paquete promocional de InnovaFit. Puedes consultar los contenidos específicos de cada programa en sus respectivos temarios."},
-        {q: "¿Necesito tener experiencia previa como entrenador?", a: "Los requisitos dependen de cada programa. Consulta las condiciones de admisión para conocer el perfil recomendado o requerido."},
-        {q: "¿Cómo puedo conocer los contenidos de cada formación?", a: "Puedes acceder a los temarios individuales desde los botones «Ver temario» de cada programa y revisar los contenidos antes de inscribirte."},
-        {q: "¿Cómo puedo inscribirme?", a: "Haz clic en el botón de inscripción y sigue las indicaciones del proceso de compra. También puedes comunicarte con nuestro equipo de atención por WhatsApp para recibir asesoramiento."},
+        {q: "¿Qué incluye la " + PACK + "?", a: "Cinco programas de formación en un solo paquete. Los contenidos de cada uno están en su temario."},
+        {q: "¿Necesito experiencia previa como entrenador?", a: "Depende de cada programa. Consulta las condiciones de admisión para conocer el perfil recomendado."},
+        {q: "¿Cómo conozco los contenidos de cada formación?", a: "Con el botón «Ver temario» de cada programa, antes de inscribirte."},
+        {q: "¿Cómo me inscribo?", a: "Haz clic en el botón de inscripción y sigue los pasos de compra, o escríbenos por WhatsApp para recibir asesoría."},
         {q: "¿Hasta cuándo está disponible la promoción?", a: until},
       ];
     }
@@ -660,8 +655,7 @@
 
     /* --- Cinta: avanza sola, acelera e inclina con la velocidad del scroll --- */
     const track = $("#marquee");
-    const nf = (D.programs || []).length || 5;
-    const phrase = [PACK, nf + " formaciones", "1 solo paquete", ...((D.promo && D.promo.bannerTitle) || PN()).split("/").map((s) => s.trim()).filter(Boolean), "Certificación ISSA", "100% online"];
+    const phrase = [PACK, "5 formaciones", "1 solo paquete", ...((D.promo && D.promo.bannerTitle) || PN()).split("/").map((s) => s.trim()).filter(Boolean), "Certificación ISSA", "100% online"];
     track.innerHTML = Array(4).fill(phrase.map((p) => `<span>${p}</span>`).join("")).join("");
     const loop = gsap.to(track, {xPercent: -50, duration: 28, ease: "none", repeat: -1});
     let dir = 1;
@@ -731,12 +725,53 @@
         onUpdate: () => { b.textContent = (b.dataset.prefix || "") + o.v.toFixed(+b.dataset.dec || 0) + (b.dataset.suffix || ""); }});
     });
 
-    /* --- Los 10 problemas: las tarjetas entran en cascada --- */
-    gsap.utils.toArray(".prob").forEach((card, i) => {
-      gsap.from(card, {y: 70, opacity: 0, rotateX: -18, transformOrigin: "50% 0%", duration: 1, ease: "expo.out", delay: (i % 3) * .08, scrollTrigger: {trigger: card, start: "top 92%"}});
-      gsap.from(card.querySelector(".prob-n"), {xPercent: -40, opacity: 0, duration: 1.1, ease: "expo.out", delay: (i % 3) * .08 + .15, scrollTrigger: {trigger: card, start: "top 92%"}});
-    });
-
+    /* --- Los 10 problemas: escenario fijado. Cada problema entra con su número gigante que se llena de oro,
+           y al seguir bajando estalla hacia la cámara mientras un barrido dorado trae el siguiente. --- */
+    const stage = $("#pstage"), slides = $$(".pslide", stage);
+    if(stage && slides.length){
+      stage.classList.add("is-live");
+      const parts = slides.map((s) => ({s, n: s.querySelector(".pslide-n"), t: s.querySelectorAll(".pslide-txt > *"), need: s.querySelector(".need")}));
+      // Estados explícitos (fromTo) para que el scroll pueda saltar hacia adelante o atrás sin que nada quede a medias.
+      const N_IN = {yPercent: 70, scale: .3, rotate: 16, opacity: 0, filter: "blur(22px)"}, N_ON = {yPercent: 0, xPercent: 0, scale: 1, rotate: 0, opacity: 1, filter: "blur(0px)"};
+      gsap.set(slides.slice(1), {autoAlpha: 0});
+      parts.forEach((p) => gsap.set(p.n, {"--fill": "0%"}));
+      const wipe = $(".pstage-wipe", stage), flash = $(".pstage-flash", stage);
+      const tl = gsap.timeline({defaults: {ease: "power3.out"}, scrollTrigger: {
+        trigger: stage, start: "top top", end: () => "+=" + innerHeight * slides.length * .85, pin: true, scrub: .7, anticipatePin: 1, invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          const i = Math.min(slides.length - 1, Math.round(self.progress * (slides.length - 1)));
+          $("#pIdx").textContent = pad2(i + 1);
+          $("#pBar").style.transform = "scaleX(" + Math.max(.1, (i + 1) / slides.length) + ")";
+        },
+      }});
+      // Entrada del primero (mientras el escenario se fija)
+      gsap.from(parts[0].n, {yPercent: 50, scale: .4, rotate: -10, opacity: 0, filter: "blur(18px)", duration: 1.3, ease: "expo.out", scrollTrigger: {trigger: stage, start: "top 75%"}});
+      gsap.from(parts[0].t, {y: 70, opacity: 0, stagger: .1, duration: 1, ease: "expo.out", scrollTrigger: {trigger: stage, start: "top 65%"}});
+      parts.forEach((p, i) => {
+        tl.addLabel("s" + i);
+        // Lectura: el número se llena de oro y respira
+        tl.fromTo(p.n, {"--fill": "0%", scale: 1}, {"--fill": "100%", scale: 1.06, duration: 1, ease: "none", immediateRender: false});
+        if(i === parts.length - 1) return;
+        const q = parts[i + 1];
+        const at = "x" + i;
+        tl.addLabel(at);
+        // Salida: el número estalla hacia la cámara, el texto sube y se borra
+        tl.fromTo(p.n, {...N_ON, scale: 1.06}, {scale: 2.8, xPercent: -18, rotate: -8, opacity: 0, filter: "blur(16px)", duration: .9, ease: "power2.in", immediateRender: false}, at)
+          .fromTo(p.t, {y: 0, opacity: 1}, {y: -90, opacity: 0, stagger: .05, duration: .6, ease: "power2.in", immediateRender: false}, at)
+          // Barrido dorado de lado a lado + destello
+          .fromTo(wipe, {clipPath: "inset(0 100% 0 0)"}, {clipPath: "inset(0 0% 0 0)", duration: .45, ease: "power2.in"}, at + "+=.35")
+          .set(p.s, {autoAlpha: 0})
+          .set(q.s, {autoAlpha: 1})
+          .to(wipe, {clipPath: "inset(0 0 0 100%)", duration: .5, ease: "power2.out"})
+          .fromTo(flash, {opacity: 0}, {opacity: 1, duration: .15, ease: "none"}, "<")
+          .to(flash, {opacity: 0, duration: .5, ease: "power1.out"})
+          // Entrada del siguiente: el número cae girando desde abajo, el texto sube línea por línea
+          .fromTo(q.n, N_IN, {...N_ON, duration: 1, ease: "expo.out", immediateRender: false}, "<-.4")
+          .fromTo(q.t, {y: 90, opacity: 0}, {y: 0, opacity: 1, stagger: .09, duration: .8, ease: "expo.out", immediateRender: false}, "<.1")
+          .fromTo(q.need, {scaleX: 0}, {scaleX: 1, duration: .7, ease: "expo.out", immediateRender: false}, "<.15");
+      });
+      tl.addLabel("end");
+    }
     /* --- Cierre del bloque 2: las palabras se encienden una por una --- */
     const words = splitPain($("#painTitle"));
     mm.add("(min-width: 981px)", () => {
