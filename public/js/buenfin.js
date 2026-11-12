@@ -678,53 +678,7 @@
 
     const mm = gsap.matchMedia();
 
-    /* --- Programas: carrusel horizontal fijado con tarjetas que giran en 3D (escritorio) --- */
-    mm.add("(min-width: 981px)", () => {
-      const pin = $("#programsPin"), tr = $("#programsTrack");
-      const dist = () => Math.max(0, tr.scrollWidth - (innerWidth - tr.getBoundingClientRect().left) + 40);
-      const tween = gsap.to(tr, {x: () => -dist(), ease: "none", scrollTrigger: {
-        trigger: pin, start: "top top", end: () => "+=" + (dist() + innerHeight * .4), pin: true, scrub: 1, invalidateOnRefresh: true, anticipatePin: 1,
-        onUpdate: (self) => {
-          const n = $$(".pcard", tr).length || 5;
-          $("#progBar").style.transform = "scaleX(" + Math.max(1 / n, self.progress) + ")";
-          $("#progIdx").textContent = pad2(Math.min(n, 1 + Math.floor(self.progress * n * .999)));
-        },
-      }});
-      $$(".pcard", tr).forEach((card) => {
-        gsap.fromTo(card, {rotateY: -28, z: -160, opacity: .35, filter: "brightness(.6)"},
-          {rotateY: 0, z: 0, opacity: 1, filter: "brightness(1)", ease: "none", scrollTrigger: {trigger: card, containerAnimation: tween, start: "left 100%", end: "left 45%", scrub: true}});
-        gsap.to(card.querySelector(".pcard-img img"), {xPercent: -8, ease: "none", scrollTrigger: {trigger: card, containerAnimation: tween, start: "left right", end: "right left", scrub: true}});
-      });
-      gsap.from(".programs-head > *", {y: 50, opacity: 0, stagger: .08, duration: 1, ease: "expo.out", scrollTrigger: {trigger: pin, start: "top 70%"}});
-    });
-    mm.add("(max-width: 980px)", () => {
-      gsap.from(".pcard", {y: 60, opacity: 0, rotate: 3, stagger: .1, duration: .9, ease: "expo.out", scrollTrigger: {trigger: "#programsTrack", start: "top 85%"}});
-    });
-
-    // Inclinación 3D de las tarjetas con el mouse
-    if(matchMedia("(pointer:fine)").matches){
-      $$(".pcard").forEach((card) => {
-        const rx = gsap.quickTo(card, "rotateX", {duration: .5, ease: "power3"}), ry = gsap.quickTo(card, "rotationY", {duration: .5, ease: "power3"});
-        card.addEventListener("pointermove", (e) => {
-          const r = card.getBoundingClientRect(), nx = (e.clientX - r.left) / r.width, ny = (e.clientY - r.top) / r.height;
-          card.style.setProperty("--mx", nx * 100 + "%"); card.style.setProperty("--my", ny * 100 + "%");
-          rx((.5 - ny) * 8); ry((nx - .5) * 10);
-        });
-        card.addEventListener("pointerleave", () => { rx(0); ry(0); });
-      });
-    }
-
-    /* --- Cifras que cuentan --- */
-    $$(".stat").forEach((st, i) => {
-      const b = st.querySelector("b");
-      const to = +b.dataset.count || 0;
-      gsap.from(st, {y: 50, opacity: 0, duration: .9, delay: i * .08, ease: "expo.out", scrollTrigger: {trigger: ".stats", start: "top 85%"}});
-      if(!to) return;
-      const o = {v: 0};
-      gsap.to(o, {v: to, duration: 1.8, ease: "power3.out", scrollTrigger: {trigger: ".stats", start: "top 85%"},
-        onUpdate: () => { b.textContent = (b.dataset.prefix || "") + o.v.toFixed(+b.dataset.dec || 0) + (b.dataset.suffix || ""); }});
-    });
-
+    // Las secciones fijadas se crean en el orden de la página: cada una mide su inicio contando el espacio de las anteriores.
     /* --- Los 10 problemas: escenario fijado. Cada problema entra con su número gigante que se llena de oro,
            y al seguir bajando estalla hacia la cámara mientras un barrido dorado trae el siguiente. --- */
     const stage = $("#pstage"), slides = $$(".pslide", stage);
@@ -783,6 +737,53 @@
       gsap.to(words, {opacity: 1, stagger: .1, ease: "none", scrollTrigger: {trigger: "#painTitle", start: "top 80%", end: "bottom 40%", scrub: true}});
     });
 
+    /* --- Programas: carrusel horizontal fijado con tarjetas que giran en 3D (escritorio) --- */
+    mm.add("(min-width: 981px)", () => {
+      const pin = $("#programsPin"), tr = $("#programsTrack");
+      const dist = () => Math.max(0, tr.scrollWidth - (innerWidth - tr.getBoundingClientRect().left) + 40);
+      const tween = gsap.to(tr, {x: () => -dist(), ease: "none", scrollTrigger: {
+        trigger: pin, start: "top top", end: () => "+=" + (dist() + innerHeight * .4), pin: true, scrub: 1, invalidateOnRefresh: true, anticipatePin: 1,
+        onUpdate: (self) => {
+          const n = $$(".pcard", tr).length || 5;
+          $("#progBar").style.transform = "scaleX(" + Math.max(1 / n, self.progress) + ")";
+          $("#progIdx").textContent = pad2(Math.min(n, 1 + Math.floor(self.progress * n * .999)));
+        },
+      }});
+      $$(".pcard", tr).forEach((card) => {
+        gsap.fromTo(card, {rotateY: -28, z: -160, opacity: .35, filter: "brightness(.6)"},
+          {rotateY: 0, z: 0, opacity: 1, filter: "brightness(1)", ease: "none", scrollTrigger: {trigger: card, containerAnimation: tween, start: "left 100%", end: "left 45%", scrub: true}});
+        gsap.to(card.querySelector(".pcard-img img"), {xPercent: -8, ease: "none", scrollTrigger: {trigger: card, containerAnimation: tween, start: "left right", end: "right left", scrub: true}});
+      });
+      gsap.from(".programs-head > *", {y: 50, opacity: 0, stagger: .08, duration: 1, ease: "expo.out", scrollTrigger: {trigger: pin, start: "top 70%"}});
+    });
+    mm.add("(max-width: 980px)", () => {
+      gsap.from(".pcard", {y: 60, opacity: 0, rotate: 3, stagger: .1, duration: .9, ease: "expo.out", scrollTrigger: {trigger: "#programsTrack", start: "top 85%"}});
+    });
+
+    // Inclinación 3D de las tarjetas con el mouse
+    if(matchMedia("(pointer:fine)").matches){
+      $$(".pcard").forEach((card) => {
+        const rx = gsap.quickTo(card, "rotateX", {duration: .5, ease: "power3"}), ry = gsap.quickTo(card, "rotationY", {duration: .5, ease: "power3"});
+        card.addEventListener("pointermove", (e) => {
+          const r = card.getBoundingClientRect(), nx = (e.clientX - r.left) / r.width, ny = (e.clientY - r.top) / r.height;
+          card.style.setProperty("--mx", nx * 100 + "%"); card.style.setProperty("--my", ny * 100 + "%");
+          rx((.5 - ny) * 8); ry((nx - .5) * 10);
+        });
+        card.addEventListener("pointerleave", () => { rx(0); ry(0); });
+      });
+    }
+
+    /* --- Cifras que cuentan --- */
+    $$(".stat").forEach((st, i) => {
+      const b = st.querySelector("b");
+      const to = +b.dataset.count || 0;
+      gsap.from(st, {y: 50, opacity: 0, duration: .9, delay: i * .08, ease: "expo.out", scrollTrigger: {trigger: ".stats", start: "top 85%"}});
+      if(!to) return;
+      const o = {v: 0};
+      gsap.to(o, {v: to, duration: 1.8, ease: "power3.out", scrollTrigger: {trigger: ".stats", start: "top 85%"},
+        onUpdate: () => { b.textContent = (b.dataset.prefix || "") + o.v.toFixed(+b.dataset.dec || 0) + (b.dataset.suffix || ""); }});
+    });
+
     /* --- Bloque 3: el panel dorado barre la pantalla --- */
     gsap.fromTo("#solution", {clipPath: "inset(0 100% 0 0 round 30px)"}, {clipPath: "inset(0 0% 0 0 round 30px)", ease: "none", scrollTrigger: {trigger: "#solution", start: "top 90%", end: "top 35%", scrub: true}});
     gsap.from("#solution .solution-inner > :not(h2)", {x: 60, opacity: 0, stagger: .1, duration: 1, ease: "expo.out", scrollTrigger: {trigger: "#solution", start: "top 55%"}});
@@ -830,6 +831,7 @@
     }
 
     // Recalcular cuando terminan de cargar imágenes y fuentes (cambian las alturas de los pines).
+    ST.sort();
     addEventListener("load", () => ST.refresh());
     document.fonts && document.fonts.ready.then(() => ST.refresh());
   }
