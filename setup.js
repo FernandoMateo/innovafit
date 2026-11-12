@@ -506,6 +506,10 @@ async function setupCollections() {
       { name: "currency", type: "text", max: 6 },
       { name: "conditions", type: "text", max: 4000 },
       { name: "checkoutUrl", type: "url" },
+      // Bloque de la oferta: el paquete completo (p. ej. "Certificación Internacional 5×1") con su precio.
+      { name: "packName", type: "text", max: 120 },
+      { name: "packPriceBefore", type: "number", min: 0 },
+      { name: "packPrice", type: "number", min: 0 },
       // Video demo: una lección real del campus (Módulo 1 de Biomecánica) o un link de YouTube/Vimeo.
       { name: "demoLesson", type: "relation", collectionId: lessons.id, maxSelect: 1, cascadeDelete: false },
       { name: "demoVideoUrl", type: "url" },

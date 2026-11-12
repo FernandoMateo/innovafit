@@ -87,81 +87,78 @@
   }
 
   /* ================= Render ================= */
+  const NUM = ["", "una", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez"];
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  let PACK = "Certificación Internacional 5×1";
+
   function render(){
     const p = D.promo;
     const progs = D.programs || [];
     const s = p && pbDate(p.startsAt), e = p && pbDate(p.endsAt);
     const range = fmtRange(s, e);
-    const max = p ? p.maxPct : 0, min = p ? p.minPct : 0;
     const status = p ? p.status : "programada";
+    const pack = (p && p.pack) || {};
+    const cur = (p && p.currency) || "USD";
 
-    // Header
+    // Cantidad de formaciones del paquete: el texto dice "cinco"/"5×1" solo si son cinco.
+    const n = progs.length || 5;
+    const nx = n + "×1", nword = NUM[n] || String(n);
+    PACK = pack.name || "Certificación Internacional " + nx;
+    $$("[data-nx]").forEach((el) => { el.textContent = nx; });
+    $$("[data-nword]").forEach((el) => { el.textContent = nword; });
+    $$("[data-nword-cap]").forEach((el) => { el.textContent = cap(nword); });
+    $$("[data-pack]").forEach((el) => { el.textContent = PACK; });
+    $("#bigPct").textContent = nx;
+    $("#progTotal").textContent = pad2(n);
+
+    // Barra superior
     $("#stripTitle").textContent = (p && p.bannerTitle) || "PROMOCIONES INNOVAFIT";
-    $("#stripDates").textContent = range ? range + "." : status === "activa" ? "Promoción vigente." : "Fechas por anunciar.";
-    $("#stripOffer").textContent = max ? "Obtén hasta " + max + "% de descuento en certificaciones y especialidades ISSA." : "Descuentos especiales en certificaciones y especialidades ISSA.";
+    $("#stripDates").textContent = range ? range + "." : status === "activa" ? "Promoción vigente." : status === "finalizada" ? "Promoción finalizada." : "Fechas por anunciar.";
+    $("#stripOffer").textContent = PACK + ": " + nword + " formaciones en un solo paquete" + (pack.pct ? ", con " + pack.pct + "% de descuento." : ".");
 
-    // Nombre de la promoción en los textos de la página
+    // Nombre de la promoción en los textos
+    const isBF = p && /buen\s*fin/i.test(p.name);
     if(p){
-      document.title = p.name + " · 5 certificaciones al precio de 1 | InnovaFit by ISSA";
-      $("#programsEyebrow").textContent = "Paquete " + p.name;
-      $("#buyName").textContent = p.name;
-      $("#leadBtn").textContent = "Quiero recibir información de " + p.name;
+      document.title = PACK + " · " + p.name + " | InnovaFit by ISSA";
+      $("#promoEyebrow").textContent = "Promoción especial · " + p.name;
+      $("#buyLead").textContent = isBF ? "Este Buen Fin," : "Con " + p.name + ",";
+      $("#finalPromo").textContent = isBF ? "la promoción especial del Buen Fin" : "la promoción especial " + p.name;
       $("#doneName2").textContent = p.name;
     }
+    $("#mbarText").textContent = pack.pct ? pack.pct + "% de descuento en el paquete." : cap(nword) + " formaciones en un solo paquete.";
 
-    // Hero
-    const n = progs.length || 5;
-    // "5 al precio de 1" y las 180 horas son del paquete de 5 programas; otras promociones usan su cantidad.
-    if(n !== 5){
-      const word = n === 1 ? "programa" : "programas";
-      $("#heroTitle").innerHTML = `<span class="ln"><span>¡${n} ${word}</span></span><span class="ln gold"><span>con descuento!</span></span>`;
-      $$("[data-pack5]").forEach((el) => { el.hidden = true; });
-      $("#hvPct").textContent = n;
-      $("#statCount").dataset.count = n; $("#statCount").textContent = n;
-      $("#statCount").nextElementSibling.textContent = n === 1 ? "programa con descuento" : "programas con descuento";
-      $("#bulletCount").textContent = n + " " + word;
-      $("#programsCta").textContent = n === 1 ? "Quiero este programa" : "Quiero los " + n + " programas";
-      $("#programSelect").options[0].textContent = "Todos los programas de la promoción";
+    // Bloque de la oferta: precio del paquete (lo carga el admin; si falta, no se inventa)
+    if(pack.price){
+      $("#priceNow").textContent = money(pack.price, cur);
+      $("#priceNowLbl").textContent = "Precio especial" + (isBF ? " Buen Fin" : "");
+    }else{
+      $("#priceNow").classList.add("ask");
     }
-    $("#heroSub").textContent = "Certificación de Entrenador Personal ISSA + especialidades: " + n + " programas en un solo paquete" +
-      (max && min && min !== max ? ", con entre " + min + "% y " + max + "% de descuento en certificaciones y especialidades seleccionadas." :
-       max ? ", con hasta " + max + "% de descuento en certificaciones y especialidades seleccionadas." : ".");
-    $("#bulletPct").textContent = max ? "Hasta " + max + "% de descuento" : "Descuento especial";
-    $("#bigPct").textContent = max ? max + "%" : "5×1";
-    $("#programsCount").textContent = n;
-    $("#progTotal").textContent = pad2(n);
-    $("#mbarText").textContent = max ? "Aprovecha hasta " + max + "% de descuento." : "Aprovecha el descuento de " + PN() + ".";
-    const statPct = $("#statPct");
-    if(max){ statPct.dataset.count = max; statPct.textContent = max + "%"; }
-    else statPct.closest(".stat").hidden = true;
+    if(pack.priceBefore && pack.price) $("#priceBefore").textContent = money(pack.priceBefore, cur);
+    else $("#priceBeforeRow").hidden = true;
+    if(pack.pct){ $("#priceOff").hidden = false; $("#priceOff").textContent = pack.pct + "% de descuento"; }
 
     const heroStatus = $("#heroStatus"), clock = $("#heroClock"), vt = $("#validityText");
     if(!p){
-      heroStatus.textContent = "Promociones InnovaFit · muy pronto";
       vt.textContent = "Vigencia por anunciar.";
     }else if(status === "activa"){
-      heroStatus.textContent = (p.bannerTitle || p.name) + " · promoción activa";
-      vt.textContent = range ? range + "." : "Promoción vigente.";
-      if(e) { vt.textContent = "Termina el " + fmtLong(e) + "."; countdown(clock, e, () => location.reload()); }
+      heroStatus.textContent = "Para entrenadores personales · " + (p.bannerTitle || p.name);
+      vt.textContent = e ? "Promoción válida hasta el " + fmtLong(e) + "." : "Promoción vigente.";
+      if(e) countdown(clock, e, () => location.reload());
     }else if(status === "programada"){
-      heroStatus.textContent = (p.bannerTitle || p.name) + " · muy pronto";
-      vt.textContent = s ? "Comienza el " + fmtLong(s) + "." : "Vigencia por anunciar.";
+      heroStatus.textContent = "Para entrenadores personales · " + (p.bannerTitle || p.name) + " muy pronto";
+      vt.textContent = s ? "La promoción comienza el " + fmtLong(s) + "." : "Vigencia por anunciar.";
       if(s) countdown(clock, s, () => location.reload());
     }else{
-      heroStatus.textContent = (p.bannerTitle || p.name) + " · finalizada";
       vt.textContent = "Esta promoción ya terminó. Déjanos tus datos y te avisamos de la próxima.";
     }
 
     renderPrograms(progs);
-    renderPriceList(progs, p);
     renderSelects(progs);
-    renderDemo(p);
-    renderMentors(p);
-    renderSyllabus(progs);
     renderBacking(progs, p);
-    renderFaq(p, range, max);
+    renderFaq(p, e, status);
 
-    $("#condText").textContent = (p && p.conditions) || ("Promoción " + (range ? range.toLowerCase() : status === "activa" ? "vigente" : "con fechas por anunciar") + ". El porcentaje de descuento depende de cada programa y se indica en su tarjeta; no todos los programas tienen el mismo descuento.");
+    $("#condText").textContent = (p && p.conditions) || ("Promoción " + (range ? range.toLowerCase() : status === "activa" ? "vigente" : "con fechas por anunciar") + ". Las condiciones de inscripción y pago, los requisitos y las certificaciones o acreditaciones dependen de cada programa y se confirman antes de inscribirte.");
 
     // Compra según estado
     const buy = $("#buyBtn");
@@ -184,14 +181,11 @@
     T.initPixel(D.pixelId);
   }
 
-  function offBadge(pr){
-    return pr.pct ? `<span class="pcard-off">-${pr.pct}%<small>${esc(PN())}</small></span>` : "";
-  }
-
+  // Bloque 4: una tarjeta por formación con su nombre oficial (Admin → Certificaciones) y su temario.
   function renderPrograms(progs){
     const track = $("#programsTrack");
     if(!progs.length){
-      track.innerHTML = Array.from({length:5}, (_, i) => `<article class="pcard pending"><div class="pcard-img"><span class="ph">${i + 1}</span></div><div class="pcard-body"><span class="pcard-kind">Programa ${i + 1}</span><h3>Por anunciar</h3><p class="pending-note">InnovaFit publica aquí los programas incluidos.</p></div></article>`).join("");
+      track.innerHTML = Array.from({length:5}, (_, i) => `<article class="pcard pending"><div class="pcard-img"><span class="ph">${i + 1}</span></div><div class="pcard-body"><span class="pcard-kind">Formación ${i + 1}</span><h3>Por anunciar</h3><p class="pending-note">InnovaFit publica aquí el nombre oficial y el temario.</p></div></article>`).join("");
       return;
     }
     track.innerHTML = progs.map((pr, i) => `
@@ -199,77 +193,25 @@
         <div class="pcard-img">
           ${pr.image ? `<img src="${esc(pr.image)}" alt="" loading="lazy" decoding="async">` : `<span class="ph">${i + 1}</span>`}
           <span class="pcard-num">${pad2(i + 1)} / ${pad2(progs.length)}</span>
-          ${offBadge(pr)}
         </div>
         <div class="pcard-body">
-          <span class="pcard-kind">${esc(KIND[pr.kind] || "Programa")}</span>
+          <span class="pcard-kind">Formación ${i + 1}${KIND[pr.kind] ? " · " + esc(KIND[pr.kind]) : ""}</span>
           <h3>${esc(pr.title)}</h3>
           ${pr.summary ? `<p>${esc(pr.summary)}</p>` : `<p class="pending-note">Descripción y temario oficiales en preparación.</p>`}
-          ${pr.highlights.length ? `<div class="chips">${pr.highlights.slice(0, 4).map((h) => `<span>${esc(h)}</span>`).join("")}</div>` : ""}
+          ${pr.highlights.length ? `<div class="chips">${pr.highlights.slice(0, 3).map((h) => `<span>${esc(h)}</span>`).join("")}</div>` : ""}
+          ${pr.accreditation ? `<p class="pcard-acc">${esc(pr.accreditation)}</p>` : ""}
           <button class="btn btn-line btn-sm" type="button" data-syllabus="${esc(pr.id)}">Ver temario</button>
         </div>
       </article>`).join("");
   }
 
-  function renderPriceList(progs, p){
-    const ul = $("#priceList");
-    if(!progs.length){ ul.hidden = true; return; }
-    const cur = (p && p.currency) || "USD";
-    ul.innerHTML = progs.map((pr) => {
-      let price = "";
-      if(pr.finalPrice) price = (pr.priceBefore ? `<s>${money(pr.priceBefore, cur)}</s>` : "") + `<b>${money(pr.finalPrice, cur)}</b>`;
-      else if(pr.pct) price = `<b>Precio al pagar</b>`;
-      return `<li><span>${esc(pr.title)}${pr.pct ? `<span class="off">-${pr.pct}%</span>` : ""}</span><span class="p">${price}</span></li>`;
-    }).join("");
-  }
-
   function renderSelects(progs){
-    const opts = progs.map((pr) => `<option value="${esc(pr.id)}">${esc(pr.title)}${pr.pct ? " · -" + pr.pct + "%" : ""}</option>`).join("");
-    $("#programSelect").insertAdjacentHTML("beforeend", opts);
-    $("#coProgram").innerHTML = `<option value="">${progs.length && progs.length !== 5 ? "Todos los programas de la promoción" : "Los 5 programas (paquete)"}</option>` + opts;
+    const opts = progs.map((pr) => `<option value="${esc(pr.id)}">${esc(pr.title)}</option>`).join("");
+    $("#programSelect").innerHTML = `<option value="">${esc(PACK)} (paquete)</option>` + opts;
+    $("#coProgram").innerHTML = `<option value="">${esc(PACK)} (paquete)</option>` + opts;
     const cc = COUNTRIES.map(([c, n, f]) => `<option value="${c}" data-name="${esc(n)}">${f} ${esc(n)} +${c.replace(/-.*/, "")}</option>`).join("");
     $("#ccSelect").innerHTML = cc;
     $("#coCc").innerHTML = cc;
-  }
-
-  function renderDemo(p){
-    const v = p && p.video;
-    if(!v) return;
-    const media = $("#demoMedia");
-    if(v.title) $("#demoLabel").textContent = "Campus InnovaFit · " + v.title;
-    if(v.type === "file"){
-      // Carga diferida: el video solo se pide cuando el visitante toca reproducir.
-      media.innerHTML = `<button class="demo-play" type="button" aria-label="Reproducir el video del Módulo 1"><span><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></span><em>Módulo 1 · Biomecánica</em></button>`;
-      media.querySelector(".demo-play").onclick = () => {
-        media.innerHTML = `<video controls playsinline autoplay preload="auto" src="${esc(v.url)}"></video>`;
-        T.track("ViewContent", {content_name: "Demo Módulo 1 Biomecánica", content_type: "video"}, "vc-demo-" + T.uuid(), "vc-demo");
-      };
-    }else{
-      media.innerHTML = `<button class="demo-play" type="button" aria-label="Reproducir el video"><span><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></span><em>Módulo 1 · Biomecánica</em></button>`;
-      media.querySelector(".demo-play").onclick = () => {
-        const u = v.url + (v.url.includes("?") ? "&" : "?") + "autoplay=1";
-        media.innerHTML = `<iframe src="${esc(u)}" title="Video demo del campus" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
-        T.track("ViewContent", {content_name: "Demo Módulo 1 Biomecánica", content_type: "video"}, "vc-demo-" + T.uuid(), "vc-demo");
-      };
-    }
-  }
-
-  function renderMentors(p){
-    const list = (p && p.mentorships) || [];
-    const grid = $("#mentorGrid");
-    if(!list.length){
-      grid.innerHTML = `<article class="mcard"><span class="num">01</span><h3>Fechas por confirmar</h3><p class="text">Las mentorías en vivo se publican aquí en cuanto InnovaFit confirme fechas y horarios.</p></article>`;
-      return;
-    }
-    const dd = (v) => v ? `<dd>${esc(v)}</dd>` : `<dd class="tbd">Por confirmar</dd>`;
-    grid.innerHTML = list.map((m, i) => `<article class="mcard">
-      <span class="num">${pad2(i + 1)}</span>
-      <h3>${esc(m.title || "Mentoría en vivo")}</h3>
-      <span class="period">${esc(m.period || "")}</span>
-      <dl><div><dt>Horario</dt>${dd(m.schedule)}</div><div><dt>Plataforma</dt><dd>Zoom</dd></div></dl>
-      ${m.text ? `<p class="text">${esc(m.text)}</p>` : ""}
-      ${m.zoomUrl ? `<a class="btn btn-line btn-sm" href="${esc(m.zoomUrl)}" target="_blank" rel="noopener">Enlace de la sesión</a>` : ""}
-    </article>`).join("");
   }
 
   function modulesHtml(pr){
@@ -278,9 +220,9 @@
       ${m.topics.length ? `<ul>${m.topics.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}</details>`).join("")}</div>`;
   }
 
-  function sideHtml(pr, withCta){
-    return `<p class="pcard-kind">${esc(KIND[pr.kind] || "Programa")}${pr.pct ? " · -" + pr.pct + "% " + esc(PN()) : ""}</p>
-      <h3>${esc(pr.title)}</h3>
+  function sideHtml(pr){
+    return `<p class="pcard-kind">${esc(KIND[pr.kind] || "Formación")} · incluida en ${esc(PACK)}</p>
+      <h3 id="sheetTitle">${esc(pr.title)}</h3>
       ${pr.objective ? `<h4>Objetivo</h4><p>${esc(pr.objective)}</p>` : pr.summary ? `<p>${esc(pr.summary)}</p>` : ""}
       ${pr.profile ? `<h4>Competencias</h4><p>${esc(pr.profile)}</p>` : ""}
       ${pr.audience.length ? `<h4>Para quién es</h4><ul>${pr.audience.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>` : ""}
@@ -288,36 +230,29 @@
       ${pr.accreditation ? `<p class="accr-note">${esc(pr.accreditation)}</p>` : ""}
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         ${pr.brochure ? `<a class="btn btn-line btn-sm" href="${esc(pr.brochure)}" target="_blank" rel="noopener" download>Descargar temario PDF</a>` : ""}
-        ${withCta ? `<a class="btn btn-gold btn-sm" href="#comprar" data-pick="${esc(pr.id)}">Quiero este programa</a>` : ""}
+        <a class="btn btn-gold btn-sm" href="#promocion" data-close-go>Ver la promoción del paquete</a>
       </div>`;
-  }
-
-  function renderSyllabus(progs){
-    const tabs = $("#sylTabs"), panels = $("#sylPanels");
-    if(!progs.length){ tabs.hidden = true; panels.innerHTML = `<div class="syl-empty">Los temarios se publican aquí en cuanto InnovaFit los valide.</div>`; return; }
-    // CPT primero, después las especialidades en el orden de la promoción.
-    const sorted = progs.slice().sort((a, b) => (/\bCPT\b|personal trainer/i.test(b.title) ? 1 : 0) - (/\bCPT\b|personal trainer/i.test(a.title) ? 1 : 0));
-    tabs.innerHTML = sorted.map((pr, i) => `<button class="tab" role="tab" id="tab-${esc(pr.id)}" aria-controls="pan-${esc(pr.id)}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}" data-tab="${esc(pr.id)}"><small>${pad2(i + 1)}</small>${esc(pr.title)}</button>`).join("");
-    panels.innerHTML = sorted.map((pr, i) => `<div class="panel" role="tabpanel" id="pan-${esc(pr.id)}" aria-labelledby="tab-${esc(pr.id)}"${i ? " hidden" : ""}>
-      <aside class="panel-side">${sideHtml(pr, true)}</aside>${modulesHtml(pr)}</div>`).join("");
   }
 
   function renderBacking(progs, p){
     if(p && p.institutional) $("#institutional").textContent = p.institutional;
+    // Cada acreditación solo junto al programa que la tiene.
     const withAccr = progs.filter((pr) => pr.accreditation);
     $("#accrList").innerHTML = withAccr.map((pr) => `<li><div><b>${esc(pr.title)}</b><span>${esc(pr.accreditation)}</span></div></li>`).join("");
   }
 
-  function renderFaq(p, range, max){
-    const status = p ? p.status : "programada";
+  function renderFaq(p, e, status){
     let list = (p && p.faq) || [];
     if(!list.length){
-      // Sin respuestas oficiales cargadas: solo lo que la propia promoción ya dice.
+      const until = e ? "La promoción especial está disponible hasta el " + fmtLong(e) + ", de acuerdo con sus condiciones comerciales."
+        : status === "activa" ? "La promoción especial está vigente, de acuerdo con sus condiciones comerciales. Si se anuncia una fecha de cierre, la verás en esta página."
+        : "Las fechas de la promoción se publican en esta página en cuanto se confirmen.";
       list = [
-        {q: "¿Hasta cuándo es válida la promoción?", a: range ? range + ". La fecha y hora exactas de cierre se muestran en el contador de arriba." : status === "activa" ? "La promoción está vigente. Si se anuncia una fecha de cierre, la verás en esta página con su cuenta regresiva." : "Las fechas se publican en esta página en cuanto se confirmen."},
-        {q: "¿Todos los programas tienen el mismo descuento?", a: "No. El porcentaje depende de cada programa" + (max ? " (hasta " + max + "%)" : "") + " y se indica en su tarjeta."},
-        {q: "¿La formación es online?", a: "Sí. La plataforma es 100% online y On Demand: estudias por módulos con videos, evaluaciones y casos prácticos, según tu disponibilidad."},
-        {q: "¿Cómo aprovecho la promoción?", a: "Tienes dos caminos: comprar directo con el botón «Comprar mi certificación» o dejarnos tus datos para que un asesor te contacte por WhatsApp."},
+        {q: "¿Qué incluye la " + PACK + "?", a: "Incluye " + (NUM[(D.programs || []).length || 5] || "los") + " programas de formación que integran el paquete promocional de InnovaFit. Puedes consultar los contenidos específicos de cada programa en sus respectivos temarios."},
+        {q: "¿Necesito tener experiencia previa como entrenador?", a: "Los requisitos dependen de cada programa. Consulta las condiciones de admisión para conocer el perfil recomendado o requerido."},
+        {q: "¿Cómo puedo conocer los contenidos de cada formación?", a: "Puedes acceder a los temarios individuales desde los botones «Ver temario» de cada programa y revisar los contenidos antes de inscribirte."},
+        {q: "¿Cómo puedo inscribirme?", a: "Haz clic en el botón de inscripción y sigue las indicaciones del proceso de compra. También puedes comunicarte con nuestro equipo de atención por WhatsApp para recibir asesoramiento."},
+        {q: "¿Hasta cuándo está disponible la promoción?", a: until},
       ];
     }
     $("#faqList").innerHTML = list.map((f) => `<details class="qa"><summary>${esc(f.q)}</summary><div class="a">${esc(f.a)}</div></details>`).join("");
@@ -333,44 +268,31 @@
     T.track("ViewContent", {content_name: pr.title, content_ids: [pr.id], content_type: "product"}, "vc-" + pr.id + "-" + T.uuid(), "vc-" + pr.id);
   }
 
-  function selectTab(id, focus){
-    $$("#sylTabs .tab").forEach((t) => { const on = t.dataset.tab === id; t.setAttribute("aria-selected", on); t.tabIndex = on ? 0 : -1; if(on && focus) t.focus(); });
-    $$("#sylPanels .panel").forEach((p) => { p.hidden = p.id !== "pan-" + id; });
-    const panel = $("#pan-" + id);
-    if(window.gsap && !reduce && panel){
-      gsap.fromTo(panel.querySelector(".panel-side"), {x:-30, opacity:0}, {x:0, opacity:1, duration:.6, ease:"expo.out"});
-      gsap.fromTo(panel.querySelectorAll(".mod"), {y:24, opacity:0}, {y:0, opacity:1, duration:.55, stagger:.05, ease:"power3.out"});
-    }
-    const pr = (D.programs || []).find((x) => x.id === id);
-    if(pr) T.track("ViewContent", {content_name: pr.title, content_ids: [pr.id], content_type: "product"}, "vc-" + pr.id + "-" + T.uuid(), "vc-" + pr.id);
-    window.ScrollTrigger && ScrollTrigger.refresh();
-  }
-
   function pickProgram(id){
     state.program = id || "";
     $("#programSelect").value = state.program;
     $("#coProgram").value = state.program;
   }
 
+  // Bloque 7 (y botones de apoyo): solicitud de inscripción en un diálogo, sin salir de la sección.
+  function openInscribe(){
+    $("#programSelect").value = state.program;
+    $$("dialog[open]").forEach((d) => d.close());
+    $("#inscribe").showModal();
+    if(window.gsap && !reduce && !$("#leadForm").hidden) gsap.from("#leadForm > *", {y: 18, opacity: 0, stagger: .03, duration: .5, ease: "power3.out", clearProps: "all"});
+  }
+
   function bindUi(){
     document.addEventListener("click", (e) => {
       const syl = e.target.closest("[data-syllabus]");
       if(syl){ openSyllabus(syl.dataset.syllabus); return; }
-      const pick = e.target.closest("[data-pick]");
-      if(pick){ pickProgram(pick.dataset.pick); $$("dialog[open]").forEach((d) => d.close()); }
-      const tab = e.target.closest("#sylTabs .tab");
-      if(tab){ selectTab(tab.dataset.tab); return; }
+      const ins = e.target.closest("[data-inscribe]");
+      if(ins){ e.preventDefault(); openInscribe(); return; }
       if(e.target.closest("[data-close]")){ e.target.closest("dialog").close(); return; }
       const legal = e.target.closest("[data-open]");
       if(legal){ e.preventDefault(); openLegal(legal.dataset.open); return; }
       // Clic en el fondo del diálogo lo cierra
       if(e.target.tagName === "DIALOG") e.target.close();
-    });
-    $("#sylTabs").addEventListener("keydown", (e) => {
-      if(!["ArrowRight","ArrowLeft"].includes(e.key)) return;
-      const tabs = $$("#sylTabs .tab"), i = tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
-      const next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
-      selectTab(next.dataset.tab, true);
     });
 
     // Menú móvil
@@ -379,7 +301,7 @@
     menu.addEventListener("click", (e) => { if(e.target.closest("a")){ burger.setAttribute("aria-expanded", "false"); menu.classList.remove("open"); } });
 
     $("#buyBtn").onclick = () => {
-      if($("#buyBtn").dataset.mode === "notify"){ scrollToEl($("#routeInfo")); return; }
+      if($("#buyBtn").dataset.mode === "notify"){ openInscribe(); return; }
       $("#coProgram").value = state.program;
       $("#checkout").showModal();
     };
@@ -388,7 +310,6 @@
     bindLeadForm();
     bindCheckout();
   }
-
   function openLegal(kind){
     const p = D.promo;
     $("#legalBody").innerHTML = kind === "privacy"
@@ -455,7 +376,7 @@
         err.textContent = ex.message;
       }finally{
         btn.disabled = false;
-        btn.textContent = "Quiero recibir información de " + PN();
+        btn.textContent = "Solicitar mi inscripción";
       }
     });
   }
@@ -605,11 +526,24 @@
         n.replaceWith(frag);
       }
     });
+    // Los <span> con varias palabras se parten en una copia por palabra, así el título corta bien de línea.
+    [...el.childNodes].forEach((n) => {
+      if(n.nodeType !== 1 || n.children.length || !/\s/.test(n.textContent.trim())) return;
+      const frag = document.createDocumentFragment();
+      n.textContent.trim().split(/\s+/).forEach((w, i) => {
+        if(i) frag.appendChild(document.createTextNode(" "));
+        const c = n.cloneNode(false);
+        if(i) c.removeAttribute("id");
+        c.textContent = w;
+        frag.appendChild(c);
+      });
+      n.replaceWith(frag);
+    });
     [...el.childNodes].forEach((n) => { if(n.nodeType === 1 && n.tagName !== "BR") wrap(n); });
     return out;
   }
   function splitPain(el){
-    const hot = /^(experiencia|certificación|internacional|gimnasios|propio|negocio|diferencie\.?)$/i;
+    const hot = /^(evaluar|planificar|corregir|adaptar|progresar)$/i;
     const words = el.textContent.trim().split(/\s+/);
     el.innerHTML = words.map((w) => `<span class="w${hot.test(w.replace(/[,.]/g, "")) ? " hl" : ""}">${esc(w)}</span>`).join(" ");
     return $$(".w", el);
@@ -631,6 +565,9 @@
       const el = id ? document.getElementById(id) : null;
       if(!el && id !== "top") return;
       e.preventDefault();
+      // Desde un diálogo (p. ej. el temario): primero se cierra, después se baja.
+      const dlg = a.closest("dialog[open]");
+      if(dlg){ dlg.close(); setTimeout(() => scrollToEl(el), 60); return; }
       scrollToEl(id === "top" ? document.body : el);
     });
   }
@@ -647,8 +584,8 @@
       if(!$("#menu").classList.contains("open")) hdr.classList.toggle("hide", y > lastY && y > 400);
       lastY = y;
       const heroEnd = $("#hero").offsetHeight * .7;
-      const buy = $("#comprar").getBoundingClientRect();
-      const show = y > heroEnd && !(buy.top < innerHeight * .8 && buy.bottom > 0);
+      const near = (sel) => { const r = $(sel).getBoundingClientRect(); return r.top < innerHeight * .8 && r.bottom > 0; };
+      const show = y > heroEnd && !near("#promocion") && !near("#inscripcion");
       mbar.classList.toggle("show", show);
       document.body.classList.toggle("mbar-on", show);
     };
@@ -690,9 +627,9 @@
     const intro = gsap.timeline({defaults: {ease: "expo.out"}});
     intro.from(".strip", {yPercent: -100, duration: .8})
       .from(".nav", {yPercent: -60, opacity: 0, duration: .8}, "<.1")
-      .from(chars, {yPercent: 120, rotate: 10, opacity: 0, duration: 1.1, stagger: .022}, "<.1")
+      .from(chars, {yPercent: 120, rotate: 10, opacity: 0, duration: 1.1, stagger: Math.min(.022, 1.3 / chars.length)}, "<.1")
       .from(".hero-eyebrow", {y: 20, opacity: 0, duration: .8}, "<.2")
-      .from([".hero-sub", ".hero-bullets li", ".hero-ctas .btn", ".hero-validity"], {y: 30, opacity: 0, duration: .9, stagger: .06}, "<.35")
+      .from([".hero-sub", ".hero-qs li", ".hero-ctas .btn"], {y: 30, opacity: 0, duration: .9, stagger: .06}, "<.35")
       .from(".hv-plate", {scale: .6, opacity: 0, duration: 1.4}, .3)
       .from(".hv-img", {clipPath: "circle(0% at 50% 60%)", scale: 1.15, duration: 1.6, ease: "expo.inOut"}, .35)
       .from(".hv-badge", {scale: 0, opacity: 0, duration: .9, stagger: .12, ease: "back.out(2)"}, 1.1)
@@ -723,7 +660,8 @@
 
     /* --- Cinta: avanza sola, acelera e inclina con la velocidad del scroll --- */
     const track = $("#marquee");
-    const phrase = [...((D.promo && D.promo.bannerTitle) || PN()).split("/").map((s) => s.trim()).filter(Boolean), ...((D.programs || []).length && D.programs.length !== 5 ? [D.programs.length + " programas"] : ["5 programas", "1 solo precio"]), "Certificación ISSA", "100% online"];
+    const nf = (D.programs || []).length || 5;
+    const phrase = [PACK, nf + " formaciones", "1 solo paquete", ...((D.promo && D.promo.bannerTitle) || PN()).split("/").map((s) => s.trim()).filter(Boolean), "Certificación ISSA", "100% online"];
     track.innerHTML = Array(4).fill(phrase.map((p) => `<span>${p}</span>`).join("")).join("");
     const loop = gsap.to(track, {xPercent: -50, duration: 28, ease: "none", repeat: -1});
     let dir = 1;
@@ -790,43 +728,32 @@
       if(!to) return;
       const o = {v: 0};
       gsap.to(o, {v: to, duration: 1.8, ease: "power3.out", scrollTrigger: {trigger: ".stats", start: "top 85%"},
-        onUpdate: () => { b.textContent = (b.dataset.prefix || "") + Math.round(o.v) + (b.dataset.suffix || ""); }});
+        onUpdate: () => { b.textContent = (b.dataset.prefix || "") + o.v.toFixed(+b.dataset.dec || 0) + (b.dataset.suffix || ""); }});
     });
 
-    /* --- Demo: la pantalla se acerca y se endereza hasta llenar el encuadre --- */
-    mm.add("(min-width: 981px)", () => {
-      gsap.timeline({scrollTrigger: {trigger: "#demoPin", start: "top top", end: "+=110%", pin: true, scrub: 1, anticipatePin: 1}})
-        .fromTo("#demoFrame", {scale: .58, rotateX: 22, y: 60, borderRadius: 48}, {scale: 1, rotateX: 0, y: 0, borderRadius: 28, ease: "power2.out", transformPerspective: 1400}, 0)
-        .from(".demo-head", {y: -40, opacity: .2, ease: "none"}, 0)
-        .from(".demo-points li", {y: 80, opacity: 0, stagger: .08, ease: "power3.out"}, .35)
-        .from(".demo-cta", {y: 40, opacity: 0, ease: "power3.out"}, .6);
-    });
-    mm.add("(max-width: 980px)", () => {
-      gsap.from("#demoFrame", {scale: .86, rotateX: 18, opacity: .3, transformPerspective: 900, ease: "none", scrollTrigger: {trigger: "#demoFrame", start: "top 95%", end: "center 60%", scrub: true}});
-      gsap.from(".demo-points li", {y: 40, opacity: 0, stagger: .08, duration: .8, ease: "expo.out", scrollTrigger: {trigger: ".demo-points", start: "top 90%"}});
+    /* --- Los 10 problemas: las tarjetas entran en cascada --- */
+    gsap.utils.toArray(".prob").forEach((card, i) => {
+      gsap.from(card, {y: 70, opacity: 0, rotateX: -18, transformOrigin: "50% 0%", duration: 1, ease: "expo.out", delay: (i % 3) * .08, scrollTrigger: {trigger: card, start: "top 92%"}});
+      gsap.from(card.querySelector(".prob-n"), {xPercent: -40, opacity: 0, duration: 1.1, ease: "expo.out", delay: (i % 3) * .08 + .15, scrollTrigger: {trigger: card, start: "top 92%"}});
     });
 
-    /* --- Dolor → solución: las palabras se encienden una por una y el panel dorado barre la pantalla --- */
+    /* --- Cierre del bloque 2: las palabras se encienden una por una --- */
     const words = splitPain($("#painTitle"));
     mm.add("(min-width: 981px)", () => {
-      gsap.timeline({scrollTrigger: {trigger: "#painPin", start: "top top", end: "+=170%", pin: true, scrub: .6, anticipatePin: 1}})
+      gsap.timeline({scrollTrigger: {trigger: "#painPin", start: "top top", end: "+=110%", pin: true, scrub: .6, anticipatePin: 1}})
         .to(words, {opacity: 1, stagger: .1, ease: "none"}, 0)
-        .fromTo("#solution", {clipPath: "inset(0 100% 0 0 round 30px)"}, {clipPath: "inset(0 0% 0 0 round 30px)", ease: "power2.inOut", duration: words.length * .1 * .55})
-        .from("#solution .solution-inner > *", {x: 60, opacity: 0, stagger: .15, ease: "power3.out", duration: words.length * .1 * .35}, "<.25");
+        .from("#painPin > :not(h2)", {y: 40, opacity: 0, stagger: .2, ease: "power3.out", duration: words.length * .1 * .4});
     });
     mm.add("(max-width: 980px)", () => {
       gsap.to(words, {opacity: 1, stagger: .1, ease: "none", scrollTrigger: {trigger: "#painTitle", start: "top 80%", end: "bottom 40%", scrub: true}});
-      gsap.fromTo("#solution", {clipPath: "inset(0 100% 0 0 round 30px)"}, {clipPath: "inset(0 0% 0 0 round 30px)", ease: "none", scrollTrigger: {trigger: "#solution", start: "top 90%", end: "top 45%", scrub: true}});
     });
 
-    /* --- Mentorías: tarjetas que se despliegan como cartas --- */
-    gsap.from(".mcard", {rotateX: -70, y: 90, opacity: 0, transformOrigin: "50% 0%", stagger: .14, duration: 1.2, ease: "expo.out", scrollTrigger: {trigger: "#mentorGrid", start: "top 85%"}});
+    /* --- Bloque 3: el panel dorado barre la pantalla --- */
+    gsap.fromTo("#solution", {clipPath: "inset(0 100% 0 0 round 30px)"}, {clipPath: "inset(0 0% 0 0 round 30px)", ease: "none", scrollTrigger: {trigger: "#solution", start: "top 90%", end: "top 35%", scrub: true}});
+    gsap.from("#solution .solution-inner > :not(h2)", {x: 60, opacity: 0, stagger: .1, duration: 1, ease: "expo.out", scrollTrigger: {trigger: "#solution", start: "top 55%"}});
 
-    /* --- Temarios --- */
-    gsap.from("#sylTabs .tab", {y: 20, opacity: 0, stagger: .05, duration: .6, ease: "power3.out", scrollTrigger: {trigger: "#sylTabs", start: "top 90%"}});
-    gsap.from("#sylPanels .panel:not([hidden]) .panel-side", {x: -50, opacity: 0, duration: 1, ease: "expo.out", scrollTrigger: {trigger: "#sylPanels", start: "top 85%"}});
-    gsap.from("#sylPanels .panel:not([hidden]) .mod", {y: 40, opacity: 0, stagger: .06, duration: .8, ease: "expo.out", scrollTrigger: {trigger: "#sylPanels", start: "top 85%"}});
-
+    /* --- Bloque 4: qué obtienes --- */
+    gsap.from(".gets > *, .gets-list li", {y: 30, opacity: 0, stagger: .06, duration: .8, ease: "expo.out", scrollTrigger: {trigger: ".gets", start: "top 85%"}});
     /* --- Respaldo: el "ISSA" gigante se llena de oro como un líquido --- */
     const big = $("#issaBig");
     big.style.setProperty("--fill", "0%");
@@ -834,19 +761,26 @@
     gsap.from(".backing-big span", {scale: .8, opacity: 0, duration: 1.4, ease: "expo.out", scrollTrigger: {trigger: ".backing", start: "top 80%"}});
     gsap.from(".accr li", {x: 50, opacity: 0, stagger: .1, duration: .8, ease: "expo.out", scrollTrigger: {trigger: "#accrList", start: "top 90%"}});
 
-    /* --- Compra: las dos rutas entran desde lados opuestos --- */
-    gsap.from("#routeBuy", {x: -80, rotate: -3, opacity: 0, duration: 1.2, ease: "expo.out", scrollTrigger: {trigger: ".buy-grid", start: "top 85%"}});
-    gsap.from("#routeInfo", {x: 80, rotate: 3, opacity: 0, duration: 1.2, ease: "expo.out", scrollTrigger: {trigger: ".buy-grid", start: "top 85%"}});
-    gsap.from("#leadForm > *", {y: 26, opacity: 0, stagger: .045, duration: .7, ease: "power3.out", scrollTrigger: {trigger: "#leadForm", start: "top 85%"}});
-    gsap.from(".price-list li", {y: 20, opacity: 0, stagger: .06, duration: .6, ease: "power3.out", scrollTrigger: {trigger: "#priceList", start: "top 90%"}});
+    /* --- Bloque 5: la oferta entra desde lados opuestos; el "5×1" crece --- */
+    gsap.from(".offer-inc", {x: -80, rotate: -2, opacity: 0, duration: 1.2, ease: "expo.out", scrollTrigger: {trigger: ".offer", start: "top 85%"}});
+    gsap.from(".offer-price", {x: 80, rotate: 2, opacity: 0, duration: 1.2, ease: "expo.out", scrollTrigger: {trigger: ".offer", start: "top 85%"}});
+    gsap.from(".offer-big", {scale: .5, opacity: 0, duration: 1.4, ease: "back.out(1.6)", scrollTrigger: {trigger: ".offer", start: "top 75%"}});
+    gsap.from(".offer-price > *", {y: 24, opacity: 0, stagger: .07, duration: .7, ease: "power3.out", scrollTrigger: {trigger: ".offer-price", start: "top 80%"}});
+    gsap.from(".price-off", {scale: 0, rotate: -20, duration: 1, ease: "back.out(2.4)", delay: .5, scrollTrigger: {trigger: ".offer-price", start: "top 80%"}});
     gsap.from(".conditions", {y: 30, opacity: 0, duration: .9, ease: "power3.out", scrollTrigger: {trigger: ".conditions", start: "top 92%"}});
 
+    /* --- Bloque 6 --- */
+    gsap.from(".backing .quote", {x: 40, opacity: 0, duration: 1, ease: "expo.out", scrollTrigger: {trigger: ".backing .quote", start: "top 90%"}});
+
+    /* --- Bloque 7: llamada final --- */
+    gsap.from(".final .final-tag, .final .final-btn, .final .fine, .final .btn-wa, .final-brand", {y: 40, opacity: 0, stagger: .1, duration: 1, ease: "expo.out", scrollTrigger: {trigger: ".final-tag", start: "top 90%"}});
+    gsap.to(".final-btn", {scale: 1.04, duration: 1.1, yoyo: true, repeat: -1, ease: "sine.inOut", delay: 2});
     /* --- FAQ --- */
     gsap.from(".qa", {y: 30, opacity: 0, stagger: .07, duration: .8, ease: "expo.out", scrollTrigger: {trigger: "#faqList", start: "top 88%"}});
     gsap.from(".ftr-grid > *", {y: 30, opacity: 0, stagger: .1, duration: .8, ease: "power3.out", scrollTrigger: {trigger: ".ftr", start: "top 95%"}});
 
     /* --- Menú: resalta la sección en pantalla --- */
-    [["#programas", 0], ["#beneficios", 1], ["#como-funciona", 2], ["#faq", 3]].forEach(([sel, i]) => {
+    [["#problemas", 0], ["#formaciones", 1], ["#promocion", 2], ["#faq", 3]].forEach(([sel, i]) => {
       const link = $$("#menu a:not(.btn)")[i];
       ST.create({trigger: sel, start: "top 50%", end: "bottom 50%", onToggle: (s) => link.classList.toggle("on", s.isActive)});
     });

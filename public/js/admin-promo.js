@@ -88,7 +88,8 @@
         <section class="card panel">
           <h3 class="ed-h">Campaña</h3>
           <label class="field"><span>Nombre</span><input class="input" id="pName" value="${esc(d.name)}" placeholder="Buen Fin 2026"></label>
-          <label class="field"><span>Dirección de su landing</span><div style="display:flex;align-items:center;gap:6px"><span class="mono muted" style="font-size:13px">/promo/</span><input class="input" id="pSlug" value="${esc(d.slug || "")}" placeholder="se arma con el nombre"></div></label><input class="input" id="pBanner" value="${esc(d.bannerTitle)}" placeholder="BUEN FIN / BLACK FRIDAY 2026"></label>
+          <label class="field"><span>Dirección de su landing</span><div style="display:flex;align-items:center;gap:6px"><span class="mono muted" style="font-size:13px">/promo/</span><input class="input" id="pSlug" value="${esc(d.slug || "")}" placeholder="se arma con el nombre"></div></label>
+          <label class="field"><span>Título de la barra superior</span><input class="input" id="pBanner" value="${esc(d.bannerTitle)}" placeholder="BUEN FIN / BLACK FRIDAY 2026"></label>
           <div class="two">
             <label class="field"><span>Inicio</span><input class="input" type="datetime-local" id="pStart" value="${toLocalInput(d.startsAt)}"></label>
             <label class="field"><span>Cierre</span><input class="input" type="datetime-local" id="pEnd" value="${toLocalInput(d.endsAt)}"></label>
@@ -98,6 +99,13 @@
             <label class="field"><span>Estado</span><select class="input" id="pStatus">${Object.entries(PST).map(([k, v]) => `<option value="${k}"${d.status === k ? " selected" : ""}>${v[0]}</option>`).join("")}</select></label>
             <label class="field"><span>Moneda</span><input class="input" id="pCur" value="${esc(d.currency || "USD")}" maxlength="6"></label>
           </div>
+          <h3 class="ed-h" style="margin-top:18px">Paquete (bloque de la oferta)</h3>
+          <label class="field"><span>Nombre del paquete</span><input class="input" id="pPackName" value="${esc(d.packName || "")}" placeholder="Certificación Internacional 5×1"></label>
+          <div class="two">
+            <label class="field"><span>Precio regular del paquete</span><input class="input" type="number" min="0" step="0.01" id="pPackBefore" value="${d.packPriceBefore || ""}"></label>
+            <label class="field"><span>Precio especial del paquete</span><input class="input" type="number" min="0" step="0.01" id="pPackPrice" value="${d.packPrice || ""}"></label>
+          </div>
+          <p class="hint">El % de descuento del paquete se calcula solo con estos dos precios. Si los dejás vacíos, la landing muestra "Precio especial: consúltalo con un asesor".</p>
           <label class="check" style="margin-bottom:14px"><input type="checkbox" id="pLanding"${d.landing ? " checked" : ""}> Destacada: también se ve en /buen-fin</label>
           <label class="field"><span>Condiciones aplicables</span><textarea class="input" id="pCond" rows="5" placeholder="Vigencia, programas participantes, formas de pago, restricciones…">${esc(d.conditions)}</textarea></label>
           <label class="field"><span>URL del checkout (pasarela de pago)</span><input class="input" id="pCheckout" value="${esc(d.checkoutUrl)}" placeholder="https://…"></label>
@@ -208,6 +216,9 @@
         currency: $("pCur").value.trim().toUpperCase() || "USD",
         conditions: $("pCond").value.trim(),
         checkoutUrl: $("pCheckout").value.trim(),
+        packName: $("pPackName").value.trim(),
+        packPriceBefore: +$("pPackBefore").value || 0,
+        packPrice: +$("pPackPrice").value || 0,
         demoLesson: $("pLesson").value,
         demoVideoUrl: $("pVideoUrl").value.trim(),
         institutional: $("pInst").value.trim(),
@@ -218,6 +229,7 @@
       };
       if(body.name.length < 3) return fail("Ponele un nombre a la promoción.");
       if(body.startsAt && body.endsAt && new Date(body.endsAt.replace(" ", "T")) <= new Date(body.startsAt.replace(" ", "T"))) return fail("El cierre tiene que ser posterior al inicio.");
+      if(body.packPrice && body.packPriceBefore && body.packPrice >= body.packPriceBefore) return fail("El precio especial del paquete tiene que ser menor que el regular.");
       if(body.checkoutUrl && !/^https:\/\//.test(body.checkoutUrl)) return fail("La URL del checkout tiene que empezar con https://");
       if(body.mentorships.some((m) => m.zoomUrl && !/^https:\/\//.test(m.zoomUrl))) return fail("Los enlaces de Zoom tienen que empezar con https://");
       const btn = $("pSave");
