@@ -738,7 +738,48 @@ async function migrate() {
     console.log("✓ migración 6: dirección propia para cada promoción (/promo/…)");
   }
 
-  const LAST = 6;
+  if (v < 7) {
+    // Certificación Internacional 5×1: temarios oficiales (PDF de InnovaFit), portadas y PDF descargables.
+    // Speed, Agility & Strength reemplaza a Glúteo en la promoción Buen Fin 2026.
+    const SEED = require("./seed/programs-5x1");
+    const lines = (a) => (Array.isArray(a) ? a.join("\n") : a);
+    const all = (await pb("/api/collections/programs/records?perPage=200&sort=order")).items;
+    const ids = [];
+    for (const d of SEED) {
+      let p = all.find((x) => d.match.test(x.title));
+      if (!p) p = await pb("/api/collections/programs/records", { method: "POST", body: { title: d.title, kind: d.kind, published: false, order: d.order } });
+      const body = {};
+      if (!d.keepTitle && d.title) body.title = d.title;
+      if (d.kind) body.kind = d.kind;
+      for (const k of ["summary", "objective", "profile"]) if (d[k]) body[k] = d[k];
+      for (const k of ["highlights", "audience", "resources"]) if (d[k]) body[k] = lines(d[k]);
+      if (d.modules) body.modules = d.modules.map((m) => ({ title: m.title, topics: lines(m.topics) }));
+      await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", body });
+      const f = new FormData();
+      let files = 0;
+      const cover = d.cover && path.join(ROOT, "seed", "covers", d.cover);
+      if (cover && !d.keepImage && fs.existsSync(cover)) {
+        f.set("image", await fs.openAsBlob(cover, { type: "image/jpeg" }), d.cover);
+        files++;
+      }
+      const pdf = d.brochure && path.join(ROOT, "seed", "brochures", d.brochure);
+      if (pdf && fs.existsSync(pdf)) {
+        f.set("brochure", await fs.openAsBlob(pdf, { type: "application/pdf" }), "Temario-" + slug(body.title || p.title) + ".pdf");
+        files++;
+      }
+      if (files) await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", form: f });
+      ids.push(p.id);
+    }
+    const promo = (await pb("/api/collections/promotions/records?perPage=1&filter=" + encodeURIComponent('slug = "buen-fin-2026"'))).items[0];
+    if (promo) {
+      const prev = Array.isArray(promo.items) ? promo.items : [];
+      const items = ids.map((id) => prev.find((it) => it.program === id) || { program: id, pct: 0, finalPrice: 0, priceBefore: 0, accreditation: "" });
+      await pb("/api/collections/promotions/records/" + promo.id, { method: "PATCH", body: { programs: ids, items } });
+    }
+    console.log("✓ migración 7: temarios de la Certificación Internacional 5×1 (" + ids.length + " programas)");
+  }
+
+  const LAST = 7;
   if (v < LAST) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { seedVersion: LAST } });
 }
 
