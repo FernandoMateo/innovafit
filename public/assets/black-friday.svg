@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="50 20 900 700" role="img" aria-labelledby="t">
+<title id="t">Black Friday</title>
+<defs>
+  <linearGradient id="plateG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a3e"/><stop offset=".55" stop-color="#1c1c1f"/><stop offset="1" stop-color="#0b0b0c"/></linearGradient>
+  <radialGradient id="plateHi" cx=".5" cy=".42" r=".55"><stop offset="0" stop-color="#ff8a1e" stop-opacity=".22"/><stop offset="1" stop-color="#ff8a1e" stop-opacity="0"/></radialGradient>
+  <pattern id="grid" width="34" height="34" patternUnits="userSpaceOnUse" patternTransform="skewX(-4)"><path d="M34,0V34H0" fill="none" stroke="#5a5a60" stroke-width="2.4"/><path d="M33,1V33H1" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1"/></pattern>
+  <linearGradient id="orange" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd35a"/><stop offset=".45" stop-color="#ffa81f"/><stop offset=".75" stop-color="#f58a0b"/><stop offset="1" stop-color="#ffb43a"/></linearGradient>
+  <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".42" stop-color="#e9ebef"/><stop offset=".55" stop-color="#b9bdc6"/><stop offset=".8" stop-color="#d9dce2"/><stop offset="1" stop-color="#f6f7f9"/></linearGradient>
+  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc24a"/><stop offset="1" stop-color="#e46a00"/></linearGradient>
+  <filter id="neon" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#000" flood-opacity=".55"/></filter>
+  <clipPath id="plateClip"><path d="M500,38 C540,38 575,52 610,74 L842,222 C884,249 900,286 900,330 L900,520 C900,580 870,616 812,640 L560,690 C520,698 480,698 440,690 L188,640 C130,616 100,580 100,520 L100,330 C100,286 116,249 158,222 L390,74 C425,52 460,38 500,38 Z"/></clipPath>
+  <path id="wBlack" d="M177.6,150H271.85L293.6,171.75V206.55L280.55,222.5L293.6,238.45V273.25L271.85,295H177.6Z M221.1,186.25H250.1V206.55H221.1Z M221.1,238.45H250.1V258.75H221.1Z M304.48,150H347.98V255.85H400.18V295H304.48Z M411.05,295V179L440.05,150H506.75L535.75,179V295H492.25V258.75H454.55V295Z M454.55,189.15H492.25V221.05H454.55Z M574.17,150H656.83V189.15H590.13V255.85H656.83V295H574.17L546.63,267.45V177.55Z M667.7,150H711.2V203.65L748.9,150H792.4L744.55,222.5L792.4,295H748.9L711.2,241.35V295H667.7Z" fill-rule="evenodd"/>
+  <path id="wFriday" d="M96.61,338H213.25V380.12H145.21V401.18H200.29V441.68H145.21V500H96.61Z M225.4,338H330.69L361.48,368.78V412.52L340.42,431.96L361.48,500H311.25L295.06,444.92H274V500H225.4Z M274,378.5H312.88V404.42H274Z M373.63,338H422.23V500H373.63Z M434.38,338H534.82L567.21,370.4V467.6L534.82,500H434.38Z M482.98,381.74H518.62V456.26H482.98Z M579.37,500V370.4L611.76,338H686.28L718.68,370.4V500H670.09V459.5H627.97V500Z M627.97,381.74H670.09V417.38H627.97Z M730.84,338H781.06L802.12,388.22L823.18,338H873.39L826.42,435.2V500H777.82V435.2Z" fill-rule="evenodd"/>
+</defs>
+
+<!-- Placa con canto 3D, rejilla y neÃ³n -->
+<path d="M500,38 C540,38 575,52 610,74 L842,222 C884,249 900,286 900,330 L900,520 C900,580 870,616 812,640 L560,690 C520,698 480,698 440,690 L188,640 C130,616 100,580 100,520 L100,330 C100,286 116,249 158,222 L390,74 C425,52 460,38 500,38 Z" transform="translate(0,22)" fill="#0a0a0b"/>
+<path d="M500,38 C540,38 575,52 610,74 L842,222 C884,249 900,286 900,330 L900,520 C900,580 870,616 812,640 L560,690 C520,698 480,698 440,690 L188,640 C130,616 100,580 100,520 L100,330 C100,286 116,249 158,222 L390,74 C425,52 460,38 500,38 Z" transform="translate(0,12)" fill="#2a2a2e"/>
+<path d="M500,38 C540,38 575,52 610,74 L842,222 C884,249 900,286 900,330 L900,520 C900,580 870,616 812,640 L560,690 C520,698 480,698 440,690 L188,640 C130,616 100,580 100,520 L100,330 C100,286 116,249 158,222 L390,74 C425,52 460,38 500,38 Z" fill="url(#plateG)"/>
+<g clip-path="url(#plateClip)"><rect x="60" y="20" width="880" height="700" fill="url(#grid)" opacity=".85"/><rect x="60" y="20" width="880" height="700" fill="url(#plateHi)"/></g>
+<path d="M500,38 C540,38 575,52 610,74 L842,222 C884,249 900,286 900,330 L900,520 C900,580 870,616 812,640 L560,690 C520,698 480,698 440,690 L188,640 C130,616 100,580 100,520 L100,330 C100,286 116,249 158,222 L390,74 C425,52 460,38 500,38 Z" fill="none" stroke="#ff7a00" stroke-width="7" filter="url(#neon)" transform="translate(500 365) scale(.955) translate(-500 -365)"/>
+<path d="M500,38 C540,38 575,52 610,74 L842,222 C884,249 900,286 900,330 L900,520 C900,580 870,616 812,640 L560,690 C520,698 480,698 440,690 L188,640 C130,616 100,580 100,520 L100,330 C100,286 116,249 158,222 L390,74 C425,52 460,38 500,38 Z" fill="none" stroke="#ffd08a" stroke-width="2" transform="translate(500 365) scale(.955) translate(-500 -365)"/>
+
+<g filter="url(#shadow)">
+  <!-- BLACK: naranja con volumen -->
+  <g transform="skewX(-5) translate(30 0)">
+    <use href="#wBlack" x="10.8" y="18.0" fill="rgb(70,26,0)"/><use href="#wBlack" x="9.9" y="16.5" fill="rgb(81,31,0)"/><use href="#wBlack" x="9.0" y="15.0" fill="rgb(91,36,0)"/><use href="#wBlack" x="8.1" y="13.5" fill="rgb(102,41,0)"/><use href="#wBlack" x="7.2" y="12.0" fill="rgb(112,45,0)"/><use href="#wBlack" x="6.3" y="10.5" fill="rgb(123,50,0)"/><use href="#wBlack" x="5.4" y="9.0" fill="rgb(133,55,0)"/><use href="#wBlack" x="4.5" y="7.5" fill="rgb(144,60,0)"/><use href="#wBlack" x="3.6" y="6.0" fill="rgb(154,65,0)"/><use href="#wBlack" x="2.7" y="4.5" fill="rgb(165,70,0)"/><use href="#wBlack" x="1.8" y="3.0" fill="rgb(175,74,0)"/><use href="#wBlack" x="0.9" y="1.5" fill="rgb(186,79,0)"/>
+    <use href="#wBlack" fill="url(#orange)" stroke="#3b1a00" stroke-width="3" paint-order="stroke"/>
+    <use href="#wBlack" fill="none" stroke="#ffe7a8" stroke-width="1.6" stroke-opacity=".9"/>
+  </g>
+  <!-- FRIDAY: plata con canto naranja -->
+  <g transform="skewX(-5) translate(30 0)">
+    <use href="#wFriday" x="14.0" y="22.4" fill="rgb(60,22,0)"/><use href="#wFriday" x="13.0" y="20.8" fill="rgb(71,27,0)"/><use href="#wFriday" x="12.0" y="19.2" fill="rgb(81,32,0)"/><use href="#wFriday" x="11.0" y="17.6" fill="rgb(92,37,0)"/><use href="#wFriday" x="10.0" y="16.0" fill="rgb(103,42,0)"/><use href="#wFriday" x="9.0" y="14.4" fill="rgb(114,47,0)"/><use href="#wFriday" x="8.0" y="12.8" fill="rgb(124,52,0)"/><use href="#wFriday" x="7.0" y="11.2" fill="rgb(135,57,0)"/><use href="#wFriday" x="6.0" y="9.6" fill="rgb(146,62,0)"/><use href="#wFriday" x="5.0" y="8.0" fill="rgb(156,67,0)"/><use href="#wFriday" x="4.0" y="6.4" fill="rgb(167,72,0)"/><use href="#wFriday" x="3.0" y="4.8" fill="rgb(178,77,0)"/><use href="#wFriday" x="2.0" y="3.2" fill="rgb(189,82,0)"/><use href="#wFriday" x="1.0" y="1.6" fill="rgb(199,87,0)"/>
+    <use href="#wFriday" fill="none" stroke="url(#rim)" stroke-width="13" stroke-linejoin="miter"/>
+    <use href="#wFriday" fill="url(#silver)" stroke="#5b2a00" stroke-width="2.5"/>
+  </g>
+</g>
+</svg>

@@ -1,4 +1,4 @@
-/* Landing Buen Fin / Black Friday · InnovaFit by ISSA. Negro profundo + dorado de campaña. */
+/* Landing Black Friday · InnovaFit by ISSA. Negro profundo + dorado de campaña. */
 :root{
   --bg:#050505;
   --bg-2:#0b0a08;
@@ -593,3 +593,11 @@ html.lenis,html.lenis body{height:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .pain-text .w{opacity:1}
 }
+
+/* ---------- Logo Black Friday ---------- */
+.strip-logo{position:relative;flex:none;height:30px;width:auto;filter:drop-shadow(0 0 8px rgba(255,122,0,.45))}
+.hv-bf{position:absolute;left:-6%;top:-4%;z-index:3;width:42%;height:auto;rotate:-6deg;filter:drop-shadow(0 18px 30px rgba(0,0,0,.6)) drop-shadow(0 0 22px rgba(255,122,0,.3));animation:bfFloat 4.2s ease-in-out infinite}
+.buy-logo{display:block;width:clamp(170px,22vw,260px);height:auto;margin:0 0 18px -8px;filter:drop-shadow(0 20px 36px rgba(0,0,0,.55)) drop-shadow(0 0 30px rgba(255,122,0,.25))}
+@keyframes bfFloat{0%,100%{translate:0 0}50%{translate:0 -10px}}
+@media (max-width:600px){.strip-logo{height:24px}.hv-bf{left:-12%;width:46%}}
+@media (prefers-reduced-motion:reduce){.hv-bf{animation:none}}

@@ -9,8 +9,8 @@ En producción: https://campusinnovafit.tech
 |---|---|
 | `/` | Landing para entrenadores personales |
 | `/promo/<slug>` | Landing propia de cada promoción (la dirección se edita en Admin → Promociones) |
-| `/buen-fin` | Landing de la promoción destacada (Buen Fin / Black Friday), conectada a Meta Ads |
-| `/buen-fin-gracias` | Página de regreso de la pasarela: confirma el pago y dispara `Purchase` |
+| `/black-friday` | Landing de la promoción destacada (Black Friday), conectada a Meta Ads. `/buen-fin` sigue funcionando para anuncios viejos |
+| `/black-friday-gracias` (o `/buen-fin-gracias`) | Página de regreso de la pasarela: confirma el pago y dispara `Purchase` |
 | `/evaluacion` | Evaluación de 25 preguntas (aprueba con 80/100) |
 | `/campus` | Campus del alumno: registro obligatorio, cursos, comprobación, examen de acreditación y certificados |
 | `/admin` | Panel: resumen, evaluaciones (leads), alumnos, seguimiento de acreditación, cursos con editor de preguntas, certificados, catálogo de certificaciones y ajustes |
@@ -24,7 +24,7 @@ En producción: https://campusinnovafit.tech
 - **Registro obligatorio**: sin sesión, el campus muestra los cursos con "Inscripción libre" y un formulario de registro (nombre completo, correo, país, teléfono, contraseña y autorización de datos). Nadie ve contenido sin registrarse. Cada inscripción queda en `enrollments`.
 - **Secuencia de acreditación**: lecciones → estudio de caso → comprobación de conocimientos (lección tipo *Comprobación*: corrección inmediata con explicación) → examen de acreditación (lección tipo *Examen final*: se habilita al completar el resto, 3 oportunidades, aprueba con 80%). Al aprobar, el alumno queda ACREDITADO con fecha y calificación, y el certificado se emite solo. Las preguntas y respuestas viven en `assessments` (solo admin) y se corrigen en el servidor.
 - **Seguimiento** (admin): inscriptos, curso, avance, calificaciones, intentos usados, estado, fecha de acreditación y folio. Desde ahí se habilita "+1 oportunidad" y se exporta a CSV.
-- **Ajustes** (admin): campaña comercial (Buen Fin) con logo opcional, y sello de acreditación del certificado.
+- **Ajustes** (admin): campaña comercial (Black Friday) con logo opcional, y sello de acreditación del certificado.
 - La carga inicial de preguntas sale de `data/assessments-seed.json` (fuera del repo, como `questions.json`). Las portadas de cursos y certificaciones están en `seed/covers/`.
 - **Certificados**: si el curso no tiene examen, al completar todas las lecciones de un curso con "Emitir al completar", el servidor verifica el progreso y emite el certificado con folio correlativo (`IF-AAAA-0001`). El admin también puede emitirlos a mano desde **Certificados**, con vista previa en vivo. Se descargan en PDF o PNG y cualquiera puede verificarlos en `/verificar`.
 - **Panel del alumno**: edita sus datos, foto y contraseña; ve y descarga sus certificados; consulta las certificaciones del catálogo con un mensaje de WhatsApp armado con sus datos.
@@ -61,7 +61,7 @@ UTM: se guardan los 5 (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`
 ### Pasarela de pago
 
 1. En la promoción cargá la **URL del checkout**. La landing le agrega `?ref=<folio>&client_reference_id=<folio>&prefilled_email=…`.
-2. Configurá la URL de regreso de la pasarela: `https://campusinnovafit.tech/buen-fin-gracias?ref=<folio>`.
+2. Configurá la URL de regreso de la pasarela: `https://campusinnovafit.tech/black-friday-gracias?ref=<folio>`.
 3. Configurá el webhook de pago: `POST https://campusinnovafit.tech/api/promo/payment` con cuerpo JSON `{"ref":"<folio>","status":"paid","amount":123.45,"currency":"USD","orderId":"…"}` y la cabecera `x-signature: sha256=<HMAC-SHA256 del cuerpo con PAYMENT_WEBHOOK_SECRET>` (o `x-webhook-token: <PAYMENT_WEBHOOK_SECRET>` si la pasarela no firma). Si la pasarela manda otro formato, se adapta en `lib/promo-routes.js` (ruta `/api/promo/payment`).
 4. Sin URL de checkout, "Comprar" deja la inscripción en "En checkout" y abre WhatsApp con el folio.
 
@@ -89,7 +89,7 @@ La carga inicial busca los videos, audios y PDF del curso en la carpeta de `SEED
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Usuario del panel `/admin` |
 | `WA_NUMBER` | WhatsApp de ventas (código de país + número, sin `+`) |
 | `EXTERNAL_PB=1` | Si PocketBase corre como servicio aparte, `npm start` no lo lanza |
-| `META_PIXEL_ID` | ID del Pixel de Meta de la landing `/buen-fin` |
+| `META_PIXEL_ID` | ID del Pixel de Meta de la landing `/black-friday` |
 | `META_CAPI_TOKEN` | Token de acceso de la Conversions API (Events Manager → Configuración) |
 | `META_TEST_EVENT_CODE` | Opcional: código de prueba de Events Manager (quitarlo en producción) |
 | `KOMMO_SUBDOMAIN` / `KOMMO_TOKEN` | Kommo (amoCRM): subdominio (`innovafit` de innovafit.kommo.com) y token de larga duración de una integración privada |

@@ -1,4 +1,4 @@
-// Admin → Promociones (CRUD de campañas con % por programa) e Inscripciones (leads de la landing /buen-fin).
+// Admin → Promociones (CRUD de campañas con % por programa) e Inscripciones (leads de la landing /black-friday).
 // Usa las utilidades que expone admin.js en window.AdminKit (se carga antes, pero solo se usan al navegar).
 (function(){
   "use strict";
@@ -49,8 +49,8 @@
     const names = new Map(progs.map((p) => [p.id, p.title]));
     const chip = (on, label, off) => `<span class="badge ${on ? "good" : ""}">${on ? "✓ " + label : off}</span>`;
     view.innerHTML = `
-      <div class="head"><div><span class="eyebrow">Campañas de la landing /buen-fin</span><h1>Promociones</h1></div>
-        <div class="actions"><a class="btn btn-ghost" href="/buen-fin?preview=1" target="_blank" rel="noopener">Ver landing</a><a class="btn btn-primary" href="#/promociones/nueva">+ Nueva promoción</a></div></div>
+      <div class="head"><div><span class="eyebrow">Campañas de la landing /black-friday</span><h1>Promociones</h1></div>
+        <div class="actions"><a class="btn btn-ghost" href="/black-friday?preview=1" target="_blank" rel="noopener">Ver landing</a><a class="btn btn-primary" href="#/promociones/nueva">+ Nueva promoción</a></div></div>
       ${integ ? `<div class="integ">${chip(integ.pixel, "Meta Pixel", "Meta Pixel sin configurar")}${chip(integ.capi, "Conversions API", "CAPI sin configurar")}${chip(!!integ.crm, integ.crm === "kommo" ? "Kommo conectado" : "Webhook CRM", "CRM sin configurar")}${chip(integ.paymentWebhook, "Webhook de pago", "Webhook de pago sin configurar")}</div>` : ""}
       <div class="tiles stagger">${list.map((p) => {
         const st = PST[effective(p)];
@@ -87,9 +87,9 @@
       <div class="prog-ed">
         <section class="card panel">
           <h3 class="ed-h">Campaña</h3>
-          <label class="field"><span>Nombre</span><input class="input" id="pName" value="${esc(d.name)}" placeholder="Buen Fin 2026"></label>
+          <label class="field"><span>Nombre</span><input class="input" id="pName" value="${esc(d.name)}" placeholder="Black Friday 2026"></label>
           <label class="field"><span>Dirección de su landing</span><div style="display:flex;align-items:center;gap:6px"><span class="mono muted" style="font-size:13px">/promo/</span><input class="input" id="pSlug" value="${esc(d.slug || "")}" placeholder="se arma con el nombre"></div></label>
-          <label class="field"><span>Título de la barra superior</span><input class="input" id="pBanner" value="${esc(d.bannerTitle)}" placeholder="BUEN FIN / BLACK FRIDAY 2026"></label>
+          <label class="field"><span>Título de la barra superior</span><input class="input" id="pBanner" value="${esc(d.bannerTitle)}" placeholder="BLACK FRIDAY 2026"></label>
           <div class="two">
             <label class="field"><span>Inicio</span><input class="input" type="datetime-local" id="pStart" value="${toLocalInput(d.startsAt)}"></label>
             <label class="field"><span>Cierre</span><input class="input" type="datetime-local" id="pEnd" value="${toLocalInput(d.endsAt)}"></label>
@@ -106,10 +106,10 @@
             <label class="field"><span>Precio especial del paquete</span><input class="input" type="number" min="0" step="0.01" id="pPackPrice" value="${d.packPrice || ""}"></label>
           </div>
           <p class="hint">El % de descuento del paquete se calcula solo con estos dos precios. Si los dejás vacíos, la landing muestra "Precio especial: consúltalo con un asesor".</p>
-          <label class="check" style="margin-bottom:14px"><input type="checkbox" id="pLanding"${d.landing ? " checked" : ""}> Destacada: también se ve en /buen-fin</label>
+          <label class="check" style="margin-bottom:14px"><input type="checkbox" id="pLanding"${d.landing ? " checked" : ""}> Destacada: también se ve en /black-friday</label>
           <label class="field"><span>Condiciones aplicables</span><textarea class="input" id="pCond" rows="5" placeholder="Vigencia, programas participantes, formas de pago, restricciones…">${esc(d.conditions)}</textarea></label>
           <label class="field"><span>URL del checkout (pasarela de pago)</span><input class="input" id="pCheckout" value="${esc(d.checkoutUrl)}" placeholder="https://…"></label>
-          <p class="hint">Se le agrega <code>?ref=FOLIO</code>. Configurá la pasarela para volver a <code>/buen-fin-gracias?ref=FOLIO</code> y avisar el pago a <code>/api/promo/payment</code>. Sin URL, la compra sigue por WhatsApp.</p>
+          <p class="hint">Se le agrega <code>?ref=FOLIO</code>. Configurá la pasarela para volver a <code>/black-friday-gracias?ref=FOLIO</code> y avisar el pago a <code>/api/promo/payment</code>. Sin URL, la compra sigue por WhatsApp.</p>
 
           <h3 class="ed-h" style="margin-top:22px">Video demo</h3>
           <label class="field"><span>Lección del campus</span><select class="input" id="pLesson"><option value="">— Ninguna —</option>${lessons.map((l) => `<option value="${l.id}"${d.demoLesson === l.id ? " selected" : ""}>${esc((l.expand && l.expand.course ? l.expand.course.title + " · " : "") + l.title)}</option>`).join("")}</select></label>
@@ -291,7 +291,7 @@
     const pName = new Map(promos.map((p) => [p.id, p.name]));
     const sel = (id, label, opts, val) => `<label>${label}<select class="input" id="${id}">${opts.map(([v, l]) => `<option value="${esc(v)}"${val === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`;
     view.innerHTML = `
-      <div class="head"><div><span class="eyebrow">Leads de la landing /buen-fin</span><h1>Inscripciones</h1></div>
+      <div class="head"><div><span class="eyebrow">Leads de la landing /black-friday</span><h1>Inscripciones</h1></div>
         <div class="actions"><button class="btn btn-ghost" id="lCsv">Exportar CSV</button><button class="btn btn-primary" id="lXlsx">Exportar Excel</button></div></div>
       <div class="kpis stagger sales-kpis">
         ${kpi("Con este filtro", counts[0], "📋", "inscripciones")}
@@ -312,7 +312,7 @@
         <thead><tr><th>Persona</th><th>WhatsApp</th><th>Programa</th><th>Estado</th><th>Origen</th><th>CRM</th><th>Fecha</th></tr></thead>
         <tbody class="stagger">${res.items.map((l) => `<tr data-id="${l.id}" class="click-row">
           <td><b>${esc(l.name)}</b><span class="sub">${esc(l.email)} · ${esc([l.city, l.countryName].filter(Boolean).join(", "))}</span></td>
-          <td><a href="${waLink(l.country, l.phone, "Hola " + (l.name || "").split(" ")[0] + "! Te escribimos de InnovaFit por tu interés en la promoción " + (pName.get(l.promotion) || "Buen Fin") + ".")}" target="_blank" rel="noopener" style="color:var(--good)" data-stop>+${esc(l.country)} ${esc(l.phone)}</a></td>
+          <td><a href="${waLink(l.country, l.phone, "Hola " + (l.name || "").split(" ")[0] + "! Te escribimos de InnovaFit por tu interés en la promoción " + (pName.get(l.promotion) || "Black Friday") + ".")}" target="_blank" rel="noopener" style="color:var(--good)" data-stop>+${esc(l.country)} ${esc(l.phone)}</a></td>
           <td>${esc(l.programTitle || "—")}<span class="sub">${esc(pName.get(l.promotion) || "")}</span></td>
           <td>${l.status === "pagado" ? '<span class="badge good">Pagado</span>' : `<select class="mini-select" data-status data-stop aria-label="Estado">${Object.entries(ST).filter(([k]) => k !== "pagado").map(([k, v]) => `<option value="${k}"${l.status === k ? " selected" : ""}>${v[0]}</option>`).join("")}</select>`}</td>
           <td><span class="sub" style="color:var(--fg)">${esc(l.utm_source || "directo")}</span><span class="sub">${esc(l.utm_campaign || "")}</span></td>
@@ -419,7 +419,7 @@
     const {downloadCsv, ok, fail, todayISO} = K();
     try{
       const rows = (await pb.collection("promo_leads").getFullList({sort:"-created", filter: filterStr(), batch:500})).map((l) => rowOf(l, pName));
-      const name = "inscripciones-buen-fin-" + todayISO();
+      const name = "inscripciones-black-friday-" + todayISO();
       if(kind === "csv") return downloadCsv(name + ".csv", HEAD, rows);
       const XLSX = await loadXlsx();
       const ws = XLSX.utils.aoa_to_sheet([HEAD, ...rows]);

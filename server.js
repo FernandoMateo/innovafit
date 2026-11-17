@@ -743,7 +743,7 @@ app.post("/api/inscriptions/:id/cancel", express.json({ limit: "4kb" }), async (
   }
 });
 
-/* ---------- Landing de promociones (/buen-fin) e Inscripciones ---------- */
+/* ---------- Landing de promociones (/black-friday) e Inscripciones ---------- */
 require("./lib/promo-routes")(app, { authUser });
 
 /* ---------- Páginas ---------- */

@@ -485,20 +485,20 @@ async function setupCollections() {
     deleteRule: ADMIN,
   });
 
-  // Promociones de campaña (Buen Fin, Black Friday…): fechas, programas incluidos y % POR programa.
-  // La landing /buen-fin las lee a través del servidor (nunca directo), así que el público no las lista.
+  // Promociones de campaña (Black Friday…): fechas, programas incluidos y % POR programa.
+  // La landing /black-friday las lee a través del servidor (nunca directo), así que el público no las lista.
   const promotions = await upsertCollection({
     name: "promotions",
     type: "base",
     fields: [
       { name: "name", type: "text", required: true, max: 120 },
-      { name: "bannerTitle", type: "text", max: 120 }, // "BUEN FIN / BLACK FRIDAY 2026"
+      { name: "bannerTitle", type: "text", max: 120 }, // "BLACK FRIDAY 2026"
       // Dirección de su landing: /promo/<slug>
       { name: "slug", type: "text", max: 60, pattern: "^[a-z0-9-]*$" },
       { name: "startsAt", type: "date" },
       { name: "endsAt", type: "date" },
       { name: "status", type: "select", values: ["programada", "activa", "finalizada"], maxSelect: 1, required: true },
-      // La que se muestra en /buen-fin cuando hay más de una vigente.
+      // La que se muestra en /black-friday cuando hay más de una vigente.
       { name: "landing", type: "bool" },
       { name: "programs", type: "relation", collectionId: programs.id, maxSelect: 20, cascadeDelete: false },
       // [{program, pct, finalPrice, priceBefore, accreditation}] en el orden de la landing.
@@ -613,7 +613,7 @@ async function getSettings() {
   if (r.items[0]) return r.items[0];
   return pb("/api/collections/settings/records", {
     method: "POST",
-    body: { campaignOn: true, campaignTitle: "Buen Fin InnovaFit", campaignText: "Cursos gratis con certificado y precios especiales en certificaciones durante noviembre.", seedVersion: 0 },
+    body: { campaignOn: true, campaignTitle: "Black Friday InnovaFit", campaignText: "Cursos gratis con certificado y precios especiales en certificaciones durante noviembre.", seedVersion: 0 },
   });
 }
 
@@ -683,7 +683,7 @@ async function migrate() {
 
   if (v < 3) {
     // Notas de la landing que antes estaban fijas en el HTML.
-    const notes = { "Certificación Personal Trainer (CPT)": "Doble aval: nacional e internacional", "Paquete Entrenador Élite": "Precios especiales de Buen Fin en noviembre" };
+    const notes = { "Certificación Personal Trainer (CPT)": "Doble aval: nacional e internacional", "Paquete Entrenador Élite": "Precios especiales de Black Friday en noviembre" };
     for (const p of (await pb("/api/collections/programs/records?perPage=200")).items) {
       if (notes[p.title] && !p.note) await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", body: { note: notes[p.title] } });
     }
@@ -723,7 +723,7 @@ async function migrate() {
 
   if (v < 5) {
     await seedPromotion();
-    console.log("✓ migración 5: promoción Buen Fin 2026 en borrador (Admin → Promociones)");
+    console.log("✓ migración 5: promoción Black Friday 2026 en borrador (Admin → Promociones)");
   }
 
   if (v < 6) {
@@ -740,7 +740,7 @@ async function migrate() {
 
   if (v < 7) {
     // Certificación Internacional 5×1: temarios oficiales (PDF de InnovaFit), portadas y PDF descargables.
-    // Speed, Agility & Strength reemplaza a Glúteo en la promoción Buen Fin 2026.
+    // Speed, Agility & Strength reemplaza a Glúteo en la promoción Black Friday 2026.
     const SEED = require("./seed/programs-5x1");
     const lines = (a) => (Array.isArray(a) ? a.join("\n") : a);
     const all = (await pb("/api/collections/programs/records?perPage=200&sort=order")).items;
@@ -770,7 +770,7 @@ async function migrate() {
       if (files) await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", form: f });
       ids.push(p.id);
     }
-    const promo = (await pb("/api/collections/promotions/records?perPage=1&filter=" + encodeURIComponent('slug = "buen-fin-2026"'))).items[0];
+    const promo = (await pb("/api/collections/promotions/records?perPage=1&filter=" + encodeURIComponent('slug = "buen-fin-2026" || slug = "black-friday-2026"'))).items[0];
     if (promo) {
       const prev = Array.isArray(promo.items) ? promo.items : [];
       const items = ids.map((id) => prev.find((it) => it.program === id) || { program: id, pct: 0, finalPrice: 0, priceBefore: 0, accreditation: "" });
@@ -779,11 +779,30 @@ async function migrate() {
     console.log("✓ migración 7: temarios de la Certificación Internacional 5×1 (" + ids.length + " programas)");
   }
 
-  const LAST = 7;
-  if (v < LAST) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { seedVersion: LAST } });
+  if (v < 8) {
+    // Buen Fin pasa a Black Friday: textos guardados de la campaña, la promoción y las notas del catálogo.
+    const bf = (t) => String(t || "").replace(/BUEN FIN \/ BLACK FRIDAY/g, "BLACK FRIDAY").replace(/El Buen Fin/g, "Black Friday").replace(/del Buen Fin/g, "de Black Friday").replace(/de Buen Fin/g, "de Black Friday").replace(/BUEN FIN/g, "BLACK FRIDAY").replace(/Buen Fin/gi, "Black Friday");
+    const s = await getSettings();
+    const sPatch = {};
+    for (const k of ["campaignTitle", "campaignText"]) if (/buen fin/i.test(s[k] || "")) sPatch[k] = bf(s[k]);
+    if (Object.keys(sPatch).length) await pb("/api/collections/settings/records/" + s.id, { method: "PATCH", body: sPatch });
+    for (const p of (await pb("/api/collections/promotions/records?perPage=200")).items) {
+      const patch = {};
+      for (const k of ["name", "bannerTitle", "conditions", "institutional"]) if (/buen fin/i.test(p[k] || "")) patch[k] = bf(p[k]);
+      if (p.slug === "buen-fin-2026") patch.slug = "black-friday-2026";
+      if (Array.isArray(p.faq) && JSON.stringify(p.faq).match(/buen fin/i)) patch.faq = p.faq.map((f) => ({ ...f, q: bf(f.q), a: bf(f.a) }));
+      if (Object.keys(patch).length) await pb("/api/collections/promotions/records/" + p.id, { method: "PATCH", body: patch });
+    }
+    for (const p of (await pb("/api/collections/programs/records?perPage=200")).items) {
+      if (/buen fin/i.test(p.note || "")) await pb("/api/collections/programs/records/" + p.id, { method: "PATCH", body: { note: bf(p.note) } });
+    }
+    console.log("✓ migración 8: campaña renombrada de Buen Fin a Black Friday");
+  }
+
+  const LAST = 8;  if (v < LAST) await pb("/api/collections/settings/records/" + settings.id, { method: "PATCH", body: { seedVersion: LAST } });
 }
 
-// Promoción Buen Fin 2026 en estado "programada", sin fechas ni porcentajes: el equipo de InnovaFit
+// Promoción Black Friday 2026 en estado "programada", sin fechas ni porcentajes: el equipo de InnovaFit
 // los completa en Admin → Promociones. Las especialidades se crean como borrador (no publicadas en el
 // campus) solo con el nombre: su temario oficial lo carga InnovaFit en Admin → Certificaciones.
 async function seedPromotion() {
@@ -807,9 +826,9 @@ async function seedPromotion() {
   await pb("/api/collections/promotions/records", {
     method: "POST",
     body: {
-      name: "Buen Fin 2026",
-      slug: "buen-fin-2026",
-      bannerTitle: "BUEN FIN / BLACK FRIDAY 2026",
+      name: "Black Friday 2026",
+      slug: "black-friday-2026",
+      bannerTitle: "BLACK FRIDAY 2026",
       status: "programada",
       landing: true,
       currency: "USD",

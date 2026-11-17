@@ -1125,7 +1125,7 @@
           <label class="field"><span>Nota del precio (opcional)</span><input class="input" name="priceNote" maxlength="120" value="${esc(x.priceNote || "")}" placeholder="o $10,230 MXN a 6 meses sin intereses"></label>
           <label class="field"><span>Texto si no hay precio</span><input class="input" name="priceLabel" value="${esc(x.priceLabel || "")}" placeholder="Precio a consultar"></label>
         </div>
-        <label class="field"><span>Nota destacada en la web (opcional)</span><input class="input" name="note" value="${esc(x.note || "")}" placeholder="Ej: Precio Buen Fin"></label>
+        <label class="field"><span>Nota destacada en la web (opcional)</span><input class="input" name="note" value="${esc(x.note || "")}" placeholder="Ej: Precio Black Friday"></label>
         <div class="field"><span>Imagen (16:9)</span>
           <div class="cover-prev" id="pPrev" ${x.image ? `style="background-image:url('${fileUrl(x, x.image, "640x360")}')"` : ""}>${x.image ? "" : "Sin imagen"}</div>
           <input class="input" type="file" name="image" accept="image/png,image/jpeg,image/webp"></div>
@@ -1509,14 +1509,14 @@
       <div class="editor">
         <form class="card panel spot" id="campForm" novalidate>
           <h2>Campaña comercial</h2>
-          <p class="hint" style="margin:0 0 14px">Se muestra en la pantalla de registro, en Mis cursos y en Certificaciones, con una cinta “BUEN FIN” sobre cada curso.</p>
+          <p class="hint" style="margin:0 0 14px">Se muestra en la pantalla de registro, en Mis cursos y en Certificaciones, con una cinta “BLACK FRIDAY” sobre cada curso.</p>
           <label class="check" style="margin-bottom:14px"><input type="checkbox" name="campaignOn"${s.campaignOn ? " checked" : ""}> Campaña activa</label>
           <label class="field"><span>Título</span><input class="input" name="campaignTitle" value="${esc(s.campaignTitle || "")}" maxlength="80"></label>
           <label class="field"><span>Texto</span><input class="input" name="campaignText" value="${esc(s.campaignText || "")}" maxlength="240"></label>
           <div class="field"><span>Logo de la campaña (opcional)</span>
-            <div class="cover-prev" id="campPrev" style="aspect-ratio:3/1;background-size:contain;${s.campaignLogo ? `background-image:url('${fileUrl(s, s.campaignLogo)}')` : ""}">${s.campaignLogo ? "" : "Sin logo: se usa la insignia Buen Fin de InnovaFit"}</div>
+            <div class="cover-prev" id="campPrev" style="aspect-ratio:3/1;background-size:contain;${s.campaignLogo ? `background-image:url('${fileUrl(s, s.campaignLogo)}')` : ""}">${s.campaignLogo ? "" : "Sin logo: se usa el logo Black Friday de InnovaFit"}</div>
             <input class="input" type="file" name="campaignLogo" accept="image/*"></div>
-          <p class="hint">Si InnovaFit está registrada como participante de El Buen Fin, subí acá el logo oficial que te dieron.</p>
+          <p class="hint">Si querés usar otro logo de campaña, subilo acá; si no, se muestra el logo Black Friday.</p>
           ${saleAdminHtml(s, progs)}
           <p class="error-msg" id="campErr" role="alert"></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-primary">Guardar campaña</button>${s.campaignLogo ? '<button type="button" class="btn btn-ghost" id="campRm">Quitar logo</button>' : ""}</div>

@@ -1,4 +1,4 @@
-// Landing de promociones · InnovaFit by ISSA (/buen-fin = la destacada, /promo/<slug> = cada promoción)
+// Landing de promociones · InnovaFit by ISSA (/black-friday = la destacada, /promo/<slug> = cada promoción)
 // 1) carga la promoción vigente desde /api/promo/active (fechas, programas y % por programa los edita el admin)
 // 2) formularios de información y de compra, con eventos de Meta deduplicados
 // 3) coreografía de scroll con GSAP + ScrollTrigger + Lenis (desactivada con "reducir movimiento")
@@ -109,12 +109,12 @@
     $("#stripOffer").textContent = PACK + ": cinco formaciones en un solo paquete" + (pack.pct ? ", con " + pack.pct + "% de descuento." : ".");
 
     // Nombre de la promoción en los textos
-    const isBF = p && /buen\s*fin/i.test(p.name);
+    const isBF = p && /black\s*friday|buen\s*fin/i.test(p.name);
     if(p){
       document.title = PACK + " · " + p.name + " | InnovaFit by ISSA";
       $("#promoEyebrow").textContent = "Promoción especial · " + p.name;
-      $("#buyLead").textContent = isBF ? "Este Buen Fin," : "Con " + p.name + ",";
-      $("#finalPromo").textContent = isBF ? "la promoción especial del Buen Fin" : "la promoción especial " + p.name;
+      $("#buyLead").textContent = isBF ? "Este Black Friday," : "Con " + p.name + ",";
+      $("#finalPromo").textContent = isBF ? "la promoción especial de Black Friday" : "la promoción especial " + p.name;
       $("#doneName2").textContent = p.name;
     }
     $("#mbarText").textContent = pack.pct ? pack.pct + "% de descuento en el paquete." : "Cinco formaciones en un paquete.";
@@ -122,7 +122,7 @@
     // Bloque de la oferta: precio del paquete (lo carga el admin; si falta, no se inventa)
     if(pack.price){
       $("#priceNow").textContent = money(pack.price, cur);
-      $("#priceNowLbl").textContent = "Precio especial" + (isBF ? " Buen Fin" : "");
+      $("#priceNowLbl").textContent = "Precio especial" + (isBF ? " Black Friday" : "");
     }else{
       $("#priceNow").classList.add("ask");
     }

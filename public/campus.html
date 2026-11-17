@@ -193,18 +193,17 @@
   .consent{font-size:12.5px;color:var(--muted);align-items:flex-start;line-height:1.45;margin:4px 0 6px}
   .consent input{margin-top:3px}
 
-  /* Campaña (Buen Fin) */
+  /* Campaña (Black Friday) */
   .campaign{display:flex;align-items:center;gap:16px;padding:14px 18px;border-radius:18px;margin-bottom:22px;position:relative;overflow:hidden;
-    background:linear-gradient(110deg,rgba(255,45,85,.22),rgba(255,90,31,.14) 50%,rgba(255,201,60,.08));border:1px solid rgba(255,80,80,.35)}
+    background:linear-gradient(110deg,#141416,rgba(255,138,0,.16) 55%,rgba(255,196,74,.08));border:1px solid rgba(255,138,0,.45)}
   .campaign::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.14) 50%,transparent 60%);background-size:250% 100%;animation:sweep 4.5s ease-in-out infinite}
   @keyframes sweep{0%,40%{background-position:130% 0}100%{background-position:-130% 0}}
   .campaign img{height:46px;width:auto;flex:none;border-radius:8px}
   .campaign b{display:block;font-size:16px}
   .campaign span{font-size:13.5px;color:#f1e3d6}
-  .bf-badge{flex:none;display:grid;place-items:center;width:62px;height:62px;border-radius:16px;transform:rotate(-6deg);
-    background:linear-gradient(140deg,#ff2d55,#ff5a1f);box-shadow:0 10px 30px -10px rgba(255,45,85,.8);font-family:var(--display);font-size:15px;line-height:.95;text-align:center;color:#fff;text-transform:uppercase}
-  .ribbon{position:absolute;top:12px;left:-34px;z-index:2;transform:rotate(-35deg);width:140px;text-align:center;padding:5px 0;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;
-    background:linear-gradient(90deg,#ff2d55,#ff5a1f);color:#fff;box-shadow:0 6px 18px -6px rgba(255,45,85,.8)}
+  .campaign img.bf-logo{height:72px;border-radius:0;filter:drop-shadow(0 8px 18px rgba(255,122,0,.35))}
+  .ribbon{position:absolute;top:14px;left:-44px;z-index:2;transform:rotate(-35deg);width:170px;text-align:center;padding:5px 0;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;
+    background:linear-gradient(90deg,#0d0d0f,#26262a);color:#ffa81f;border-block:1px solid #ff8a00;box-shadow:0 6px 18px -6px rgba(255,122,0,.8)}
   .course,.prog,.gcourse{position:relative}
   .badge.acc{background:rgba(52,211,153,.14);color:var(--good);border-color:rgba(52,211,153,.4)}
   .more-title{margin:46px 0 16px;font-size:30px}
@@ -295,7 +294,7 @@
   @keyframes tourIn{from{opacity:0}to{opacity:1}}
   @media (prefers-reduced-motion:reduce){.tour-hole,.tour-tip{transition:none;animation:none}}
 
-  /* Promociones vigentes (lleva a la landing /buen-fin) */
+  /* Promociones vigentes (lleva a la landing /black-friday) */
   .promo-now{margin:0 0 26px}
   .promo-list{display:grid;gap:14px}
   .promo-all{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#f2c14e;text-decoration:none}

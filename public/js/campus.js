@@ -32,14 +32,14 @@
   const NEXT_KEY = "innovafit_next";
   const takeNext = () => { try{ const n = sessionStorage.getItem(NEXT_KEY); sessionStorage.removeItem(NEXT_KEY); return n || ""; }catch{ return ""; } };
 
-  /* ---------- Campaña comercial (Buen Fin) ---------- */
+  /* ---------- Campaña comercial (Black Friday) ---------- */
   async function campaignHtml(){
     const s = await settings();
     if(!s.campaignOn) return "";
-    const mark = s.campaignLogo ? `<img src="${fileUrl(s, s.campaignLogo)}" alt="${esc(s.campaignTitle || "Campaña")}">` : `<span class="bf-badge">Buen<br>Fin</span>`;
+    const mark = s.campaignLogo ? `<img src="${fileUrl(s, s.campaignLogo)}" alt="${esc(s.campaignTitle || "Campaña")}">` : `<img class="bf-logo" src="/assets/black-friday.svg" alt="Black Friday">`;
     return `<div class="campaign">${mark}<div><b>${esc(s.campaignTitle || "")}</b><span>${esc(s.campaignText || "")}</span></div></div>`;
   }
-  const ribbon = async () => ((await settings()).campaignOn ? `<span class="ribbon">BUEN FIN</span>` : "");
+  const ribbon = async () => ((await settings()).campaignOn ? `<span class="ribbon">BLACK FRIDAY</span>` : "");
 
   /* ---------- Acceso: registro obligatorio o ingreso ---------- */
   let pickedCourse = null;
